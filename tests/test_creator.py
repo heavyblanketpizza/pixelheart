@@ -147,9 +147,9 @@ class CreatorTests(unittest.TestCase):
         self.assertNotIn('Coffee', result['character']['gifts']['love'])
 
     def test_over_capacity_preview_is_rejected_without_losing_existing_content(self):
-        self.document['character']['dialogues'] = [{'id': str(index), 'trigger': 'custom_' + str(index), 'text': 'My writing.'} for index in range(250)]
+        self.document['character']['dialogues'] = [{'id': str(index), 'trigger': 'custom_' + str(index), 'text': 'My writing.'} for index in range(2000)]
         before = copy.deepcopy(self.document)
-        with self.assertRaisesRegex(CreatorError, '250-dialogues'):
+        with self.assertRaisesRegex(CreatorError, '2000-dialogues'):
             build_proposal(self.document, self.brief)
         self.assertEqual(self.document, before)
 

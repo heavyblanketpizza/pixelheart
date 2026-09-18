@@ -143,6 +143,67 @@ class ExportTests(unittest.TestCase):
             self.assertEqual(archive.read("[CP] Mira/assets/portraits.png"), self.portrait.read_bytes())
             self.assertEqual(archive.read("[CP] Mira/assets/sprites.png"), self.sprite.read_bytes())
 
+    def test_sources_survive_export_with_asset_specific_credits_and_portable_paths(self):
+        source = {"provider": "local-content-patcher", "asset": "Characters/Dialogue/Abigail",
+                  "sha256": "a" * 64, "source_name": "Local Content Patcher export",
+                  "attribution": "Original game content © ConcernedApe",
+                  "source_url": "https://github.com/Pathoschild/StardewMods", "modified_game_possible": True}
+        self.data["dialogues"][0]["source"] = copy.deepcopy(source)
+        portrait_source = {**source, "asset": "Portraits/Abigail"}
+        sprite_source = {**source, "asset": "Characters/Elliott"}
+        document = {"character": copy.deepcopy(self.data), "artwork": {
+            "portrait": {"original": "artwork/private-original-name.png", "prepared": "artwork/private-prepared.png",
+                         "selected": "prepared", "source": portrait_source},
+            "sprite": {"original": "artwork/private-upload.png", "selected": "original", "source_history": [sprite_source]},
+            "variants": {"winter": {"portrait": {"original": "artwork/private-winter.png", "source": portrait_source}}},
+        }}
+        before = copy.deepcopy(document)
+        blob = build_mod_archive(self.data, self.portrait, self.sprite, project_document=document,
+                                 appearances={"winter": {"portrait": self.portrait}})
+        with zipfile.ZipFile(io.BytesIO(blob)) as archive:
+            backup = json.loads(archive.read("[CP] Mira/project.json"))
+            credits = archive.read("[CP] Mira/CREDITS.txt").decode()
+            self.assertEqual(backup["character"]["dialogues"][0]["source"], source)
+            self.assertEqual(backup["artwork"]["portrait"], {
+                "original": "assets/portraits.png", "selected": "original", "source": portrait_source})
+            self.assertEqual(backup["artwork"]["sprite"]["source_history"], [sprite_source])
+            self.assertNotIn("source", backup["artwork"]["sprite"])
+            self.assertEqual(backup["artwork"]["variants"]["winter"]["portrait"]["source"], portrait_source)
+            self.assertIn("Dialogue (1 imported entries)", credits)
+            self.assertIn("Default sprite — previous-sheet source (history only)", credits)
+            self.assertIn("not permission to redistribute", credits)
+            self.assertIn("changes from installed mods", credits)
+            for private in ("private-original-name", "private-prepared", "private-upload", "private-winter", str(self.temporary.name)):
+                self.assertNotIn(private, json.dumps(backup))
+                self.assertNotIn(private, credits)
+            extracted = Path(self.temporary.name) / "credited-export"
+            archive.extractall(extracted)
+        project_file = extracted / "[CP] Mira" / "project.json"
+        reopened = load_project(project_file)
+        self.assertEqual(resolve_artwork(reopened, project_file, "portrait").read_bytes(), self.portrait.read_bytes())
+        self.assertEqual(reopened["artwork"]["sprite"]["source_history"], [sprite_source])
+        self.assertEqual(document, before)
+
+    def test_export_rejects_private_source_metadata(self):
+        for source in ({"source_name": "/Users/private/game"}, {"path": "C:\\private\\sheet.png"}):
+            with self.subTest(source=source):
+                self.data["dialogues"][0]["source"] = source
+                with self.assertRaises(ExportValidationError):
+                    build_mod_archive(self.data, self.portrait, self.sprite)
+        self.data["dialogues"][0].pop("source")
+        document = {"character": self.data, "artwork": {"portrait": {
+            "original": "artwork/a.png", "source_history": [{"url": "file:///Users/private/game"}]}}}
+        with self.assertRaises(ExportValidationError):
+            build_mod_archive(self.data, self.portrait, self.sprite, project_document=document)
+
+    def test_full_dialogue_over_250_exports_without_truncation_and_upper_bound_blocks(self):
+        self.data["dialogues"] = [{"id": str(i), "trigger": f"custom_{i}", "text": f"Line {i}"} for i in range(350)]
+        with zipfile.ZipFile(io.BytesIO(build_mod_archive(self.data, self.portrait, self.sprite))) as archive:
+            self.assertEqual(len(json.loads(archive.read("[CP] Mira/assets/dialogue.json"))), 350)
+        self.data["dialogues"] = [{"id": str(i), "trigger": f"custom_{i}", "text": "Line"} for i in range(2001)]
+        with self.assertRaisesRegex(ExportValidationError, "up to 2000"):
+            build_mod_archive(self.data, self.portrait, self.sprite)
+
     def test_appearance_assets_preserve_bytes_and_have_resolvable_game_entries(self):
         winter_portrait = Path(self.temporary.name) / "winter-portrait.png"
         beach_sprite = Path(self.temporary.name) / "beach-sprite.png"

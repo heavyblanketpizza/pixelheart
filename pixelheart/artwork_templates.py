@@ -1,17 +1,23 @@
-"""On-demand reference templates; downloaded artwork never lives in the app."""
+"""Preview and import artwork exported from the user's own game."""
 
 from html import escape
-from pathlib import Path
-import tempfile
-
-from PySide6.QtCore import QStandardPaths, QThread, Signal, Qt
+from PySide6.QtCore import QThread, Signal, Qt
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QDialogButtonBox, QHBoxLayout, QVBoxLayout, QWidget, QScrollArea,
 )
 
-from pixelheart_core.wiki_artwork import WIKI_TEMPLATES, download_npc_template
+from pixelheart_core.local_templates import CONTENT_PATCHER_EXPORT_URL, LOCAL_TEMPLATES, load_local_artwork
 from .artwork_browser import SheetBrowser
+from .game_import import LocalGameSourceWidget
 from .widgets import button, card, label
+
+
+LOCAL_SOURCE = {
+    "provider": "local-content-patcher",
+    "source_name": "Content Patcher export from your game",
+    "source_url": CONTENT_PATCHER_EXPORT_URL,
+    "attribution": "Game artwork © ConcernedApe; active mods may include other creators' artwork. Check permissions before sharing.",
+}
 
 
 def template_source_metadata(template):
@@ -20,29 +26,26 @@ def template_source_metadata(template):
     return {
         "provider": provider,
         "source_name": template.get("source_name") or ("Stardew Valley Wiki" if provider == "stardew-wiki" else provider),
-        "attribution": template.get("attribution") or f"Artwork © {template.get('creator') or 'ConcernedApe'}",
+        "attribution": template.get("attribution") or (
+            f"Artwork © {template.get('creator') or 'ConcernedApe'}"
+            if provider == "stardew-wiki" else "Imported artwork; check its creators' permissions before sharing."
+        ),
     }
 
 
-def template_cache_directory():
-    """Use the OS user cache, including when the app runs from a checkout."""
-    location = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.GenericCacheLocation)
-    return Path(location or tempfile.gettempdir()) / "Pixelheart" / "wiki-templates"
-
-
-class TemplateDownload(QThread):
+class TemplateLoad(QThread):
     ready = Signal(object)
     failed = Signal(str)
 
-    def __init__(self, template_id, cache_root, parent=None):
+    def __init__(self, template_id, export_root, parent=None):
         super().__init__(parent)
         self.template_id = template_id
-        self.cache_root = cache_root
+        self.export_root = export_root
 
     def run(self):
         try:
-            result = download_npc_template(
-                self.template_id, self.cache_root, cancelled=self.isInterruptionRequested,
+            result = load_local_artwork(
+                self.template_id, self.export_root, cancelled=self.isInterruptionRequested,
             )
             if not self.isInterruptionRequested():
                 self.ready.emit(result)
@@ -57,7 +60,7 @@ class ArtworkTemplateDialog(QDialog):
 
     def __init__(self, appearance="Default", parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Vanilla artwork template")
+        self.setWindowTitle("Artwork from my game")
         self.resize(850, 720)
         self.setMinimumWidth(720)
         self.loaded = None
@@ -65,19 +68,21 @@ class ArtworkTemplateDialog(QDialog):
         self.closing = False
         root = QVBoxLayout(self)
         root.setContentsMargins(24, 24, 24, 24)
-        root.setSpacing(14)
+        root.setSpacing(10)
         root.addWidget(label("Start with a familiar face.", "title", True))
         root.addWidget(label("Explore an NPC's expressions and walking frames, or use their sheets as a starting point for your own artwork.", "muted", True))
         choose = QHBoxLayout()
         choose.addWidget(label("Reference NPC"))
         self.character = QComboBox()
-        self.character.setAccessibleName("Vanilla template character")
-        for template_id, template in WIKI_TEMPLATES.items():
+        self.character.setAccessibleName("Game reference character")
+        for template_id, template in LOCAL_TEMPLATES.items():
             self.character.addItem(template["name"], template_id)
         choose.addWidget(self.character, 1)
         self.load_button = button("Load template", self.load_template, "primary")
         choose.addWidget(self.load_button)
         root.addLayout(choose)
+        self.game_source = LocalGameSourceWidget(self.character.currentData(), "artwork", self)
+        root.addWidget(self.game_source)
         self.source_info = label("", "hint", True)
         self.source_info.setAccessibleName("Selected template source")
         root.addWidget(self.source_info)
@@ -86,7 +91,7 @@ class ArtworkTemplateDialog(QDialog):
 
         preview_area = QScrollArea()
         preview_area.setWidgetResizable(True)
-        preview_area.setMinimumHeight(260)
+        preview_area.setMinimumHeight(180)
         preview_content = QWidget()
         self.preview_row = QHBoxLayout(preview_content)
         self.preview_row.setContentsMargins(0, 0, 0, 0)
@@ -115,7 +120,12 @@ class ArtworkTemplateDialog(QDialog):
         self.buttons.rejected.connect(self.reject)
         self.buttons.accepted.connect(self.accept)
         root.addWidget(self.buttons)
-        self.character.currentIndexChanged.connect(self.clear_template)
+        self.character.currentIndexChanged.connect(self.change_character)
+        self.game_source.changed.connect(self.clear_template)
+        self.clear_template()
+
+    def change_character(self):
+        self.game_source.set_template(self.character.currentData())
         self.clear_template()
 
     def show_source(self, template):
@@ -124,15 +134,15 @@ class ArtworkTemplateDialog(QDialog):
         self.credit.setText(source["attribution"])
         source_url = template.get("source_url")
         self.sources.setText(
-            '<a href="' + escape(source_url, quote=True) + '">View reference on '
+            '<a href="' + escape(source_url, quote=True) + '">Import instructions · '
             + escape(source["source_name"]) + '</a>' if source_url else ""
         )
 
     def clear_template(self):
         self.loaded = None
         self.use_button.setEnabled(False)
-        self.show_source(WIKI_TEMPLATES.get(self.character.currentData(), {}))
-        self.status.setText("Choose Load template to download these sheets. Once cached, the reference is available offline.")
+        self.show_source({**LOCAL_TEMPLATES.get(self.character.currentData(), {}), **LOCAL_SOURCE})
+        self.status.setText("Choose the Content Patcher export folder, then Load template to preview both sheets.")
         for browser in self.browsers.values():
             browser.set_image()
 
@@ -143,10 +153,12 @@ class ArtworkTemplateDialog(QDialog):
         self.status.setText("Loading reference sheets…")
         self.load_button.setEnabled(False)
         self.character.setEnabled(False)
-        self.worker = TemplateDownload(self.character.currentData(), template_cache_directory(), self)
+        self.game_source.setEnabled(False)
+        self.game_source.remember_directory()
+        self.worker = TemplateLoad(self.character.currentData(), self.game_source.directory(), self)
         self.worker.ready.connect(self.receive_template)
         self.worker.failed.connect(self.show_failure)
-        self.worker.finished.connect(self.download_finished)
+        self.worker.finished.connect(self.load_finished)
         self.worker.start()
 
     def receive_template(self, result):
@@ -156,12 +168,12 @@ class ArtworkTemplateDialog(QDialog):
         for kind, browser in self.browsers.items():
             browser.set_image(result[kind])
         self.status.setText("Reference loaded. Choose an expression, play a walk, or turn on Sheet layout to see where each frame goes.")
-        self.show_source({**WIKI_TEMPLATES.get(self.character.currentData(), {}), **result})
+        self.show_source({**LOCAL_TEMPLATES.get(self.character.currentData(), {}), **result})
 
     def show_failure(self, message):
         self.status.setText("Couldn't load this template. " + message + " You can retry or upload your own PNG sheets.")
 
-    def download_finished(self):
+    def load_finished(self):
         worker, self.worker = self.worker, None
         if worker is not None:
             worker.deleteLater()
@@ -170,6 +182,7 @@ class ArtworkTemplateDialog(QDialog):
             return
         self.load_button.setEnabled(True)
         self.character.setEnabled(True)
+        self.game_source.setEnabled(True)
         self.use_button.setEnabled(self.loaded is not None)
 
     def accept(self):
@@ -181,7 +194,7 @@ class ArtworkTemplateDialog(QDialog):
             self.closing = True
             self.worker.requestInterruption()
             self.buttons.setEnabled(False)
-            self.status.setText("Stopping download…")
+            self.status.setText("Stopping import…")
             return
         super().reject()
 

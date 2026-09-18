@@ -22,13 +22,14 @@ import uuid
 
 from .validation import EDITABLE_FIELDS, NESTED_FIELDS, DraftValidationError, infer_legacy_gender, validate_draft
 from .catalog import validate_catalog, CatalogValidationError
+from .provenance import source_metadata
 from .world import WorldError, normalize_world, world_asset_references, asset_path as world_asset_path, copy_world_assets
 
 
 PROJECT_FORMAT = "pixelheart-project"
 PROJECT_VERSION = 1
 PROJECT_FILENAME = "character.json"
-MAX_PROJECT_BYTES = 16 * 1024 * 1024
+MAX_PROJECT_BYTES = 64 * 1024 * 1024
 ARTWORK_KINDS = {"portrait", "sprite"}
 APPEARANCE_VARIANTS = {
     "spring": "Spring",
@@ -38,7 +39,7 @@ APPEARANCE_VARIANTS = {
     "beach": "Beach",
 }
 _NESTED_KEYS = {
-    "dialogues": {"id", "trigger", "text"},
+    "dialogues": {"id", "trigger", "text", "source", "source_history"},
     "schedule": {"id", "time", "location", "x", "y", "facing", "activity"},
     "events": {"id", "name", "hearts", "location", "description", "story"},
     "relationships": {"id", "name", "relation", "description", "story"},
@@ -171,6 +172,10 @@ def _validate_artwork(record):
         raise ProjectError(f"Artwork selection '{selected}' needs a relative file path.")
     if record.get("original") is None:
         raise ProjectError("An artwork preparation record must preserve its original file path.")
+    try:
+        record.update(source_metadata(record))
+    except ValueError as exc:
+        raise ProjectError(str(exc)) from exc
 
 
 def _validate_variants(artwork):
@@ -196,6 +201,12 @@ def _artwork_sets(artwork):
 def _validate_character(character):
     if not isinstance(character, dict):
         raise ProjectError("The project's character must be a JSON object.")
+    for entry in character.get("dialogues", []) if isinstance(character.get("dialogues", []), list) else []:
+        if isinstance(entry, dict):
+            try:
+                entry.update(source_metadata(entry))
+            except ValueError as exc:
+                raise ProjectError(str(exc)) from exc
     if character.get("age", "adult") != "adult":
         raise ProjectError("Pixelheart creates adult love-interest NPCs only. Choose adult.")
     for key in ("id", "created_at", "updated_at"):
@@ -312,7 +323,7 @@ def load_project(path: str | os.PathLike) -> dict:
         with file.open("rb") as stream:
             data = stream.read(MAX_PROJECT_BYTES + 1)
         if len(data) > MAX_PROJECT_BYTES:
-            raise ProjectError("Project JSON exceeds the 16 MiB size limit.")
+            raise ProjectError("Project JSON exceeds the 64 MiB size limit.")
         document = _document(json.loads(data.decode("utf-8-sig")))
         _check_asset_locations(document, file)
         return document
@@ -329,7 +340,7 @@ def save_project(document: dict, path: str | os.PathLike) -> Path:
     try:
         payload = (json.dumps(normalized, ensure_ascii=False, indent=2, allow_nan=False) + "\n").encode("utf-8")
         if len(payload) > MAX_PROJECT_BYTES:
-            raise ProjectError("Project JSON exceeds the 16 MiB size limit.")
+            raise ProjectError("Project JSON exceeds the 64 MiB size limit.")
         if file.is_symlink():
             raise ProjectError("Refusing to overwrite a project file through a symlink.")
         file.parent.mkdir(parents=True, exist_ok=True)

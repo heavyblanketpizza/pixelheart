@@ -15,7 +15,7 @@ from .birthday_calendar import BirthdayCalendar
 from .location_picker import MapSelector
 from .schedule_time import ScheduleTime, game_minutes, game_time
 from .dialogue_templates import DialogueTemplateDialog
-from pixelheart_core.dialogue_templates import dialogue_preview
+from pixelheart_core.dialogue_templates import MAX_DIALOGUES, dialogue_preview
 from pixelheart_core.validation import infer_legacy_gender
 
 
@@ -243,7 +243,7 @@ class RecordsPage(QWidget):
         if kind != "dialogues":
             root.addWidget(label("Story notes are saved with your project. They do not become playable events or in-game relationships.", "notice", True))
         else:
-            self.example_prompt = label("Start with Abigail’s or Elliott’s full dialogue as a template, then edit the conversations in your character’s voice.", "notice", True)
+            self.example_prompt = label("Load Abigail’s or Elliott’s full dialogue from your game, then edit the conversations in your character’s voice.", "notice", True)
             root.addWidget(self.example_prompt)
         row = QHBoxLayout()
         row.addWidget(button("+ Add " + {"dialogues": "dialogue", "events": "event idea", "relationships": "relationship"}[kind], self.add, "primary"))
@@ -374,7 +374,7 @@ class RecordsPage(QWidget):
             dialog.deleteLater()
 
     def add(self):
-        if len(self.records) >= (250 if self.kind == "dialogues" else 100):
+        if len(self.records) >= (MAX_DIALOGUES if self.kind == "dialogues" else 100):
             return
         record = {"id": str(uuid.uuid4())}
         if self.kind == "dialogues":
@@ -390,7 +390,7 @@ class RecordsPage(QWidget):
         self.changed.emit()
 
     def duplicate(self):
-        if self.current < 0 or len(self.records) >= (250 if self.kind == "dialogues" else 100):
+        if self.current < 0 or len(self.records) >= (MAX_DIALOGUES if self.kind == "dialogues" else 100):
             return
         record = deepcopy(self.records[self.current])
         record["id"] = str(uuid.uuid4())

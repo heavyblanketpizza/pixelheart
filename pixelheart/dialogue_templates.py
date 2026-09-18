@@ -1,12 +1,10 @@
-"""Browse and import complete vanilla character dialogue files."""
+"""Browse and import complete dialogue exported from the user's local game."""
 
 from copy import deepcopy
 from html import escape
-from pathlib import Path
 import re
-import tempfile
 
-from PySide6.QtCore import QStandardPaths, QThread, Qt, Signal
+from PySide6.QtCore import QThread, Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QLayout, QLineEdit, QListWidget,
     QListWidgetItem, QPlainTextEdit, QScrollArea, QSizePolicy, QSplitter,
@@ -16,7 +14,8 @@ from PySide6.QtWidgets import (
 from pixelheart_core.dialogue_templates import (
     apply_dialogue_examples, dialogue_conflicts, dialogue_has_advanced_commands, dialogue_preview,
 )
-from pixelheart_core.wiki_dialogue import DIALOGUE_TEMPLATES, download_dialogue_examples
+from pixelheart_core.local_templates import LOCAL_TEMPLATES, CONTENT_PATCHER_EXPORT_URL, load_local_dialogue
+from .game_import import LocalGameSourceWidget
 from .widgets import button, card, label
 
 
@@ -44,23 +43,18 @@ class ReadingLabel(QLabel):
         self.fit_height()
 
 
-def dialogue_cache_directory():
-    location = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.GenericCacheLocation)
-    return Path(location or tempfile.gettempdir()) / "Pixelheart" / "dialogue-examples"
-
-
-class DialogueDownload(QThread):
+class DialogueLoad(QThread):
     ready = Signal(object)
     failed = Signal(str)
 
-    def __init__(self, template_id, cache_root, parent=None):
+    def __init__(self, template_id, export_root, parent=None):
         super().__init__(parent)
-        self.template_id, self.cache_root = template_id, cache_root
+        self.template_id, self.export_root = template_id, export_root
 
     def run(self):
         try:
-            result = download_dialogue_examples(
-                self.template_id, self.cache_root, cancelled=self.isInterruptionRequested,
+            result = load_local_dialogue(
+                self.template_id, self.export_root, cancelled=self.isInterruptionRequested,
             )
             if not self.isInterruptionRequested():
                 self.ready.emit(result)
@@ -85,17 +79,19 @@ class DialogueTemplateDialog(QDialog):
         root.setContentsMargins(24, 24, 24, 24)
         root.setSpacing(12)
         root.addWidget(label("A familiar voice, a place to start.", "title", True))
-        root.addWidget(label("Load the character’s entire archived dialogue file, then make their conversations your own.", "muted", True))
+        root.addWidget(label("Load Abigail’s or Elliott’s complete dialogue export from your game, then explore and adapt the conversations.", "muted", True))
         choose = QHBoxLayout()
         choose.addWidget(label("Template character"))
         self.character = QComboBox()
         self.character.setAccessibleName("Dialogue reference character")
-        for template_id, template in DIALOGUE_TEMPLATES.items():
+        for template_id, template in LOCAL_TEMPLATES.items():
             self.character.addItem(template["name"], template_id)
         choose.addWidget(self.character, 1)
         self.load_button = button("Load full dialogue", self.load_examples, "primary")
         choose.addWidget(self.load_button)
         root.addLayout(choose)
+        self.game_source = LocalGameSourceWidget(self.character.currentData(), "dialogue", self)
+        root.addWidget(self.game_source)
         self.status = label("", "muted", True)
         self.status.setAccessibleName("Dialogue template loading status")
         root.addWidget(self.status)
@@ -177,7 +173,7 @@ class DialogueTemplateDialog(QDialog):
         splitter.setSizes([280, 610])
         self.pages = QStackedWidget()
         empty_card, empty_layout = card("Start with the whole conversation collection")
-        empty_layout.addWidget(label("Choose Abigail or Elliott above to load every entry in their archived English dialogue file.", "muted", True))
+        empty_layout.addWidget(label("Choose Abigail or Elliott above and export their dialogue using the instructions. Every entry in that file will be loaded, with its original text and commands.", "muted", True))
         for title, description in (
             ("All entries selected", "Import the full template together, including seasonal lines, friendship variations, and event responses."),
             ("Find a conversation", "Search by trigger or dialogue text and explore the original commands."),
@@ -214,7 +210,7 @@ class DialogueTemplateDialog(QDialog):
         self.source.setTextFormat(Qt.TextFormat.RichText)
         self.source.setOpenExternalLinks(True)
         root.addWidget(self.source)
-        root.addWidget(label("Imported lines become your character’s dialogue. Rewrite names, character-specific conditions, and portrait commands before exporting.", "hint", True))
+        root.addWidget(label("Review names, conditions, and portrait commands before exporting. Local imports retain their source; importing does not grant permission to redistribute game or mod content.", "hint", True))
         self.summary = label("", "muted", True)
         self.summary.setAccessibleName("Dialogue import summary")
         root.addWidget(self.summary)
@@ -226,6 +222,7 @@ class DialogueTemplateDialog(QDialog):
         self.buttons.rejected.connect(self.reject)
         root.addWidget(self.buttons)
         self.character.currentIndexChanged.connect(self.clear_examples)
+        self.game_source.changed.connect(self.clear_examples)
         self.list.currentRowChanged.connect(self.show_example)
         self.list.itemChanged.connect(self.update_summary)
         self.conflict_choice.currentIndexChanged.connect(self.choose_conflict)
@@ -250,11 +247,11 @@ class DialogueTemplateDialog(QDialog):
         self.use_button.setEnabled(False)
         self.use_button.setText("Use full dialogue")
         self.summary.setText("The full dialogue file will be selected for import.")
-        self.status.setText("Load the complete English dialogue file from the reference archive. Once cached, it is available offline.")
-        template = DIALOGUE_TEMPLATES[self.character.currentData()]
+        self.status.setText("Load the complete local dialogue export. No template download is needed.")
+        self.game_source.set_template(self.character.currentData())
         self.source.setText(
-            escape(template["attribution"]) + ' · <a href="' + escape(template["source_url"], quote=True)
-            + '">View source</a> · '
+            'From my game · <a href="' + escape(CONTENT_PATCHER_EXPORT_URL, quote=True)
+            + '">Export instructions</a> · '
             '<a href="https://stardewvalleywiki.com/Modding:Dialogue">Dialogue guide</a>'
         )
 
@@ -265,16 +262,21 @@ class DialogueTemplateDialog(QDialog):
         self.status.setText("Loading conversations…")
         self.character.setEnabled(False)
         self.load_button.setEnabled(False)
-        self.worker = DialogueDownload(self.character.currentData(), dialogue_cache_directory(), self)
+        self.game_source.setEnabled(False)
+        self.game_source.remember_directory()
+        self.worker = DialogueLoad(self.character.currentData(), self.game_source.directory(), self)
         self.worker.ready.connect(self.receive_examples)
         self.worker.failed.connect(self.show_failure)
-        self.worker.finished.connect(self.download_finished)
+        self.worker.finished.connect(self.load_finished)
         self.worker.start()
 
     def receive_examples(self, result):
         if self.closing:
             return
         self.examples = deepcopy(result["examples"])
+        if result.get("attribution"):
+            self.source.setText(escape(result["attribution"]) + ' · <a href="'
+                                + escape(CONTENT_PATCHER_EXPORT_URL, quote=True) + '">Export instructions</a>')
         self.conflicts = dialogue_conflicts(self.records, self.examples)
         self.list.blockSignals(True)
         for example in self.examples:
@@ -429,7 +431,7 @@ class DialogueTemplateDialog(QDialog):
         if not self.closing:
             self.status.setText("Couldn’t load this dialogue. " + message + " Try again, or close this browser to keep writing.")
 
-    def download_finished(self):
+    def load_finished(self):
         worker, self.worker = self.worker, None
         if worker is not None:
             worker.deleteLater()
@@ -438,6 +440,7 @@ class DialogueTemplateDialog(QDialog):
             return
         self.character.setEnabled(True)
         self.load_button.setEnabled(True)
+        self.game_source.setEnabled(True)
         self.update_summary()
 
     def reject(self):
@@ -445,7 +448,7 @@ class DialogueTemplateDialog(QDialog):
             self.closing = True
             self.worker.requestInterruption()
             self.buttons.setEnabled(False)
-            self.status.setText("Stopping download…")
+            self.status.setText("Stopping local import…")
             return
         super().reject()
 

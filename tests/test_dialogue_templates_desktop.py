@@ -4,6 +4,7 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from copy import deepcopy
+import json
 from pathlib import Path
 import tempfile
 import threading
@@ -11,7 +12,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from PySide6.QtCore import QCoreApplication, QEvent, Qt
+from PySide6.QtCore import QCoreApplication, QEvent, QSettings, Qt
 from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QApplication, QDialog
 from shiboken6 import isValid
@@ -20,6 +21,7 @@ from pixelheart.app import MainWindow
 from pixelheart.dialogue_templates import DialogueTemplateDialog
 from pixelheart.editors import RecordsPage
 from pixelheart_core.projects import load_project
+from pixelheart_core.local_templates import load_local_dialogue
 
 
 def example_payload():
@@ -58,9 +60,9 @@ class DialogueTemplateDesktopTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-dialogue-examples-")
         self.root = Path(self.temporary.name)
         self.widgets = []
-        self.cache_patch = patch("pixelheart.dialogue_templates.dialogue_cache_directory", return_value=self.root / "cache")
+        self.cache_patch = patch("pixelheart.game_import.game_import_settings", side_effect=lambda: QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat))
         self.cache_patch.start()
-        self.download_patch = patch("pixelheart.dialogue_templates.download_dialogue_examples", return_value=example_payload())
+        self.download_patch = patch("pixelheart.dialogue_templates.load_local_dialogue", return_value=example_payload())
         self.download = self.download_patch.start()
         self.records = [{"id": "my-introduction", "trigger": " Introduction ", "text": "My own introduction.",
                          "extension": {"notes": ["Keep this metadata."]}}]
@@ -219,8 +221,8 @@ class DialogueTemplateDesktopTests(unittest.TestCase):
         self.assertEqual(dialog.selected_examples(), example_payload()["examples"])
         self.assertFalse(dialog.use_button.isEnabled())
 
-    def test_full_archives_are_checked_by_default_and_import_every_raw_entry(self):
-        for character_index, count in enumerate((118, 74)):
+    def test_full_exports_are_checked_by_default_and_import_every_raw_entry(self):
+        for character_index, count in enumerate((318, 274)):
             with self.subTest(count=count):
                 payload = full_dialogue_payload(count)
                 self.download.return_value = payload
@@ -306,12 +308,12 @@ class DialogueTemplateDesktopTests(unittest.TestCase):
         self.assertEqual(dialog.imported_records[:2], records)
         self.assertEqual(dialog.imported_records[2]["trigger"], "summer_Mon")
 
-    def test_failed_download_can_retry_without_leaving_stale_records_or_worker(self):
-        self.download.side_effect = [OSError("Reference archive unavailable."), example_payload()]
+    def test_failed_local_load_can_retry_without_leaving_stale_records_or_worker(self):
+        self.download.side_effect = [OSError("Export file unavailable."), example_payload()]
         dialog = self.dialog()
         dialog.load_button.click()
         self.wait_until(lambda: dialog.worker is None)
-        self.assertIn("Reference archive unavailable", dialog.status.text())
+        self.assertIn("Export file unavailable", dialog.status.text())
         self.assertTrue(dialog.load_button.isEnabled())
         self.assertTrue(dialog.character.isEnabled())
         self.assertFalse(dialog.use_button.isEnabled())
@@ -321,7 +323,7 @@ class DialogueTemplateDesktopTests(unittest.TestCase):
         self.assertNotIn("unavailable", dialog.status.text())
         self.assertEqual(dialog.records, self.records)
 
-    def test_cancel_running_download_waits_for_worker_and_discards_late_result(self):
+    def test_cancel_running_local_load_waits_for_worker_and_discards_late_result(self):
         started = threading.Event()
 
         def cooperative_download(template_id, cache_root, cancelled):
@@ -349,21 +351,21 @@ class DialogueTemplateDesktopTests(unittest.TestCase):
     def test_capacity_blocks_whole_selection_and_still_allows_replacement(self):
         records = deepcopy(self.records) + [
             {"id": f"line-{i}", "trigger": f"Tue{i}", "text": "An existing line."}
-            for i in range(249)
+            for i in range(1999)
         ]
         dialog = self.dialog(records)
         dialog.receive_examples(example_payload())
         self.select_only(dialog, 0, 1)
         self.choose(dialog, 0, "replace")
         self.assertFalse(dialog.use_button.isEnabled())
-        self.assertIn("250", dialog.summary.text())
+        self.assertIn("2000", dialog.summary.text())
         dialog.accept()
         self.assertIsNone(dialog.imported_records)
         self.assertEqual(dialog.records, records)
         self.check(dialog, 1, False)
         self.assertTrue(dialog.use_button.isEnabled())
         dialog.accept()
-        self.assertEqual(len(dialog.imported_records), 250)
+        self.assertEqual(len(dialog.imported_records), 2000)
         self.assertEqual(dialog.imported_records[0]["id"], records[0]["id"])
         self.assertEqual(dialog.imported_records[0]["text"], example_payload()["examples"][0]["text"])
 
@@ -394,6 +396,41 @@ class DialogueTemplateDesktopTests(unittest.TestCase):
         self.assertEqual(page.fields["trigger"].text(), "Mon")
         self.assertEqual(page.preview.text(), "Another Monday.")
         self.assertTrue(page.example_prompt.isHidden())
+
+    def test_changing_local_folder_discards_loaded_data_and_conflict_choices(self):
+        dialog = self.dialog()
+        self.load(dialog)
+        self.choose_bulk(dialog, "replace")
+        dialog.game_source.folder.setText(str(self.root / "another export"))
+        self.assertEqual(dialog.examples, [])
+        self.assertEqual(dialog.decisions, {})
+        self.assertFalse(dialog.use_button.isEnabled())
+        self.assertIn('Characters/Dialogue/Abigail', dialog.game_source.commands.toPlainText())
+        dialog.character.setCurrentIndex(1)
+        self.assertIn('Characters/Dialogue/Elliott', dialog.game_source.commands.toPlainText())
+
+    def test_real_local_full_dialogue_import_and_save_preserve_source_without_folder_path(self):
+        exports = self.root / "patch export"
+        exports.mkdir()
+        data = {row["trigger"]: row["text"] for row in full_dialogue_payload(301)["examples"]}
+        (exports / "Characters_Dialogue_Abigail.json").write_text(json.dumps(data), encoding="utf-8")
+        self.download.side_effect = load_local_dialogue
+        dialog = self.dialog([])
+        dialog.game_source.folder.setText(str(exports))
+        with patch("urllib.request.OpenerDirector.open", side_effect=AssertionError("Local import must not access the network")):
+            self.load(dialog, 301)
+            dialog.accept()
+        imported = dialog.imported_records
+        self.assertEqual({row["trigger"]: row["text"] for row in imported}, data)
+        self.assertTrue(all(row["source"]["asset"] == "Characters/Dialogue/Abigail" for row in imported))
+        self.assertNotIn(str(self.root), json.dumps(imported))
+        window = self.keep(MainWindow())
+        window.document["character"]["dialogues"] = deepcopy(imported)
+        window.load_document(window.document)
+        path = self.root / "local-template-project.json"
+        self.assertTrue(window.save_to(path))
+        self.assertEqual(load_project(path)["character"]["dialogues"], imported)
+        self.assertNotIn(str(self.root), path.read_text(encoding="utf-8"))
 
     def test_main_window_import_dirties_once_and_survives_save_reopen_with_metadata(self):
         window = self.keep(MainWindow())

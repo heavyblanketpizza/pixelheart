@@ -163,7 +163,7 @@ class NestedValidationTests(unittest.TestCase):
                     validate_nested(key, value)
 
     def test_rejects_excessive_nested_entries_and_invalid_ids(self):
-        for key, limit in (("dialogues", 250), ("schedule", 100), ("events", 100), ("relationships", 100)):
+        for key, limit in (("dialogues", 2000), ("schedule", 100), ("events", 100), ("relationships", 100)):
             with self.subTest(key=key):
                 with self.assertRaises(DraftValidationError) as raised:
                     validate_nested(key, [{} for _ in range(limit + 1)])

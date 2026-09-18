@@ -29,6 +29,7 @@ Each exported archive contains a `[CP] InternalName` directory:
 | `project.json` | Complete authoring data, including ideas which are not game scripts |
 | `validation.json` | Export checks and warnings |
 | `README.txt` | Installation, testing, template limitations, output permissions, and unofficial-fan disclaimer |
+| `CREDITS.txt` | Present for imported references: recorded sources, asset hashes, and previous-sheet attribution history; does not grant redistribution rights |
 | `STORY_TESTING.txt` | Ready primary or supporting scenes: resolved IDs, triggers, arcs, answer outcomes, repeat rules, and playtest checklist |
 | `WORLD_TESTING.txt` | Authored cast/maps/dependencies: character IDs, homes, map entrances/exits, spouse-room section, and playtest checklist |
 
@@ -39,6 +40,8 @@ a save. Change the default manifest author before publication. The desktop edito
 can open `project.json` after the complete pack folder is extracted. Desktop
 exports retain the creator brief, chapter plan, test records, item catalog,
 unknown extension metadata, and relative references to exported artwork and maps.
+Local template source notices remain in the project backup; the selected game
+folder is stored only in this computer's application settings.
 Export backups contain selected sheets, not every original/prepared version of
 the working project.
 

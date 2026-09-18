@@ -2,6 +2,9 @@
 import re
 import uuid
 
+from .dialogue_templates import MAX_DIALOGUES
+from .provenance import source_metadata
+
 
 class DraftValidationError(ValueError):
     def __init__(self, errors):
@@ -121,7 +124,7 @@ def validate_nested(key, value):
             result[category] = list(dict.fromkeys(item.strip() for item in items))
         return result
 
-    limits = {"dialogues": 250, "schedule": 100, "events": 100, "relationships": 100}
+    limits = {"dialogues": MAX_DIALOGUES, "schedule": 100, "events": 100, "relationships": 100}
     if not isinstance(value, list) or len(value) > limits[key]:
         fail(f"Use a list with up to {limits[key]} entries.")
     if key in {"events", "relationships"}:
@@ -152,13 +155,19 @@ def validate_nested(key, value):
     seen_ids = set()
     for index, entry in enumerate(value):
         suffix = f".{index}"
-        if not isinstance(entry, dict) or set(entry) - (set(schema) | {"id"}):
+        metadata_fields = {"source", "source_history"} if key == "dialogues" else set()
+        if not isinstance(entry, dict) or set(entry) - (set(schema) | {"id"} | metadata_fields):
             fail("Each entry must be an object with the expected fields.", suffix)
         entry_id = entry.get("id", str(uuid.uuid4()))
         if not isinstance(entry_id, str) or len(entry_id) > 100 or not entry_id or entry_id in seen_ids:
             fail("Each entry needs a unique text ID of at most 100 characters.", suffix + ".id")
         seen_ids.add(entry_id)
         result = {"id": entry_id}
+        if key == "dialogues":
+            try:
+                result.update(source_metadata(entry))
+            except ValueError as exc:
+                fail(str(exc), suffix + ".source")
         for field, (kind, maximum, default) in schema.items():
             item = entry.get(field, default)
             if kind == "text":

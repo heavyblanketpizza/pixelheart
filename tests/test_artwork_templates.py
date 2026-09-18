@@ -1,6 +1,7 @@
-"""On-demand reference browsing and safe import, without network or real art."""
+"""Local reference browsing and safe import, without network or real art."""
 
 import os
+import hashlib
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
@@ -12,7 +13,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from PIL import Image
-from PySide6.QtCore import QEventLoop, QThread, QTimer, Qt
+from PySide6.QtCore import QEventLoop, QSettings, QThread, QTimer, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox
 
@@ -36,17 +37,24 @@ class ArtworkTemplateTests(unittest.TestCase):
         self.release_events = []
         self.window = MainWindow()
         self.errors = self.enterContext(patch.object(MainWindow, "show_error"))
-        self.download = self.enterContext(patch("pixelheart.artwork_templates.download_npc_template"))
-        self.download.side_effect = AssertionError("Test must explicitly provide a synthetic download")
-        self.cache = self.root / "cache"
-        self.enterContext(patch("pixelheart.artwork_templates.template_cache_directory", return_value=self.cache))
+        self.load = self.enterContext(patch("pixelheart.artwork_templates.load_local_artwork"))
+        self.load.side_effect = AssertionError("Test must explicitly provide a synthetic import")
+        self.exports = self.root / "patch export"
+        self.settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
+        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=self.settings))
         self.template = {
             "id": "abigail",
             "name": "Abigail",
             "portrait": self.make_png("reference-portraits.png", (128, 320)),
             "sprite": self.make_png("reference-sprites.png", (64, 448)),
-            "source_url": "https://stardewvalleywiki.com/Modding:NPC_data",
+            "provider": "local-content-patcher",
+            "source_name": "Content Patcher export",
+            "source_url": "https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide/troubleshooting.md#export",
+            "attribution": "Game artwork © ConcernedApe; active mods may include other creators' artwork.",
+            "source": {"modified_game_possible": True},
         }
+        for kind, asset in (("portrait", "Portraits/Abigail"), ("sprite", "Characters/Abigail")):
+            self.template[kind + "_source"] = {"asset": asset, "sha256": hashlib.sha256(self.template[kind].read_bytes()).hexdigest()}
 
     def tearDown(self):
         # Always release synthetic workers, including after a failed assertion.
@@ -90,6 +98,7 @@ class ArtworkTemplateTests(unittest.TestCase):
 
     def make_dialog(self):
         dialog = ArtworkTemplateDialog("Winter", self.window.artwork)
+        dialog.game_source.folder.setText(str(self.exports))
         self.dialogs.append(dialog)
         return dialog
 
@@ -108,34 +117,34 @@ class ArtworkTemplateTests(unittest.TestCase):
         self.window.artwork.refresh()
         self.window.dirty = False
 
-    def test_opening_reference_dialog_does_not_download(self):
+    def test_opening_reference_dialog_does_not_read_exports(self):
         before = deepcopy(self.window.document)
         dialog = self.make_dialog()
         self.application.processEvents()
-        self.download.assert_not_called()
+        self.load.assert_not_called()
         self.assertIsNone(dialog.loaded)
         self.assertIsNone(dialog.worker)
         self.assertFalse(dialog.use_button.isEnabled())
         self.assertIn("ConcernedApe", dialog.credit.text())
         self.assertEqual(self.window.document, before)
-        self.assertFalse(self.cache.exists())
+        self.assertFalse(self.exports.exists())
 
     def test_explicit_load_runs_off_gui_thread_and_preview_does_not_change_project(self):
         before = deepcopy(self.window.document)
         before_dirty = self.window.dirty
         threads = []
 
-        def download(*args, **kwargs):
+        def load(*args, **kwargs):
             threads.append(QThread.currentThread())
             return self.template
 
-        self.download.side_effect = download
+        self.load.side_effect = load
         dialog = self.make_dialog()
         self.click_load(dialog)
-        self.download.assert_called_once()
-        self.assertEqual(self.download.call_args.args[1], self.cache)
+        self.load.assert_called_once()
+        self.assertEqual(self.load.call_args.args[1], str(self.exports))
         self.assertIsNot(threads[0], self.application.thread())
-        self.assertTrue(callable(self.download.call_args.kwargs["cancelled"]))
+        self.assertTrue(callable(self.load.call_args.kwargs["cancelled"]))
         self.assertEqual(dialog.browsers["portrait"].frame_count, 10)
         self.assertEqual(dialog.browsers["sprite"].frame_count, 56)
         self.assertTrue(dialog.use_button.isEnabled())
@@ -150,7 +159,7 @@ class ArtworkTemplateTests(unittest.TestCase):
         self.assertIsNone(self.window.project_file)
         self.errors.assert_not_called()
 
-    def test_switching_to_second_provider_requires_load_and_only_imports_artwork(self):
+    def test_switching_character_requires_load_and_only_imports_artwork(self):
         self.add_original_artwork()
         self.window.document["character"].update({"name": "Juniper", "gender": "Female", "pronouns": "she/her"})
         self.window.load_document(self.window.document, self.file)
@@ -159,28 +168,31 @@ class ArtworkTemplateTests(unittest.TestCase):
             "id": "elliott", "name": "Elliott",
             "portrait": self.make_png("elliott-reference-portraits.png", (128, 256), (60, 120, 170, 255)),
             "sprite": self.make_png("elliott-reference-sprites.png", (64, 416), (60, 120, 170, 255)),
-            "provider": "reference-archive", "source_name": "Reference Archive",
-            "source_url": "https://reference.example/elliott",
-            "attribution": "Artwork © ConcernedApe · sheets from Reference Archive",
+            "provider": "local-content-patcher", "source_name": "Content Patcher export",
+            "source_url": self.template["source_url"],
+            "attribution": self.template["attribution"],
+            "source": {"modified_game_possible": True},
         }
-        self.enterContext(patch("pixelheart.artwork_templates.WIKI_TEMPLATES", {
+        for kind, asset in (("portrait", "Portraits/Elliott"), ("sprite", "Characters/Elliott")):
+            elliott[kind + "_source"] = {"asset": asset, "sha256": hashlib.sha256(elliott[kind].read_bytes()).hexdigest()}
+        self.enterContext(patch("pixelheart.artwork_templates.LOCAL_TEMPLATES", {
             "abigail": self.template, "elliott": elliott,
         }))
-        self.download.side_effect = [self.template, elliott]
+        self.load.side_effect = [self.template, elliott]
         dialog = self.make_dialog()
         self.assertEqual(dialog.load_button.text(), "Load template")
-        self.assertIn("Stardew Valley Wiki", dialog.source_info.text())
+        self.assertIn("Content Patcher export", dialog.source_info.text())
         self.click_load(dialog)
         self.assertTrue(dialog.use_button.isEnabled())
 
         dialog.character.setCurrentIndex(dialog.character.findData("elliott"))
-        self.assertEqual(self.download.call_count, 1)
+        self.assertEqual(self.load.call_count, 1)
         self.assertIsNone(dialog.loaded)
         self.assertFalse(dialog.use_button.isEnabled())
         self.assertEqual(dialog.browsers["portrait"].frame_count, 0)
         self.assertEqual(dialog.browsers["sprite"].frame_count, 0)
-        self.assertEqual(dialog.source_info.text(), "Source: Reference Archive")
-        self.assertEqual(dialog.credit.text(), elliott["attribution"])
+        self.assertIn("Source: Content Patcher export", dialog.source_info.text())
+        self.assertIn("ConcernedApe", dialog.credit.text())
         self.assertIn(elliott["source_url"], dialog.sources.text())
         self.assertNotIn("Wiki", dialog.sources.text())
         dialog.accept()
@@ -188,8 +200,8 @@ class ArtworkTemplateTests(unittest.TestCase):
         self.assertEqual(self.window.document, before)
 
         self.click_load(dialog)
-        self.assertEqual(self.download.call_count, 2)
-        self.assertEqual(self.download.call_args.args[0], "elliott")
+        self.assertEqual(self.load.call_count, 2)
+        self.assertEqual(self.load.call_args.args[0], "elliott")
         self.assertIs(dialog.loaded, elliott)
         self.assertTrue(dialog.use_button.isEnabled())
         self.assertEqual(dialog.browsers["portrait"].frame_count, 8)
@@ -201,52 +213,67 @@ class ArtworkTemplateTests(unittest.TestCase):
         self.assertEqual(self.window.document["character"], before["character"])
         for kind in ("portrait", "sprite"):
             record = self.window.document["artwork"][kind]
-            self.assertEqual(record["source"]["provider"], "reference-archive")
-            self.assertEqual(record["source"]["source_name"], "Reference Archive")
+            self.assertEqual(record["source"]["provider"], "local-content-patcher")
+            self.assertEqual(record["source"]["source_name"], "Content Patcher export")
             self.assertEqual(record["source"]["attribution"], elliott["attribution"])
             self.assertEqual(record["source"]["template"], "elliott")
             self.assertEqual(resolve_artwork(self.window.document, self.file, kind).read_bytes(), elliott[kind].read_bytes())
             caption = self.window.artwork.cards[kind]["info"].text()
-            self.assertIn("Reference Archive", caption)
+            self.assertIn("ConcernedApe", caption)
             self.assertNotIn("Wiki", caption)
         self.errors.assert_not_called()
 
-    def test_failed_download_can_retry_and_cannot_be_used_until_loaded(self):
-        self.download.side_effect = [OSError("network unavailable"), self.template]
+    def test_failed_local_load_can_retry_and_cannot_be_used_until_loaded(self):
+        self.load.side_effect = [OSError("Export folder unavailable"), self.template]
         dialog = self.make_dialog()
         self.click_load(dialog)
         self.assertIsNone(dialog.loaded)
         self.assertFalse(dialog.use_button.isEnabled())
         self.assertTrue(dialog.load_button.isEnabled())
         self.assertTrue(dialog.character.isEnabled())
-        self.assertIn("network unavailable", dialog.status.text())
+        self.assertIn("Export folder unavailable", dialog.status.text())
         self.assertIn("retry", dialog.status.text())
         dialog.accept()
         self.assertEqual(dialog.result(), QDialog.DialogCode.Rejected)
         self.click_load(dialog)
-        self.assertEqual(self.download.call_count, 2)
+        self.assertEqual(self.load.call_count, 2)
         self.assertIs(dialog.loaded, self.template)
         self.assertTrue(dialog.use_button.isEnabled())
 
-    def test_cancel_during_download_waits_for_worker_and_ignores_late_result(self):
+    def test_changing_export_folder_clears_the_old_preview(self):
+        self.load.side_effect = lambda *args, **kwargs: self.template
+        dialog = self.make_dialog()
+        self.click_load(dialog)
+        self.assertTrue(dialog.use_button.isEnabled())
+        dialog.game_source.folder.setText(str(self.root / "another export"))
+        self.assertIsNone(dialog.loaded)
+        self.assertFalse(dialog.use_button.isEnabled())
+        self.assertEqual(dialog.browsers["portrait"].frame_count, 0)
+        self.assertEqual(dialog.browsers["sprite"].frame_count, 0)
+        self.assertEqual(self.load.call_count, 1)
+        dialog.accept()
+        self.assertEqual(dialog.result(), QDialog.DialogCode.Rejected)
+
+    def test_cancel_during_load_waits_for_worker_and_ignores_late_result(self):
         entered = threading.Event()
         release = threading.Event()
         self.release_events.append(release)
         cancellations = []
 
-        def download(*args, **kwargs):
+        def load(*args, **kwargs):
             entered.set()
             if not release.wait(timeout=2):
                 raise RuntimeError("Synthetic worker was not released")
             cancellations.append(kwargs["cancelled"]())
             return self.template
 
-        self.download.side_effect = download
+        self.load.side_effect = load
         dialog = self.make_dialog()
         dialog.show()
         QTest.mouseClick(dialog.load_button, Qt.MouseButton.LeftButton)
         self.wait_until(entered.is_set)
         self.assertFalse(dialog.use_button.isEnabled())
+        self.assertFalse(dialog.game_source.isEnabled())
         cancel = dialog.buttons.button(QDialogButtonBox.StandardButton.Cancel)
         QTest.mouseClick(cancel, Qt.MouseButton.LeftButton)
         self.assertTrue(dialog.closing)
@@ -275,9 +302,11 @@ class ArtworkTemplateTests(unittest.TestCase):
             record = self.window.document["artwork"]["variants"]["winter"][kind]
             self.assertEqual(record["selected"], "original")
             self.assertEqual(record["source"], {
-                "provider": "stardew-wiki", "template": "abigail",
-                "creator": "ConcernedApe", "url": self.template["source_url"],
-                "source_name": "Stardew Valley Wiki", "attribution": "Artwork © ConcernedApe",
+                "provider": "local-content-patcher", "template": "abigail",
+                "url": self.template["source_url"],
+                "source_name": "Content Patcher export", "attribution": self.template["attribution"],
+                "modified_game_possible": True,
+                **self.template[kind + "_source"],
             })
             imported = resolve_artwork(self.window.document, self.file, kind, variant="winter")
             self.assertEqual(imported.read_bytes(), source_bytes[kind])
@@ -311,6 +340,36 @@ class ArtworkTemplateTests(unittest.TestCase):
         for kind, payload in originals.items():
             self.assertEqual(resolve_artwork(self.window.document, self.file, kind).read_bytes(), payload)
         self.errors.assert_called_once_with("Could not use template", "Synthetic second import failure")
+
+    def test_reexported_artwork_requires_reload_before_use(self):
+        self.add_original_artwork()
+        before = deepcopy(self.window.document)
+        with Image.new("RGBA", (128, 320), (20, 50, 190, 255)) as changed:
+            changed.save(self.template["portrait"])
+        self.assertFalse(self.window.artwork.apply_template(self.template))
+        self.assertEqual(self.window.document, before)
+        self.assertFalse(self.window.dirty)
+        self.errors.assert_called_once()
+        self.assertIn("changed after preview", self.errors.call_args.args[1])
+
+    def test_replacement_upload_retains_previous_source_without_claiming_its_authorship(self):
+        self.add_original_artwork()
+        self.assertTrue(self.window.artwork.apply_template(self.template))
+        previous_source = deepcopy(self.window.document["artwork"]["portrait"]["source"])
+        replacement = self.make_png("replacement.png", (128, 192), (40, 160, 70, 255))
+        with patch("pixelheart.artwork_page.QFileDialog.getOpenFileName", return_value=(str(replacement), "PNG artwork (*.png)")):
+            self.window.artwork.upload("portrait")
+        record = self.window.document["artwork"]["portrait"]
+        self.assertNotIn("source", record)
+        self.assertEqual(record["source_history"], [previous_source])
+        self.assertIn("Previous sheet's source", self.window.artwork.cards["portrait"]["info"].text())
+        self.assertEqual(resolve_artwork(self.window.document, self.file, "portrait").read_bytes(), replacement.read_bytes())
+        self.assertTrue(self.window.save())
+        self.assertEqual(load_project(self.file)["artwork"]["portrait"], record)
+        with patch("pixelheart.artwork_page.QFileDialog.getOpenFileName", return_value=(str(replacement), "PNG artwork (*.png)")):
+            self.window.artwork.upload("portrait")
+        self.assertEqual(self.window.document["artwork"]["portrait"]["source_history"], [previous_source])
+        self.errors.assert_not_called()
 
     def test_cancelling_project_save_does_not_import_or_change_project(self):
         before = deepcopy(self.window.document)

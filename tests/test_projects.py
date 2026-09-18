@@ -73,6 +73,35 @@ class ProjectTests(ProjectTestCase):
         dotted.mkdir()
         self.assertEqual(project_path(dotted), dotted / "character.json")
 
+    def test_local_provenance_and_complete_dialogue_survive_save_reload(self):
+        source = {"provider": "local-content-patcher", "asset": "Characters/Dialogue/Abigail",
+                  "sha256": "a" * 64, "modified_game_possible": True}
+        self.document["character"]["dialogues"] = [
+            {"id": str(index), "trigger": f"custom_{index}", "text": f"Complete line {index}", "source": source}
+            for index in range(350)
+        ]
+        self.document["artwork"]["portrait"] = {
+            "original": "artwork/my-sheet.png", "selected": "original",
+            "source_history": [{**source, "asset": "Portraits/Abigail"}],
+        }
+        before = copy.deepcopy(self.document)
+        save_project(self.document, self.file)
+        self.assertEqual(load_project(self.file), before)
+        self.assertEqual(self.document, before)
+
+    def test_private_source_paths_are_rejected_on_save_and_load(self):
+        for destination in (self.document["character"]["dialogues"][0],
+                            self.document["artwork"].setdefault("sprite", None)):
+            if destination is None:
+                destination = {"original": "artwork/sprite.png"}
+                self.document["artwork"]["sprite"] = destination
+            destination["source"] = {"source_name": "/Users/private/game"}
+            with self.assertRaisesRegex(ProjectError, "without file paths"):
+                save_project(self.document, self.file)
+            with self.assertRaisesRegex(ProjectError, "without file paths"):
+                load_project(self.write_raw(self.document))
+            destination.pop("source")
+
     def test_incomplete_drafts_save_without_export_requirements(self):
         character = self.document["character"]
         character.update(name="", internal_name="", home_map="", dialogues=[], schedule=[], events=[], relationships=[], gifts={})

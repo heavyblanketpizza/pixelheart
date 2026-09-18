@@ -24,6 +24,8 @@ from .story import compile_story, event_game_id, exported_npc_id, normalize_even
 from .life import compile_life, life_issues
 from .world import WorldError, world_character, world_issues, compile_world, exported_location_id
 from .validation import GENDERS
+from .dialogue_templates import MAX_DIALOGUES
+from .provenance import source_metadata
 
 
 CONTENT_PATCHER_FORMAT = "2.9.0"
@@ -303,12 +305,18 @@ def validate_character(data, portrait_path=None, sprite_path=None, *, appearance
     if not isinstance(dialogues, list) or not dialogues:
         add("error", "dialogues", "Add at least one dialogue line before exporting.")
         dialogues = []
+    if len(dialogues) > MAX_DIALOGUES:
+        add("error", "dialogues", f"A character can have up to {MAX_DIALOGUES} dialogue entries.")
     seen = set()
     for index, entry in enumerate(dialogues):
         field = f"dialogues.{index}"
         if not isinstance(entry, dict):
             add("error", field, "Each dialogue must have a trigger and text.")
             continue
+        try:
+            source_metadata(entry)
+        except ValueError as exc:
+            add("error", field + ".source", str(exc))
         key, line = _text(entry.get("trigger")), _text(entry.get("text"))
         if not DIALOGUE_KEY.fullmatch(key):
             add("error", field, "Use a game dialogue key such as Introduction, Mon, or spring_Mon2.")
@@ -525,6 +533,72 @@ def _story_test_guide(data, patches, mod_id, npc_id):
     return "\n".join(lines)
 
 
+def _portable_artwork(record, filename):
+    """The ZIP contains the selected sheet, with its portable source notices."""
+    try:
+        metadata = source_metadata(record) if isinstance(record, dict) else {}
+    except ValueError as exc:
+        raise ExportValidationError([{"level": "error", "field": "artwork.source", "message": str(exc)}]) from exc
+    return {"original": filename, "selected": "original", **metadata} if metadata else filename
+
+
+def _asset_credits(document):
+    """Describe source records without copying local filenames or claiming rights."""
+    notices = []
+
+    def add(label, record):
+        if not isinstance(record, dict):
+            return
+        metadata = source_metadata(record)
+        if "source" in metadata:
+            notices.append((label, metadata["source"]))
+        for source in metadata.get("source_history", []):
+            notices.append((label + " — previous-sheet source (history only)", source))
+
+    def dialogue_notices(character, label):
+        groups = {}
+        for row in character.get("dialogues", []):
+            if not isinstance(row, dict):
+                continue
+            metadata = source_metadata(row)
+            if "source" in metadata:
+                source = metadata["source"]
+                key = json.dumps(source, sort_keys=True)
+                groups.setdefault(key, [source, 0])[1] += 1
+        for source, count in groups.values():
+            notices.append((f"{label} ({count} imported entries)", source))
+
+    dialogue_notices(document.get("character", {}), "Dialogue")
+    world = document.get("world") or {}
+    for index, companion in enumerate(world.get("characters", []), 1):
+        dialogue_notices(companion.get("character", {}), f"Supporting character {index} dialogue")
+    artwork = document.get("artwork", {})
+    for kind in ("portrait", "sprite"):
+        add(f"Default {kind}", artwork.get(kind))
+    for variant, appearance in artwork.get("variants", {}).items():
+        for kind in ("portrait", "sprite"):
+            add(f"{variant.title()} {kind}", appearance.get(kind))
+    if not notices:
+        return None
+    lines = ["Imported reference sources", "",
+             "These notices record origins, not permission to redistribute or a claim",
+             "that the imported material is unchanged. Game content remains owned by",
+             "ConcernedApe; modifications may belong to their respective creators.", ""]
+    for label, source in notices:
+        lines.append(label)
+        for field, title in (("asset", "Game asset"), ("source_name", "Source"),
+                             ("attribution", "Attribution"), ("creator", "Creator"),
+                             ("sha256", "Imported SHA-256")):
+            if source.get(field):
+                lines.append(f"  {title}: {source[field]}")
+        if source.get("source_url") or source.get("url"):
+            lines.append("  Reference: " + (source.get("source_url") or source["url"]))
+        if source.get("modified_game_possible"):
+            lines.append("  This game export may include changes from installed mods.")
+        lines.append("")
+    return "\n".join(lines)
+
+
 def build_mod_archive(
     data,
     portrait_path: str | PathLike[str] | None = None,
@@ -669,10 +743,27 @@ def build_mod_archive(
         # metadata while making every included asset path portable in the ZIP.
         backup = copy.deepcopy(project_document)
         backup.update(files["project.json"])
-        backup["artwork"] = {"portrait": "assets/portraits.png", "sprite": "assets/sprites.png"}
+        original_artwork = project_document.get("artwork", {})
+        original_artwork = original_artwork if isinstance(original_artwork, dict) else {}
+        backup["artwork"] = {
+            kind: _portable_artwork(original_artwork.get(kind), filename)
+            for kind, filename in (("portrait", "assets/portraits.png"), ("sprite", "assets/sprites.png"))
+        }
         if appearance_backup:
-            backup["artwork"]["variants"] = appearance_backup
+            source_variants = original_artwork.get("variants", {})
+            source_variants = source_variants if isinstance(source_variants, dict) else {}
+            backup["artwork"]["variants"] = {}
+            for variant, sheets in appearance_backup.items():
+                source_set = source_variants.get(variant, {})
+                source_set = source_set if isinstance(source_set, dict) else {}
+                backup["artwork"]["variants"][variant] = {
+                    kind: _portable_artwork(source_set.get(kind), filename) for kind, filename in sheets.items()
+                }
         files["project.json"] = backup
+    try:
+        credits = _asset_credits(files["project.json"])
+    except ValueError as exc:
+        raise ExportValidationError([{"level": "error", "field": "source", "message": str(exc)}]) from exc
     world_guide = None
     if world_content and any(world_content["world"].get(key) for key in ("characters", "locations", "dependencies")):
         compiled_world = world_content["world"]
@@ -798,6 +889,8 @@ https://stardewvalleywiki.com/Modding:Event_data
         for name, value in files.items():
             archive.writestr(f"{folder}/{name}", value if isinstance(value, bytes) else json.dumps(value, ensure_ascii=False, indent=2) + "\n")
         archive.writestr(f"{folder}/README.txt", readme)
+        if credits:
+            archive.writestr(f"{folder}/CREDITS.txt", credits)
         story_guides = [_story_test_guide(data, story_patches, mod_id, npc_id)] if story_patches else []
         if world_content:
             story_guides.extend(world_content["story_guides"])

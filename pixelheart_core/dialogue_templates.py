@@ -7,8 +7,10 @@ import copy
 import re
 import uuid
 
+from .provenance import validate_source
 
-MAX_DIALOGUES = 250
+
+MAX_DIALOGUES = 2000
 _DIALOGUE_KEY = re.compile(r"[A-Za-z0-9_.*()+:-]{1,120}\Z")
 _EXPRESSION = re.compile(r"\$(?:[hslanu]\b|\d+(?=\s*(?:$|[#$])))")
 _ADVANCED_MARKER = re.compile(r"[$#^%|{}\[\]]")
@@ -55,7 +57,8 @@ def _selected_examples(examples):
         if "{{" in text:
             raise ValueError(f'Dialogue example "{trigger}" cannot contain Content Patcher tokens.')
         seen.add(trigger)
-        selected.append({"trigger": trigger, "text": text})
+        selected.append({"trigger": trigger, "text": text,
+                         **({"source": validate_source(example["source"])} if "source" in example else {})})
     return selected
 
 
@@ -86,7 +89,7 @@ def apply_dialogue_examples(records, examples, decisions=None) -> list[dict]:
     ``decisions`` maps trimmed triggers to ``"keep"`` or ``"replace"``.
     Replacements retain the existing row's identity, order, and metadata.
     Duplicate existing triggers must be resolved manually before replacement.
-    Educational example metadata is never copied into project records.
+    Only portable source notices accompany imported text; teaching notes do not.
     """
     selected = _selected_examples(examples)
     indexed = _existing_by_trigger(records)
@@ -113,10 +116,14 @@ def apply_dialogue_examples(records, examples, decisions=None) -> list[dict]:
         if matches:
             if decisions.get(trigger, "keep") == "replace":
                 result[matches[0]]["text"] = example["text"]
+                result[matches[0]].pop("source", None)
+                result[matches[0]].pop("source_history", None)
+                if "source" in example:
+                    result[matches[0]]["source"] = copy.deepcopy(example["source"])
         else:
             entry_id = str(uuid.uuid4())
             while entry_id in used_ids:
                 entry_id = str(uuid.uuid4())
             used_ids.add(entry_id)
-            result.append({"id": entry_id, "trigger": trigger, "text": example["text"]})
+            result.append({"id": entry_id, **copy.deepcopy(example)})
     return result

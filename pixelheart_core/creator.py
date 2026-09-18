@@ -15,6 +15,7 @@ import re
 import uuid
 
 from .story import event_game_id, event_issues, exported_npc_id, normalize_event, normalize_relationship
+from .dialogue_templates import MAX_DIALOGUES
 
 
 ARCHETYPES = {
@@ -576,7 +577,7 @@ def build_proposal(document, brief):
     _seed_companion(result, brief, additions, preserved)
     creator.update(version=1, brief=brief, chapters=chapter_refs,
                    source="Curated offline story family. Your free-form concept is saved as direction; the authored scenes are examples for you to adapt.")
-    for collection, limit in (("dialogues", 250), ("events", 100), ("relationships", 100)):
+    for collection, limit in (("dialogues", MAX_DIALOGUES), ("events", 100), ("relationships", 100)):
         if len(character[collection]) > limit:
             raise CreatorError(f"This preview would exceed the project's {limit}-{collection} limit. Make room before adding this framework; your project has not changed.")
     if any(len(character["life"][collection]) > 100 for collection in ("dialogues", "routines", "spouse_dialogue")):

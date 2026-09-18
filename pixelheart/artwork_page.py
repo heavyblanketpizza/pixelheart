@@ -1,6 +1,7 @@
 """Upload, compare and select local original/prepared PNG sheets."""
 
 from copy import deepcopy
+import hashlib
 from pathlib import Path
 import tempfile
 
@@ -89,7 +90,7 @@ class ArtworkPage(QWidget):
         root.setSpacing(20)
         start = QHBoxLayout()
         start.addWidget(label("Bring your own sheets, or start with a familiar NPC.", "muted", True), 1)
-        self.template_button = button("Use vanilla template…", self.choose_template)
+        self.template_button = button("From my game…", self.choose_template)
         start.addWidget(self.template_button)
         root.addLayout(start)
         appearances = QWidget()
@@ -144,7 +145,7 @@ class ArtworkPage(QWidget):
             self.cards[kind] = {"preview": preview, "info": info, "select": select, "prepare": prepare, "remove": remove, "options": options, "export": export}
             row.addWidget(frame, 1)
         root.addLayout(row)
-        root.addWidget(label("Vanilla artwork is by ConcernedApe. Templates download only when requested, with their source shown before loading. Your uploads and saved projects stay on this computer.", "hint", True))
+        root.addWidget(label("Import sheets exported by Content Patcher from your game. Exports can include active mods; use a clean profile for vanilla artwork. Check the creators' permissions before sharing.", "hint", True))
         root.addStretch()
 
     @property
@@ -208,6 +209,8 @@ class ArtworkPage(QWidget):
                     if isinstance(source_metadata, dict) and source_metadata.get("provider"):
                         source = template_source_metadata(source_metadata)
                         widgets["info"].setText(widgets["info"].text() + f"\nTemplate · {source['attribution']}")
+                    elif isinstance(effective_record, dict) and effective_record.get("source_history"):
+                        widgets["info"].setText(widgets["info"].text() + "\nPrevious sheet's source retained in project history.")
                     widgets["info"].setToolTip(str(path))
                     widgets["info"].show()
                     widgets["export"].setEnabled(True)
@@ -243,10 +246,20 @@ class ArtworkPage(QWidget):
             records = {}
             for kind in ("portrait", "sprite"):
                 relative = import_artwork(template[kind], self.window.project_file, kind)
+                source = {
+                    **template_source_metadata(template), "template": template["id"],
+                    "url": template.get("source_url", ""),
+                    **deepcopy(template.get("source", {})),
+                    **deepcopy(template.get(kind + "_source", {})),
+                }
+                expected_hash = source.get("sha256")
+                if expected_hash:
+                    copied = self.window.project_file.parent / relative
+                    if hashlib.sha256(copied.read_bytes()).hexdigest() != expected_hash:
+                        raise ProjectError("The exported artwork changed after preview. Load the template again before using it.")
                 records[kind] = {
                     "original": relative, "prepared": None, "selected": "original",
-                    "source": {**template_source_metadata(template), "template": template["id"],
-                               "creator": "ConcernedApe", "url": template["source_url"]},
+                    "source": source,
                 }
             self.artwork_set(create=True).update(records)
             self.changed.emit()
@@ -299,8 +312,17 @@ class ArtworkPage(QWidget):
             inspect_artwork(path)
             if not self.window.ensure_saved():
                 return
+            previous = self.artwork_set().get(kind)
             relative = import_artwork(path, self.window.project_file, kind)
-            self.artwork_set(create=True)[kind] = {"original": relative, "prepared": None, "selected": "original"}
+            record = {"original": relative, "prepared": None, "selected": "original"}
+            if isinstance(previous, dict):
+                history = deepcopy(previous.get("source_history", []))
+                source = previous.get("source")
+                if isinstance(source, dict) and source not in history:
+                    history.append(deepcopy(source))
+                if history:
+                    record["source_history"] = history
+            self.artwork_set(create=True)[kind] = record
             self.changed.emit()
             self.refresh()
         except (ArtworkValidationError, ProjectError) as exc:

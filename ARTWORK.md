@@ -1,6 +1,6 @@
 # Pixelheart artwork policy
 
-Pixelheart uses **user-uploaded portraits and character sprite images**, with optional vanilla reference sheets downloaded from verified sources only when requested. The application does not generate artwork or include generative-image features.
+Pixelheart uses **user-uploaded portraits and character sprite images**, with optional reference sheets imported from your own Content Patcher exports. The application does not generate artwork or include generative-image features.
 
 ## Supported image preparation
 
@@ -37,20 +37,24 @@ Inputs must be static PNG files, at most 5 MB and 4,194,304 pixels. Corrupt or a
 
 The exporter validates the selected PNG sheets and writes their bytes unchanged. Preparing a sheet does not prove its expressions or animation frames work in the game. See [EXPORT_FORMAT.md](EXPORT_FORMAT.md) for the export checks.
 
-## Vanilla starting templates
+## Templates from your game
 
-Choose **Use vanilla template…**, select an NPC, then **Load template** to download a reference. The source and ConcernedApe credit are shown before downloading. The catalog includes:
+Choose **From my game…** in Artwork, select Abigail or Elliott, and follow the displayed export commands. This workflow uses SMAPI and Content Patcher on Windows, macOS, or Linux; Steam and GOG use the same exported file formats. Console editions are not supported.
 
-- **Abigail:** complete [portrait sheet](https://stardewvalleywiki.com/File:Modding_-_creating_an_XNB_mod_-_example_portraits.png) and [sprite sheet](https://stardewvalleywiki.com/File:Abigail-sprite-sheet.png) from Stardew Valley Wiki.
-- **Elliott:** complete 128 × 320 portrait and 64 × 416 sprite sheets from [stardew-data's original game asset extraction](https://github.com/juliaramosguedes/stardew-data/tree/4e0d98119afefd766f15ee77a529db4eb71fa240), documented as Stardew Valley 1.6.15. Downloads use this fixed commit and verified SHA-256 hashes matching its Git LFS records. The original sheets are imported unchanged, including unused cells.
+For Abigail, run these in the SMAPI console:
 
-These are starting references, not a complete catalog of NPC outfits. Ordinary wiki character icons are single portraits and cannot substitute for complete sheets. Selecting either reference changes only artwork, not the custom character's name, gender, or other identity details.
+```text
+patch export "Portraits/Abigail" image
+patch export "Characters/Abigail" image
+```
 
-Downloads start only after **Load template**. Files are cached under the operating system's user cache in `Pixelheart/wiki-templates`. Each NPC has its own cache; a valid cache can be reused offline. No character data or user artwork is uploaded.
+Choose the resulting **patch export** folder (or its game folder), then **Load template**. The macOS game app bundle is also accepted. Use Elliott in the commands for Elliott's sheets. The selected folder is remembered only in local application settings.
 
-The dialog is a reference viewer until **Use as starting artwork** is selected. That action copies both sheets into the current project's selected appearance and retains source attribution in the artwork records. Original cached files stay unchanged. **Sheet options → Save PNG copy for editing…** writes a separate PNG for an external pixel editor; upload the edited sheet afterward. Vanilla-specific expressions and romance poses still need review for a custom NPC.
+The dialog previews both complete sheets before **Use as starting artwork** copies them into the selected appearance. Loading alone does not change the project. Original exports remain unchanged. Source information follows the imported sheets into saved projects and pack credits; replacing a sheet keeps its previous source as history. **Sheet options → Save PNG copy for editing…** creates a separate copy for your pixel editor.
 
-ConcernedApe retains ownership of the downloaded game artwork.
+**Dialogue → Load character dialogue…** uses the same folder. Its command is `patch export "Characters/Dialogue/Abigail"` (or Elliott). Every entry in that file is loaded and selected, preserving text, commands, and order. Search does not deselect entries. Resolve matching triggers before applying; files exceeding the editor's 2,000-entry or import-size limits are rejected rather than truncated. This loads the selected character dialogue asset, not every line the character may speak from festivals, events, or other game assets.
+
+Exports include active mod changes and the game's current language. For vanilla references, run only SMAPI and Content Patcher. These imports require no template downloads, and importing local content does not grant permission to redistribute game or mod artwork or writing. Review rights and character-specific expressions, poses, and dialogue before sharing a pack.
 
 Gift item previews use a separate cache. Opening Gifts automatically downloads missing vanilla icons from verified Stardew Valley Wiki image links into the OS user cache at `Pixelheart/wiki-items`. Those PNGs stay outside repositories, projects, and exported packs; cached icons work offline. Locally imported mod textures take precedence. See [GAME_ITEMS.md](GAME_ITEMS.md).
 

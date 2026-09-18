@@ -97,8 +97,10 @@ first meeting. Ready chapters require their prerequisites to be ready too.
 ### 3. Supply the artwork
 
 Save the project, then open **Artwork** to import the main character's portrait
-and sprite sheets. Use the templates and frame browser to see the expected
-layout. The export requires real local PNG sheets; a UI portrait preview is not
+and sprite sheets. **From my game…** imports Abigail/Elliott references from
+your local Content Patcher exports; Dialogue can load their complete exported
+dialogue file too. Follow the commands in each dialog, or see the
+[local import guide](ARTWORK.md#templates-from-your-game). Use the frame browser to check the layout. The export requires real local PNG sheets; a UI portrait preview is not
 an exportable game sheet.
 
 Base dimensions:

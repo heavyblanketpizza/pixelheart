@@ -117,7 +117,7 @@ class DialogueTemplateTests(unittest.TestCase):
         records = [{"id": str(i), "trigger": f"Mon{i}", "text": "Original."} for i in range(MAX_DIALOGUES)]
         original = copy.deepcopy(records)
         examples = [{"trigger": "Mon0", "text": "Replacement."}, {"trigger": "Tue", "text": "New."}]
-        with self.assertRaisesRegex(ValueError, "up to 250"):
+        with self.assertRaisesRegex(ValueError, "up to 2000"):
             apply_dialogue_examples(records, examples, {"Mon0": "replace"})
         self.assertEqual(records, original)
         replaced = apply_dialogue_examples(records, examples[:1], {"Mon0": "replace"})
@@ -156,6 +156,40 @@ class DialogueTemplateTests(unittest.TestCase):
         self.assertTrue({row["id"] for row in first}.isdisjoint({row["id"] for row in second}))
         first[0]["text"] = "Changed in first project."
         self.assertEqual(second[0]["text"], self.examples[0]["text"])
+
+    def test_local_source_follows_imported_text_and_not_kept_or_replaced_old_text(self):
+        old = {"provider": "local-content-patcher", "asset": "Characters/Dialogue/Elliott", "sha256": "e" * 64}
+        source = {"provider": "local-content-patcher", "asset": "Characters/Dialogue/Abigail", "sha256": "a" * 64}
+        self.records[0]["source"] = old
+        self.examples[0]["source"] = source
+        imported = apply_dialogue_examples(self.records, self.examples, {"Introduction": "replace"})
+        self.assertEqual(imported[0]["source"], source)
+        self.assertNotIn("explanation", imported[0])
+        self.assertEqual(apply_dialogue_examples(self.records, self.examples)[0]["source"], old)
+        imported[0]["source"]["sha256"] = "b" * 64
+        self.assertEqual(self.examples[0]["source"], source)
+        self.examples[0].pop("source")
+        replaced = apply_dialogue_examples(self.records, self.examples, {"Introduction": "replace"})
+        self.assertNotIn("source", replaced[0])
+
+    def test_full_local_file_over_250_entries_keeps_every_entry_and_source(self):
+        source = {"provider": "local-content-patcher", "asset": "Characters/Dialogue/Abigail", "sha256": "a" * 64}
+        examples = [{"trigger": f"custom_{index}", "text": f"Entire line {index}", "source": source}
+                    for index in range(350)]
+        imported = apply_dialogue_examples([], examples)
+        self.assertEqual(len(imported), 350)
+        self.assertEqual([row["text"] for row in imported], [row["text"] for row in examples])
+        self.assertEqual(validate_nested("dialogues", imported), imported)
+        self.assertIsNot(imported[0]["source"], imported[1]["source"])
+
+    def test_import_rejects_private_paths_in_source_metadata_atomically(self):
+        for source in ({"path": "/Users/private/game/Characters_Dialogue_Abigail.json"},
+                       {"source_name": "/Users/private/game"},
+                       {"asset": "C:/private/game.json"},
+                       {"source_url": "file:///Users/private/game"}):
+            with self.subTest(source=source), self.assertRaises(ValueError):
+                apply_dialogue_examples(self.records, [{**self.examples[0], "source": source}], {"Introduction": "replace"})
+            self.assertEqual(self.records[0]["text"], "My own introduction.")
 
 
 if __name__ == "__main__":
