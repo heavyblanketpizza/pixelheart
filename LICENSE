@@ -1,0 +1,129 @@
+Pixelheart Source-Available License 1.1
+September 19, 2026
+
+Copyright (c) 2026 the Pixelheart copyright holder. All rights reserved except as expressly
+granted below.
+
+1. Scope and unofficial status
+
+This license applies to the Pixelheart source code, executables, documentation,
+and project-owned template material made available under these terms (the
+"Software"), to the extent owned by the Pixelheart copyright holder (the "Licensor").
+Separately licensed third-party components and user-provided content are
+excluded.
+
+Pixelheart is a free, unofficial community tool for Stardew Valley, a game
+developed by ConcernedApe (Eric Barone). The Licensor is a devoted fan, not a
+representative of ConcernedApe. Pixelheart is not affiliated with, sponsored by,
+or endorsed by ConcernedApe or ConcernedApe LLC. Stardew Valley, its original
+content, and its trademarks remain the property of their respective rights
+holders. This license grants no rights in those third-party works or marks.
+
+2. Personal use and private modifications
+
+Subject to these terms, you may download, install, run, and inspect the Software
+for personal, noncommercial Stardew Valley modding, make working and backup
+copies for your own use, and modify a local copy solely for that use. Retain
+existing copyright and license notices. The gameplay-video and livestream
+exception in section 5 expressly applies despite the noncommercial condition.
+
+3. Redistribution, reuse, and prohibited commercial exploitation
+
+Except as permitted in sections 4 through 7 or by applicable law, prior written
+permission from the Licensor is required to redistribute or rehost the Software,
+publish a modified version or derivative tool, or incorporate copyright-protected
+parts of it into another project. These permissions are not granted merely by
+crediting the author. You may freely share the official project or download link.
+
+Commercial exploitation of the Software is prohibited under this license.
+You may not sell it, charge for access to it, paywall its source code or binaries,
+license it for a fee, incorporate its code in a monetized product, or run a paid
+or advertising-supported service based on it. You may not use Pixelheart to
+provide paid NPC-generation services or earn Donation Points from its code or
+project-owned material. Permission for noncommercial redistribution or reuse
+does not waive these commercial restrictions.
+
+This license does not permit converting Pixelheart or its project-owned
+templates or assets for use in other games. It does not restrict using your
+independently owned artwork or characters elsewhere without Pixelheart material.
+
+Permission requests for noncommercial redistribution or reuse should be directed
+to the Licensor through the official Pixelheart repository.
+
+4. Free NPC packs and user content
+
+The Licensor claims no ownership of uploaded artwork, authored dialogue,
+character data, or other original user content merely because Pixelheart is
+used. You may create, edit, and freely publish or share NPC packs for Stardew
+Valley without separate permission from the Licensor. Credit to Pixelheart for
+creating an NPC pack is appreciated but optional; third-party credit requirements
+still apply.
+
+For Pixelheart-owned template material intentionally included in normal NPC
+exports, including JSON structures, starter dialogue, and pack documentation,
+you may use, copy, modify, and distribute that material as part of free Stardew
+Valley NPC packs and modified versions of those packs. Recipients receive the
+same permission subject to these terms. Retain any supplied output-permission
+notice with the pack.
+
+You may not sell, paywall, require payment or a subscription for access to, or
+earn Donation Points from packs containing this Pixelheart-owned material.
+These restrictions cover the tool and its material, not the independent rights
+you hold in original artwork or dialogue used outside Pixelheart. The output
+permission does not authorize distributing the editor, its source code, its
+executable, or a separate template library.
+
+5. Gameplay-video and livestream exception
+
+You may show NPC packs created with Pixelheart in Stardew Valley gameplay
+videos, recordings, and livestreams, including monetized content. Advertising
+revenue, channel subscriptions, viewer tips, and sponsorship of that gameplay
+content are permitted under this exception. No separate Pixelheart permission
+is required.
+
+This exception permits the gameplay content and use of Pixelheart to prepare
+NPCs for it. It does not permit selling or paywalling the tool, code, downloads,
+or Pixelheart-owned template material, and it does not grant Donation Points
+permission for mod files. You must still have the necessary rights in uploaded
+artwork, music, other mods, and any other third-party material.
+
+ConcernedApe's own gameplay-monetization policy is available at:
+https://www.stardewvalley.net/stardew-monetization-policy-for-twitch-streamers-youtubers-etc/
+
+6. Respect for creators and third-party components
+
+Use and distribute only material you own or have permission to use. This
+license does not authorize piracy, infringement, unauthorized asset copying,
+misleading attribution, or false claims of official affiliation or endorsement.
+Pixelheart and its author do not support or endorse those uses.
+
+Third-party components retain their own licenses. Nothing here replaces or
+restricts rights granted under those licenses. Authorized distributors must
+also comply with the applicable terms for bundled dependencies and materials.
+
+7. Existing rights, hosting platforms, and legal exceptions
+
+This license does not revoke permissions already granted for copies lawfully
+received under MIT or another earlier license. It does not restrict rights
+granted by applicable law, including applicable copyright exceptions.
+
+Where the Licensor publishes the Software on a hosting platform, this license
+does not restrict viewing, platform-native forking, or other rights already
+granted under that platform's terms. Such rights do not by themselves authorize
+independent redistribution, commercial use, publication of a derivative product,
+or code reuse beyond what those terms or this license permit.
+
+8. Reservation of rights
+
+All rights not expressly granted are reserved. No trademark rights or rights
+to imply endorsement by the Licensor or ConcernedApe are granted. These are
+Pixelheart's own terms; they do not purport to state a general policy on all
+Stardew Valley mods or to grant rights on behalf of other creators.
+
+9. Disclaimer
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE SOFTWARE IS PROVIDED
+"AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+THE LICENSOR SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY
+ARISING FROM THE SOFTWARE OR ITS USE, WHETHER IN CONTRACT, TORT, OR OTHERWISE.

@@ -1,0 +1,6642 @@
+{
+  "format": "pixelheart-item-catalog",
+  "version": 1,
+  "label": "Vanilla 1.6.15 · object gifts",
+  "source": "vanilla",
+  "items": [
+    {
+      "id": "930",
+      "name": "???",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 930
+      }
+    },
+    {
+      "id": "309",
+      "name": "Acorn",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 309
+      }
+    },
+    {
+      "id": "541",
+      "name": "Aerinite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 541
+      }
+    },
+    {
+      "id": "447",
+      "name": "Aged Roe",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 447
+      }
+    },
+    {
+      "id": "538",
+      "name": "Alamite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 538
+      }
+    },
+    {
+      "id": "705",
+      "name": "Albacore",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 705
+      }
+    },
+    {
+      "id": "456",
+      "name": "Algae Soup",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 456
+      }
+    },
+    {
+      "id": "300",
+      "name": "Amaranth",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 300
+      }
+    },
+    {
+      "id": "299",
+      "name": "Amaranth Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 299
+      }
+    },
+    {
+      "id": "66",
+      "name": "Amethyst",
+      "category": -2,
+      "category_name": "Gems",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 66
+      }
+    },
+    {
+      "id": "587",
+      "name": "Amphibian Fossil",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 587
+      }
+    },
+    {
+      "id": "117",
+      "name": "Anchor",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 117
+      }
+    },
+    {
+      "id": "129",
+      "name": "Anchovy",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 129
+      }
+    },
+    {
+      "id": "103",
+      "name": "Ancient Doll",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 103
+      }
+    },
+    {
+      "id": "123",
+      "name": "Ancient Drum",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 123
+      }
+    },
+    {
+      "id": "454",
+      "name": "Ancient Fruit",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 454
+      }
+    },
+    {
+      "id": "114",
+      "name": "Ancient Seed",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 114
+      }
+    },
+    {
+      "id": "499",
+      "name": "Ancient Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 499
+      }
+    },
+    {
+      "id": "109",
+      "name": "Ancient Sword",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 109
+      }
+    },
+    {
+      "id": "160",
+      "name": "Angler",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 160
+      }
+    },
+    {
+      "id": "Book_AnimalCatalogue",
+      "name": "Animal Catalogue",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 118
+      }
+    },
+    {
+      "id": "613",
+      "name": "Apple",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 613
+      }
+    },
+    {
+      "id": "633",
+      "name": "Apple Sapling",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 633
+      }
+    },
+    {
+      "id": "634",
+      "name": "Apricot",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 634
+      }
+    },
+    {
+      "id": "629",
+      "name": "Apricot Sapling",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 629
+      }
+    },
+    {
+      "id": "62",
+      "name": "Aquamarine",
+      "category": -2,
+      "category_name": "Gems",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 62
+      }
+    },
+    {
+      "id": "101",
+      "name": "Arrowhead",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 101
+      }
+    },
+    {
+      "id": "274",
+      "name": "Artichoke",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 274
+      }
+    },
+    {
+      "id": "605",
+      "name": "Artichoke Dip",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 605
+      }
+    },
+    {
+      "id": "489",
+      "name": "Artichoke Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 489
+      }
+    },
+    {
+      "id": "590",
+      "name": "Artifact Spot",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 590
+      }
+    },
+    {
+      "id": "SeedSpot",
+      "name": "Artifact Spot",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 88
+      }
+    },
+    {
+      "id": "275",
+      "name": "Artifact Trove",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 275
+      }
+    },
+    {
+      "id": "235",
+      "name": "Autumn's Bounty",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 235
+      }
+    },
+    {
+      "id": "685",
+      "name": "Bait",
+      "category": -21,
+      "category_name": "Bait",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 685
+      }
+    },
+    {
+      "id": "SpecificBait",
+      "name": "Bait",
+      "category": -21,
+      "category_name": "Bait",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 57
+      }
+    },
+    {
+      "id": "SkillBook_1",
+      "name": "Bait And Bobber",
+      "category": -103,
+      "category_name": "Skill books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 92
+      }
+    },
+    {
+      "id": "198",
+      "name": "Baked Fish",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 198
+      }
+    },
+    {
+      "id": "91",
+      "name": "Banana",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 91
+      }
+    },
+    {
+      "id": "904",
+      "name": "Banana Pudding",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 904
+      }
+    },
+    {
+      "id": "69",
+      "name": "Banana Sapling",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 69
+      }
+    },
+    {
+      "id": "691",
+      "name": "Barbed Hook",
+      "category": -22,
+      "category_name": "Fishing tackle",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 691
+      }
+    },
+    {
+      "id": "540",
+      "name": "Baryte",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 540
+      }
+    },
+    {
+      "id": "570",
+      "name": "Basalt",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 570
+      }
+    },
+    {
+      "id": "368",
+      "name": "Basic Fertilizer",
+      "category": -19,
+      "category_name": "Fertilizer",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 368
+      }
+    },
+    {
+      "id": "370",
+      "name": "Basic Retaining Soil",
+      "category": -19,
+      "category_name": "Fertilizer",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 370
+      }
+    },
+    {
+      "id": "767",
+      "name": "Bat Wing",
+      "category": -28,
+      "category_name": "Monster loot",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 767
+      }
+    },
+    {
+      "id": "787",
+      "name": "Battery Pack",
+      "category": -16,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 787
+      }
+    },
+    {
+      "id": "207",
+      "name": "Bean Hotpot",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 207
+      }
+    },
+    {
+      "id": "473",
+      "name": "Bean Starter",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 473
+      }
+    },
+    {
+      "id": "346",
+      "name": "Beer",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 346
+      }
+    },
+    {
+      "id": "284",
+      "name": "Beet",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 284
+      }
+    },
+    {
+      "id": "494",
+      "name": "Beet Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 494
+      }
+    },
+    {
+      "id": "539",
+      "name": "Bixite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 539
+      }
+    },
+    {
+      "id": "410",
+      "name": "Blackberry",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 410
+      }
+    },
+    {
+      "id": "611",
+      "name": "Blackberry Cobbler",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 611
+      }
+    },
+    {
+      "id": "800",
+      "name": "Blobfish",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 800
+      }
+    },
+    {
+      "id": "838",
+      "name": "Blue Discus",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 838
+      }
+    },
+    {
+      "id": "BlueGrassStarter",
+      "name": "Blue Grass Starter",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 143
+      }
+    },
+    {
+      "id": "597",
+      "name": "Blue Jazz",
+      "category": -80,
+      "category_name": "Flowers",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 597
+      }
+    },
+    {
+      "id": "413",
+      "name": "Blue Slime Egg",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 413
+      }
+    },
+    {
+      "id": "258",
+      "name": "Blueberry",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 258
+      }
+    },
+    {
+      "id": "481",
+      "name": "Blueberry Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 481
+      }
+    },
+    {
+      "id": "234",
+      "name": "Blueberry Tart",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 234
+      }
+    },
+    {
+      "id": "278",
+      "name": "Bok Choy",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 278
+      }
+    },
+    {
+      "id": "491",
+      "name": "Bok Choy Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 491
+      }
+    },
+    {
+      "id": "287",
+      "name": "Bomb",
+      "category": -8,
+      "category_name": "Crafting",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 287
+      }
+    },
+    {
+      "id": "119",
+      "name": "Bone Flute",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 119
+      }
+    },
+    {
+      "id": "881",
+      "name": "Bone Fragment",
+      "category": -15,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 881
+      }
+    },
+    {
+      "id": "Book_Mystery",
+      "name": "Book of Mysteries",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 117
+      }
+    },
+    {
+      "id": "PurpleBook",
+      "name": "Book Of Stars",
+      "category": -103,
+      "category_name": "Skill books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 89
+      }
+    },
+    {
+      "id": "216",
+      "name": "Bread",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 216
+      }
+    },
+    {
+      "id": "132",
+      "name": "Bream",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 132
+      }
+    },
+    {
+      "id": "293",
+      "name": "Brick Floor",
+      "category": -24,
+      "category_name": "Decor",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 293
+      }
+    },
+    {
+      "id": "Broccoli",
+      "name": "Broccoli",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 82
+      }
+    },
+    {
+      "id": "BroccoliSeeds",
+      "name": "Broccoli Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 86
+      }
+    },
+    {
+      "id": "171",
+      "name": "Broken CD",
+      "category": -20,
+      "category_name": "Trash",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 171
+      }
+    },
+    {
+      "id": "170",
+      "name": "Broken Glasses",
+      "category": -20,
+      "category_name": "Trash",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 170
+      }
+    },
+    {
+      "id": "618",
+      "name": "Bruschetta",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 618
+      }
+    },
+    {
+      "id": "684",
+      "name": "Bug Meat",
+      "category": -28,
+      "category_name": "Monster loot",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 684
+      }
+    },
+    {
+      "id": "874",
+      "name": "Bug Steak",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 874
+      }
+    },
+    {
+      "id": "700",
+      "name": "Bullhead",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 700
+      }
+    },
+    {
+      "id": "ButterflyPowder",
+      "name": "Butterfly Powder",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 142
+      }
+    },
+    {
+      "id": "90",
+      "name": "Cactus Fruit",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 90
+      }
+    },
+    {
+      "id": "802",
+      "name": "Cactus Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 802
+      }
+    },
+    {
+      "id": "542",
+      "name": "Calcite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 542
+      }
+    },
+    {
+      "id": "927",
+      "name": "Camping Stove",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 927
+      }
+    },
+    {
+      "id": "142",
+      "name": "Carp",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 142
+      }
+    },
+    {
+      "id": "209",
+      "name": "Carp Surprise",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 209
+      }
+    },
+    {
+      "id": "Carrot",
+      "name": "Carrot",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 80
+      }
+    },
+    {
+      "id": "CarrotSeeds",
+      "name": "Carrot Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 84
+      }
+    },
+    {
+      "id": "143",
+      "name": "Catfish",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 143
+      }
+    },
+    {
+      "id": "190",
+      "name": "Cauliflower",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 190
+      }
+    },
+    {
+      "id": "474",
+      "name": "Cauliflower Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 474
+      }
+    },
+    {
+      "id": "78",
+      "name": "Cave Carrot",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 78
+      }
+    },
+    {
+      "id": "CaveJelly",
+      "name": "Cave Jelly",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 133
+      }
+    },
+    {
+      "id": "445",
+      "name": "Caviar",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 445
+      }
+    },
+    {
+      "id": "566",
+      "name": "Celestine",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 566
+      }
+    },
+    {
+      "id": "ChallengeBait",
+      "name": "Challenge Bait",
+      "category": -21,
+      "category_name": "Bait",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 72
+      }
+    },
+    {
+      "id": "281",
+      "name": "Chanterelle",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 281
+      }
+    },
+    {
+      "id": "424",
+      "name": "Cheese",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 424
+      }
+    },
+    {
+      "id": "197",
+      "name": "Cheese Cauliflower",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 197
+      }
+    },
+    {
+      "id": "638",
+      "name": "Cherry",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 638
+      }
+    },
+    {
+      "id": "286",
+      "name": "Cherry Bomb",
+      "category": -8,
+      "category_name": "Crafting",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 286
+      }
+    },
+    {
+      "id": "628",
+      "name": "Cherry Sapling",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 628
+      }
+    },
+    {
+      "id": "105",
+      "name": "Chewing Stick",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 105
+      }
+    },
+    {
+      "id": "113",
+      "name": "Chicken Statue",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 113
+      }
+    },
+    {
+      "id": "100",
+      "name": "Chipped Amphora",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 100
+      }
+    },
+    {
+      "id": "220",
+      "name": "Chocolate Cake",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 220
+      }
+    },
+    {
+      "id": "727",
+      "name": "Chowder",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 727
+      }
+    },
+    {
+      "id": "702",
+      "name": "Chub",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 702
+      }
+    },
+    {
+      "id": "848",
+      "name": "Cinder Shard",
+      "category": -15,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 848
+      }
+    },
+    {
+      "id": "372",
+      "name": "Clam",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 372
+      }
+    },
+    {
+      "id": "330",
+      "name": "Clay",
+      "category": -16,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 330
+      }
+    },
+    {
+      "id": "428",
+      "name": "Cloth",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 428
+      }
+    },
+    {
+      "id": "382",
+      "name": "Coal",
+      "category": -15,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 382
+      }
+    },
+    {
+      "id": "411",
+      "name": "Cobblestone Path",
+      "category": -24,
+      "category_name": "Decor",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 411
+      }
+    },
+    {
+      "id": "718",
+      "name": "Cockle",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 718
+      }
+    },
+    {
+      "id": "88",
+      "name": "Coconut",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 88
+      }
+    },
+    {
+      "id": "395",
+      "name": "Coffee",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 395
+      }
+    },
+    {
+      "id": "433",
+      "name": "Coffee Bean",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 433
+      }
+    },
+    {
+      "id": "648",
+      "name": "Coleslaw",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 648
+      }
+    },
+    {
+      "id": "SkillBook_4",
+      "name": "Combat Quarterly",
+      "category": -103,
+      "category_name": "Skill books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 94
+      }
+    },
+    {
+      "id": "404",
+      "name": "Common Mushroom",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 404
+      }
+    },
+    {
+      "id": "201",
+      "name": "Complete Breakfast",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 201
+      }
+    },
+    {
+      "id": "223",
+      "name": "Cookies",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 223
+      }
+    },
+    {
+      "id": "926",
+      "name": "Cookout Kit",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 926
+      }
+    },
+    {
+      "id": "334",
+      "name": "Copper Bar",
+      "category": -15,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 334
+      }
+    },
+    {
+      "id": "378",
+      "name": "Copper Ore",
+      "category": -15,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 378
+      }
+    },
+    {
+      "id": "393",
+      "name": "Coral",
+      "category": -23,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 393
+      }
+    },
+    {
+      "id": "695",
+      "name": "Cork Bobber",
+      "category": -22,
+      "category_name": "Fishing tackle",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 695
+      }
+    },
+    {
+      "id": "270",
+      "name": "Corn",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 270
+      }
+    },
+    {
+      "id": "487",
+      "name": "Corn Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 487
+      }
+    },
+    {
+      "id": "717",
+      "name": "Crab",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 717
+      }
+    },
+    {
+      "id": "732",
+      "name": "Crab Cakes",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 732
+      }
+    },
+    {
+      "id": "710",
+      "name": "Crab Pot",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 710
+      }
+    },
+    {
+      "id": "282",
+      "name": "Cranberries",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 282
+      }
+    },
+    {
+      "id": "612",
+      "name": "Cranberry Candy",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 612
+      }
+    },
+    {
+      "id": "238",
+      "name": "Cranberry Sauce",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 238
+      }
+    },
+    {
+      "id": "493",
+      "name": "Cranberry Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 493
+      }
+    },
+    {
+      "id": "716",
+      "name": "Crayfish",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 716
+      }
+    },
+    {
+      "id": "159",
+      "name": "Crimsonfish",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 159
+      }
+    },
+    {
+      "id": "214",
+      "name": "Crispy Bass",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 214
+      }
+    },
+    {
+      "id": "418",
+      "name": "Crocus",
+      "category": -80,
+      "category_name": "Flowers",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 418
+      }
+    },
+    {
+      "id": "333",
+      "name": "Crystal Floor",
+      "category": -24,
+      "category_name": "Decor",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 333
+      }
+    },
+    {
+      "id": "414",
+      "name": "Crystal Fruit",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 414
+      }
+    },
+    {
+      "id": "409",
+      "name": "Crystal Path",
+      "category": -24,
+      "category_name": "Decor",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 409
+      }
+    },
+    {
+      "id": "856",
+      "name": "Curiosity Lure",
+      "category": -22,
+      "category_name": "Fishing tackle",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 856
+      }
+    },
+    {
+      "id": "18",
+      "name": "Daffodil",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 18
+      }
+    },
+    {
+      "id": "22",
+      "name": "Dandelion",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 22
+      }
+    },
+    {
+      "id": "461",
+      "name": "Decorative Pot",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 461
+      }
+    },
+    {
+      "id": "DeluxeBait",
+      "name": "Deluxe Bait",
+      "category": -21,
+      "category_name": "Bait",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 14
+      }
+    },
+    {
+      "id": "919",
+      "name": "Deluxe Fertilizer",
+      "category": -19,
+      "category_name": "Fertilizer",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 919
+      }
+    },
+    {
+      "id": "920",
+      "name": "Deluxe Retaining Soil",
+      "category": -19,
+      "category_name": "Fertilizer",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 920
+      }
+    },
+    {
+      "id": "466",
+      "name": "Deluxe Speed-Gro",
+      "category": -19,
+      "category_name": "Fertilizer",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 466
+      }
+    },
+    {
+      "id": "72",
+      "name": "Diamond",
+      "category": -2,
+      "category_name": "Gems",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 72
+      }
+    },
+    {
+      "id": "107",
+      "name": "Dinosaur Egg",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 107
+      }
+    },
+    {
+      "id": "807",
+      "name": "Dinosaur Mayonnaise",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 807
+      }
+    },
+    {
+      "id": "242",
+      "name": "Dish O' The Sea",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 242
+      }
+    },
+    {
+      "id": "543",
+      "name": "Dolomite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 543
+      }
+    },
+    {
+      "id": "704",
+      "name": "Dorado",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 704
+      }
+    },
+    {
+      "id": "852",
+      "name": "Dragon Tooth",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 852
+      }
+    },
+    {
+      "id": "687",
+      "name": "Dressed Spinner",
+      "category": -22,
+      "category_name": "Fishing tackle",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 687
+      }
+    },
+    {
+      "id": "DriedFruit",
+      "name": "Dried",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 64
+      }
+    },
+    {
+      "id": "DriedMushrooms",
+      "name": "Dried",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 66
+      }
+    },
+    {
+      "id": "116",
+      "name": "Dried Starfish",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 116
+      }
+    },
+    {
+      "id": "169",
+      "name": "Driftwood",
+      "category": -20,
+      "category_name": "Trash",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 169
+      }
+    },
+    {
+      "id": "463",
+      "name": "Drum Block",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 463
+      }
+    },
+    {
+      "id": "442",
+      "name": "Duck Egg",
+      "category": -5,
+      "category_name": "Eggs",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 442
+      }
+    },
+    {
+      "id": "444",
+      "name": "Duck Feather",
+      "category": -18,
+      "category_name": "Animal products",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 444
+      }
+    },
+    {
+      "id": "307",
+      "name": "Duck Mayonnaise",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 307
+      }
+    },
+    {
+      "id": "122",
+      "name": "Dwarf Gadget",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 122
+      }
+    },
+    {
+      "id": "96",
+      "name": "Dwarf Scroll I",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 96
+      }
+    },
+    {
+      "id": "97",
+      "name": "Dwarf Scroll II",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 97
+      }
+    },
+    {
+      "id": "98",
+      "name": "Dwarf Scroll III",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 98
+      }
+    },
+    {
+      "id": "99",
+      "name": "Dwarf Scroll IV",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 99
+      }
+    },
+    {
+      "id": "121",
+      "name": "Dwarvish Helm",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 121
+      }
+    },
+    {
+      "id": "Book_Bombs",
+      "name": "Dwarvish Safety Manual",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 104
+      }
+    },
+    {
+      "id": "326",
+      "name": "Dwarvish Translation Guide",
+      "category": -8,
+      "category_name": "Crafting",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 326
+      }
+    },
+    {
+      "id": "86",
+      "name": "Earth Crystal",
+      "category": -2,
+      "category_name": "Gems",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 86
+      }
+    },
+    {
+      "id": "875",
+      "name": "Ectoplasm",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 875
+      }
+    },
+    {
+      "id": "148",
+      "name": "Eel",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 148
+      }
+    },
+    {
+      "id": "176",
+      "name": "Egg",
+      "category": -5,
+      "category_name": "Eggs",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 176
+      }
+    },
+    {
+      "id": "180",
+      "name": "Egg",
+      "category": -5,
+      "category_name": "Eggs",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 180
+      }
+    },
+    {
+      "id": "272",
+      "name": "Eggplant",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 272
+      }
+    },
+    {
+      "id": "231",
+      "name": "Eggplant Parmesan",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 231
+      }
+    },
+    {
+      "id": "488",
+      "name": "Eggplant Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 488
+      }
+    },
+    {
+      "id": "104",
+      "name": "Elvish Jewelry",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 104
+      }
+    },
+    {
+      "id": "60",
+      "name": "Emerald",
+      "category": -2,
+      "category_name": "Gems",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 60
+      }
+    },
+    {
+      "id": "349",
+      "name": "Energy Tonic",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 349
+      }
+    },
+    {
+      "id": "913",
+      "name": "Enricher",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 913
+      }
+    },
+    {
+      "id": "729",
+      "name": "Escargot",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 729
+      }
+    },
+    {
+      "id": "544",
+      "name": "Esperite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 544
+      }
+    },
+    {
+      "id": "441",
+      "name": "Explosive Ammo",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 441
+      }
+    },
+    {
+      "id": "872",
+      "name": "Fairy Dust",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 872
+      }
+    },
+    {
+      "id": "595",
+      "name": "Fairy Rose",
+      "category": -80,
+      "category_name": "Flowers",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 595
+      }
+    },
+    {
+      "id": "425",
+      "name": "Fairy Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 425
+      }
+    },
+    {
+      "id": "577",
+      "name": "Fairy Stone",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 577
+      }
+    },
+    {
+      "id": "497",
+      "name": "Fall Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 497
+      }
+    },
+    {
+      "id": "240",
+      "name": "Farmer's Lunch",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 240
+      }
+    },
+    {
+      "id": "771",
+      "name": "Fiber",
+      "category": -16,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 771
+      }
+    },
+    {
+      "id": "885",
+      "name": "Fiber Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 885
+      }
+    },
+    {
+      "id": "259",
+      "name": "Fiddlehead Fern",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 259
+      }
+    },
+    {
+      "id": "649",
+      "name": "Fiddlehead Risotto",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 649
+      }
+    },
+    {
+      "id": "403",
+      "name": "Field Snack",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 403
+      }
+    },
+    {
+      "id": "565",
+      "name": "Fire Opal",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 565
+      }
+    },
+    {
+      "id": "82",
+      "name": "Fire Quartz",
+      "category": -2,
+      "category_name": "Gems",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 82
+      }
+    },
+    {
+      "id": "895",
+      "name": "Fireworks (Green)",
+      "category": -8,
+      "category_name": "Crafting",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 895
+      }
+    },
+    {
+      "id": "894",
+      "name": "Fireworks (Purple)",
+      "category": -8,
+      "category_name": "Crafting",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 894
+      }
+    },
+    {
+      "id": "893",
+      "name": "Fireworks (Red)",
+      "category": -8,
+      "category_name": "Crafting",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 893
+      }
+    },
+    {
+      "id": "728",
+      "name": "Fish Stew",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 728
+      }
+    },
+    {
+      "id": "213",
+      "name": "Fish Taco",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 213
+      }
+    },
+    {
+      "id": "267",
+      "name": "Flounder",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 267
+      }
+    },
+    {
+      "id": "545",
+      "name": "Fluorapatite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 545
+      }
+    },
+    {
+      "id": "464",
+      "name": "Flute Block",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 464
+      }
+    },
+    {
+      "id": "823",
+      "name": "Fossilized Leg",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 823
+      }
+    },
+    {
+      "id": "824",
+      "name": "Fossilized Ribs",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 824
+      }
+    },
+    {
+      "id": "820",
+      "name": "Fossilized Skull",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 820
+      }
+    },
+    {
+      "id": "821",
+      "name": "Fossilized Spine",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 821
+      }
+    },
+    {
+      "id": "822",
+      "name": "Fossilized Tail",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 822
+      }
+    },
+    {
+      "id": "202",
+      "name": "Fried Calamari",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 202
+      }
+    },
+    {
+      "id": "225",
+      "name": "Fried Eel",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 225
+      }
+    },
+    {
+      "id": "194",
+      "name": "Fried Egg",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 194
+      }
+    },
+    {
+      "id": "205",
+      "name": "Fried Mushroom",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 205
+      }
+    },
+    {
+      "id": "Book_Friendship",
+      "name": "Friendship 101",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 109
+      }
+    },
+    {
+      "id": "536",
+      "name": "Frozen Geode",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 536
+      }
+    },
+    {
+      "id": "84",
+      "name": "Frozen Tear",
+      "category": -2,
+      "category_name": "Gems",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 84
+      }
+    },
+    {
+      "id": "610",
+      "name": "Fruit Salad",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 610
+      }
+    },
+    {
+      "id": "896",
+      "name": "Galaxy Soul",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 896
+      }
+    },
+    {
+      "id": "248",
+      "name": "Garlic",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 248
+      }
+    },
+    {
+      "id": "476",
+      "name": "Garlic Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 476
+      }
+    },
+    {
+      "id": "325",
+      "name": "Gate",
+      "category": -8,
+      "category_name": "Crafting",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 325
+      }
+    },
+    {
+      "id": "546",
+      "name": "Geminite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 546
+      }
+    },
+    {
+      "id": "535",
+      "name": "Geode",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 535
+      }
+    },
+    {
+      "id": "561",
+      "name": "Ghost Crystal",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 561
+      }
+    },
+    {
+      "id": "156",
+      "name": "Ghostfish",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 156
+      }
+    },
+    {
+      "id": "829",
+      "name": "Ginger",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 829
+      }
+    },
+    {
+      "id": "903",
+      "name": "Ginger Ale",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 903
+      }
+    },
+    {
+      "id": "775",
+      "name": "Glacierfish",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 775
+      }
+    },
+    {
+      "id": "902",
+      "name": "Glacierfish Jr.",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 902
+      }
+    },
+    {
+      "id": "118",
+      "name": "Glass Shards",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 118
+      }
+    },
+    {
+      "id": "208",
+      "name": "Glazed Yams",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 208
+      }
+    },
+    {
+      "id": "426",
+      "name": "Goat Cheese",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 426
+      }
+    },
+    {
+      "id": "436",
+      "name": "Goat Milk",
+      "category": -6,
+      "category_name": "Milk",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 436
+      }
+    },
+    {
+      "id": "Goby",
+      "name": "Goby",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 135
+      }
+    },
+    {
+      "id": "336",
+      "name": "Gold Bar",
+      "category": -15,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 336
+      }
+    },
+    {
+      "id": "GoldCoin",
+      "name": "Gold Coin",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 70
+      }
+    },
+    {
+      "id": "384",
+      "name": "Gold Ore",
+      "category": -15,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 384
+      }
+    },
+    {
+      "id": "GoldenAnimalCracker",
+      "name": "Golden Animal Cracker",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 121
+      }
+    },
+    {
+      "id": "GoldenBobber",
+      "name": "Golden Bobber",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 9
+      }
+    },
+    {
+      "id": "791",
+      "name": "Golden Coconut",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 791
+      }
+    },
+    {
+      "id": "928",
+      "name": "Golden Egg",
+      "category": -5,
+      "category_name": "Eggs",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 928
+      }
+    },
+    {
+      "id": "124",
+      "name": "Golden Mask",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 124
+      }
+    },
+    {
+      "id": "GoldenMysteryBox",
+      "name": "Golden Mystery Box",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 122
+      }
+    },
+    {
+      "id": "373",
+      "name": "Golden Pumpkin",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 373
+      }
+    },
+    {
+      "id": "125",
+      "name": "Golden Relic",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 125
+      }
+    },
+    {
+      "id": "TroutDerbyTag",
+      "name": "Golden Tag",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 13
+      }
+    },
+    {
+      "id": "73",
+      "name": "Golden Walnut",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 73
+      }
+    },
+    {
+      "id": "569",
+      "name": "Granite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 569
+      }
+    },
+    {
+      "id": "398",
+      "name": "Grape",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 398
+      }
+    },
+    {
+      "id": "301",
+      "name": "Grape Starter",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 301
+      }
+    },
+    {
+      "id": "297",
+      "name": "Grass Starter",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 297
+      }
+    },
+    {
+      "id": "407",
+      "name": "Gravel Path",
+      "category": -24,
+      "category_name": "Decor",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 407
+      }
+    },
+    {
+      "id": "153",
+      "name": "Green Algae",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 153
+      }
+    },
+    {
+      "id": "188",
+      "name": "Green Bean",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 188
+      }
+    },
+    {
+      "id": "680",
+      "name": "Green Slime Egg",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 680
+      }
+    },
+    {
+      "id": "614",
+      "name": "Green Tea",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 614
+      }
+    },
+    {
+      "id": "742",
+      "name": "Haley's Lost Bracelet",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 742
+      }
+    },
+    {
+      "id": "708",
+      "name": "Halibut",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 708
+      }
+    },
+    {
+      "id": "709",
+      "name": "Hardwood",
+      "category": -16,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 709
+      }
+    },
+    {
+      "id": "298",
+      "name": "Hardwood Fence",
+      "category": -8,
+      "category_name": "Crafting",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 298
+      }
+    },
+    {
+      "id": "210",
+      "name": "Hashbrowns",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 210
+      }
+    },
+    {
+      "id": "178",
+      "name": "Hay",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 178
+      }
+    },
+    {
+      "id": "408",
+      "name": "Hazelnut",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 408
+      }
+    },
+    {
+      "id": "929",
+      "name": "Hedge",
+      "category": -8,
+      "category_name": "Crafting",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 929
+      }
+    },
+    {
+      "id": "547",
+      "name": "Helvite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 547
+      }
+    },
+    {
+      "id": "573",
+      "name": "Hematite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 573
+      }
+    },
+    {
+      "id": "147",
+      "name": "Herring",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 147
+      }
+    },
+    {
+      "id": "283",
+      "name": "Holly",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 283
+      }
+    },
+    {
+      "id": "340",
+      "name": "Honey",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 340
+      }
+    },
+    {
+      "id": "304",
+      "name": "Hops",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 304
+      }
+    },
+    {
+      "id": "302",
+      "name": "Hops Starter",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 302
+      }
+    },
+    {
+      "id": "Book_Horse",
+      "name": "Horse: The Book",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 141
+      }
+    },
+    {
+      "id": "260",
+      "name": "Hot Pepper",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 260
+      }
+    },
+    {
+      "id": "918",
+      "name": "Hyper Speed-Gro",
+      "category": -19,
+      "category_name": "Fertilizer",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 918
+      }
+    },
+    {
+      "id": "233",
+      "name": "Ice Cream",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 233
+      }
+    },
+    {
+      "id": "161",
+      "name": "Ice Pip",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 161
+      }
+    },
+    {
+      "id": "337",
+      "name": "Iridium Bar",
+      "category": -15,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 337
+      }
+    },
+    {
+      "id": "803",
+      "name": "Iridium Milk",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 803
+      }
+    },
+    {
+      "id": "386",
+      "name": "Iridium Ore",
+      "category": -15,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 386
+      }
+    },
+    {
+      "id": "645",
+      "name": "Iridium Sprinkler",
+      "category": -8,
+      "category_name": "Crafting",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 645
+      }
+    },
+    {
+      "id": "335",
+      "name": "Iron Bar",
+      "category": -15,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 335
+      }
+    },
+    {
+      "id": "324",
+      "name": "Iron Fence",
+      "category": -8,
+      "category_name": "Crafting",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 324
+      }
+    },
+    {
+      "id": "380",
+      "name": "Iron Ore",
+      "category": -15,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 380
+      }
+    },
+    {
+      "id": "Book_Defense",
+      "name": "Jack Be Nimble, Jack Be Thick",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 108
+      }
+    },
+    {
+      "id": "746",
+      "name": "Jack-O-Lantern",
+      "category": -8,
+      "category_name": "Crafting",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 746
+      }
+    },
+    {
+      "id": "70",
+      "name": "Jade",
+      "category": -2,
+      "category_name": "Gems",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 70
+      }
+    },
+    {
+      "id": "549",
+      "name": "Jagoite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 549
+      }
+    },
+    {
+      "id": "548",
+      "name": "Jamborite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 548
+      }
+    },
+    {
+      "id": "563",
+      "name": "Jasper",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 563
+      }
+    },
+    {
+      "id": "429",
+      "name": "Jazz Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 429
+      }
+    },
+    {
+      "id": "344",
+      "name": "Jelly",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 130
+      }
+    },
+    {
+      "id": "Book_Roe",
+      "name": "Jewels Of The Sea",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 105
+      }
+    },
+    {
+      "id": "167",
+      "name": "Joja Cola",
+      "category": -20,
+      "category_name": "Trash",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 167
+      }
+    },
+    {
+      "id": "842",
+      "name": "Journal Scrap",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 842
+      }
+    },
+    {
+      "id": "350",
+      "name": "Juice",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 125
+      }
+    },
+    {
+      "id": "250",
+      "name": "Kale",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 250
+      }
+    },
+    {
+      "id": "477",
+      "name": "Kale Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 477
+      }
+    },
+    {
+      "id": "550",
+      "name": "Kyanite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 550
+      }
+    },
+    {
+      "id": "438",
+      "name": "L. Goat Milk",
+      "category": -6,
+      "category_name": "Milk",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 438
+      }
+    },
+    {
+      "id": "174",
+      "name": "Large Egg",
+      "category": -5,
+      "category_name": "Eggs",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 174
+      }
+    },
+    {
+      "id": "182",
+      "name": "Large Egg",
+      "category": -5,
+      "category_name": "Eggs",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 182
+      }
+    },
+    {
+      "id": "186",
+      "name": "Large Milk",
+      "category": -6,
+      "category_name": "Milk",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 186
+      }
+    },
+    {
+      "id": "136",
+      "name": "Largemouth Bass",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 136
+      }
+    },
+    {
+      "id": "162",
+      "name": "Lava Eel",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 162
+      }
+    },
+    {
+      "id": "692",
+      "name": "Lead Bobber",
+      "category": -22,
+      "category_name": "Fishing tackle",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 692
+      }
+    },
+    {
+      "id": "20",
+      "name": "Leek",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 20
+      }
+    },
+    {
+      "id": "163",
+      "name": "Legend",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 163
+      }
+    },
+    {
+      "id": "900",
+      "name": "Legend II",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 900
+      }
+    },
+    {
+      "id": "554",
+      "name": "Lemon Stone",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 554
+      }
+    },
+    {
+      "id": "773",
+      "name": "Life Elixir",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 773
+      }
+    },
+    {
+      "id": "571",
+      "name": "Limestone",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 571
+      }
+    },
+    {
+      "id": "707",
+      "name": "Lingcod",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 707
+      }
+    },
+    {
+      "id": "837",
+      "name": "Lionfish",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 837
+      }
+    },
+    {
+      "id": "715",
+      "name": "Lobster",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 715
+      }
+    },
+    {
+      "id": "730",
+      "name": "Lobster Bisque",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 730
+      }
+    },
+    {
+      "id": "102",
+      "name": "Lost Book",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 102
+      }
+    },
+    {
+      "id": "204",
+      "name": "Lucky Lunch",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 204
+      }
+    },
+    {
+      "id": "30",
+      "name": "Lumber",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 30
+      }
+    },
+    {
+      "id": "551",
+      "name": "Lunarite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 551
+      }
+    },
+    {
+      "id": "908",
+      "name": "Magic Bait",
+      "category": -21,
+      "category_name": "Bait",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 908
+      }
+    },
+    {
+      "id": "279",
+      "name": "Magic Rock Candy",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 279
+      }
+    },
+    {
+      "id": "851",
+      "name": "Magma Cap",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 851
+      }
+    },
+    {
+      "id": "537",
+      "name": "Magma Geode",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 537
+      }
+    },
+    {
+      "id": "703",
+      "name": "Magnet",
+      "category": -21,
+      "category_name": "Bait",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 703
+      }
+    },
+    {
+      "id": "292",
+      "name": "Mahogany Seed",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 292
+      }
+    },
+    {
+      "id": "228",
+      "name": "Maki Roll",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 228
+      }
+    },
+    {
+      "id": "552",
+      "name": "Malachite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 552
+      }
+    },
+    {
+      "id": "834",
+      "name": "Mango",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 834
+      }
+    },
+    {
+      "id": "835",
+      "name": "Mango Sapling",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 835
+      }
+    },
+    {
+      "id": "905",
+      "name": "Mango Sticky Rice",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 905
+      }
+    },
+    {
+      "id": "731",
+      "name": "Maple Bar",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 731
+      }
+    },
+    {
+      "id": "310",
+      "name": "Maple Seed",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 310
+      }
+    },
+    {
+      "id": "724",
+      "name": "Maple Syrup",
+      "category": -27,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 724
+      }
+    },
+    {
+      "id": "Book_Marlon",
+      "name": "Mapping Cave Systems",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 112
+      }
+    },
+    {
+      "id": "567",
+      "name": "Marble",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 567
+      }
+    },
+    {
+      "id": "306",
+      "name": "Mayonnaise",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 306
+      }
+    },
+    {
+      "id": "459",
+      "name": "Mead",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 459
+      }
+    },
+    {
+      "id": "288",
+      "name": "Mega Bomb",
+      "category": -8,
+      "category_name": "Crafting",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 288
+      }
+    },
+    {
+      "id": "254",
+      "name": "Melon",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 254
+      }
+    },
+    {
+      "id": "479",
+      "name": "Melon Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 479
+      }
+    },
+    {
+      "id": "269",
+      "name": "Midnight Carp",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 269
+      }
+    },
+    {
+      "id": "798",
+      "name": "Midnight Squid",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 798
+      }
+    },
+    {
+      "id": "184",
+      "name": "Milk",
+      "category": -6,
+      "category_name": "Milk",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 184
+      }
+    },
+    {
+      "id": "243",
+      "name": "Miner's Treat",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 243
+      }
+    },
+    {
+      "id": "SkillBook_3",
+      "name": "Mining Monthly",
+      "category": -103,
+      "category_name": "Skill books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 93
+      }
+    },
+    {
+      "id": "MixedFlowerSeeds",
+      "name": "Mixed Flower Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 8
+      }
+    },
+    {
+      "id": "770",
+      "name": "Mixed Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 770
+      }
+    },
+    {
+      "id": "Book_Void",
+      "name": "Monster Compendium",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 110
+      }
+    },
+    {
+      "id": "879",
+      "name": "Monster Musk",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 879
+      }
+    },
+    {
+      "id": "257",
+      "name": "Morel",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 257
+      }
+    },
+    {
+      "id": "Moss",
+      "name": "Moss",
+      "category": -16,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 38
+      }
+    },
+    {
+      "id": "MossSoup",
+      "name": "Moss Soup",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 144
+      }
+    },
+    {
+      "id": "MossySeed",
+      "name": "Mossy Seed",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 39
+      }
+    },
+    {
+      "id": "899",
+      "name": "Ms. Angler",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 899
+      }
+    },
+    {
+      "id": "574",
+      "name": "Mudstone",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 574
+      }
+    },
+    {
+      "id": "827",
+      "name": "Mummified Bat",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 827
+      }
+    },
+    {
+      "id": "828",
+      "name": "Mummified Frog",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 828
+      }
+    },
+    {
+      "id": "351",
+      "name": "Muscle Remedy",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 351
+      }
+    },
+    {
+      "id": "891",
+      "name": "Mushroom Tree Seed",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 891
+      }
+    },
+    {
+      "id": "719",
+      "name": "Mussel",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 719
+      }
+    },
+    {
+      "id": "682",
+      "name": "Mutant Carp",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 682
+      }
+    },
+    {
+      "id": "MysteryBox",
+      "name": "Mystery Box",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 37
+      }
+    },
+    {
+      "id": "MysticSyrup",
+      "name": "Mystic Syrup",
+      "category": -27,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 62
+      }
+    },
+    {
+      "id": "MysticTreeSeed",
+      "name": "Mystic Tree Seed",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 61
+      }
+    },
+    {
+      "id": "586",
+      "name": "Nautilus Fossil",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 586
+      }
+    },
+    {
+      "id": "392",
+      "name": "Nautilus Shell",
+      "category": -23,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 392
+      }
+    },
+    {
+      "id": "555",
+      "name": "Nekoite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 555
+      }
+    },
+    {
+      "id": "553",
+      "name": "Neptunite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 553
+      }
+    },
+    {
+      "id": "725",
+      "name": "Oak Resin",
+      "category": -27,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 725
+      }
+    },
+    {
+      "id": "575",
+      "name": "Obsidian",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 575
+      }
+    },
+    {
+      "id": "560",
+      "name": "Ocean Stone",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 560
+      }
+    },
+    {
+      "id": "149",
+      "name": "Octopus",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 149
+      }
+    },
+    {
+      "id": "247",
+      "name": "Oil",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 247
+      }
+    },
+    {
+      "id": "772",
+      "name": "Oil of Garlic",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 772
+      }
+    },
+    {
+      "id": "Book_Grass",
+      "name": "Ol' Slitherlegs",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 145
+      }
+    },
+    {
+      "id": "195",
+      "name": "Omelet",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 195
+      }
+    },
+    {
+      "id": "749",
+      "name": "Omni Geode",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 749
+      }
+    },
+    {
+      "id": "564",
+      "name": "Opal",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 564
+      }
+    },
+    {
+      "id": "635",
+      "name": "Orange",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 635
+      }
+    },
+    {
+      "id": "630",
+      "name": "Orange Sapling",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 630
+      }
+    },
+    {
+      "id": "106",
+      "name": "Ornamental Fan",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 106
+      }
+    },
+    {
+      "id": "556",
+      "name": "Orpiment",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 556
+      }
+    },
+    {
+      "id": "289",
+      "name": "Ostrich Egg",
+      "category": -5,
+      "category_name": "Eggs",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 289
+      }
+    },
+    {
+      "id": "723",
+      "name": "Oyster",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 723
+      }
+    },
+    {
+      "id": "303",
+      "name": "Pale Ale",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 303
+      }
+    },
+    {
+      "id": "457",
+      "name": "Pale Broth",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 457
+      }
+    },
+    {
+      "id": "588",
+      "name": "Palm Fossil",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 588
+      }
+    },
+    {
+      "id": "211",
+      "name": "Pancakes",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 211
+      }
+    },
+    {
+      "id": "24",
+      "name": "Parsnip",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 24
+      }
+    },
+    {
+      "id": "472",
+      "name": "Parsnip Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 472
+      }
+    },
+    {
+      "id": "199",
+      "name": "Parsnip Soup",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 199
+      }
+    },
+    {
+      "id": "636",
+      "name": "Peach",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 636
+      }
+    },
+    {
+      "id": "631",
+      "name": "Peach Sapling",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 631
+      }
+    },
+    {
+      "id": "797",
+      "name": "Pearl",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 797
+      }
+    },
+    {
+      "id": "215",
+      "name": "Pepper Poppers",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 215
+      }
+    },
+    {
+      "id": "482",
+      "name": "Pepper Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 482
+      }
+    },
+    {
+      "id": "141",
+      "name": "Perch",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 141
+      }
+    },
+    {
+      "id": "722",
+      "name": "Periwinkle",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 722
+      }
+    },
+    {
+      "id": "PetLicense",
+      "name": "Pet License",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 138
+      }
+    },
+    {
+      "id": "557",
+      "name": "Petrified Slime",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 557
+      }
+    },
+    {
+      "id": "342",
+      "name": "Pickles",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 128
+      }
+    },
+    {
+      "id": "144",
+      "name": "Pike",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 144
+      }
+    },
+    {
+      "id": "311",
+      "name": "Pine Cone",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 311
+      }
+    },
+    {
+      "id": "726",
+      "name": "Pine Tar",
+      "category": -27,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 726
+      }
+    },
+    {
+      "id": "832",
+      "name": "Pineapple",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 832
+      }
+    },
+    {
+      "id": "833",
+      "name": "Pineapple Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 833
+      }
+    },
+    {
+      "id": "221",
+      "name": "Pink Cake",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 221
+      }
+    },
+    {
+      "id": "206",
+      "name": "Pizza",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 206
+      }
+    },
+    {
+      "id": "873",
+      "name": "Piña Colada",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 873
+      }
+    },
+    {
+      "id": "604",
+      "name": "Plum Pudding",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 604
+      }
+    },
+    {
+      "id": "906",
+      "name": "Poi",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 906
+      }
+    },
+    {
+      "id": "637",
+      "name": "Pomegranate",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 637
+      }
+    },
+    {
+      "id": "632",
+      "name": "Pomegranate Sapling",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 632
+      }
+    },
+    {
+      "id": "376",
+      "name": "Poppy",
+      "category": -80,
+      "category_name": "Flowers",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 376
+      }
+    },
+    {
+      "id": "453",
+      "name": "Poppy Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 453
+      }
+    },
+    {
+      "id": "651",
+      "name": "Poppyseed Muffin",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 651
+      }
+    },
+    {
+      "id": "192",
+      "name": "Potato",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 192
+      }
+    },
+    {
+      "id": "475",
+      "name": "Potato Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 475
+      }
+    },
+    {
+      "id": "Powdermelon",
+      "name": "Powdermelon",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 83
+      }
+    },
+    {
+      "id": "PowdermelonSeeds",
+      "name": "Powdermelon Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 87
+      }
+    },
+    {
+      "id": "120",
+      "name": "Prehistoric Handaxe",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 120
+      }
+    },
+    {
+      "id": "583",
+      "name": "Prehistoric Rib",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 583
+      }
+    },
+    {
+      "id": "579",
+      "name": "Prehistoric Scapula",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 579
+      }
+    },
+    {
+      "id": "581",
+      "name": "Prehistoric Skull",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 581
+      }
+    },
+    {
+      "id": "580",
+      "name": "Prehistoric Tibia",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 580
+      }
+    },
+    {
+      "id": "115",
+      "name": "Prehistoric Tool",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 115
+      }
+    },
+    {
+      "id": "584",
+      "name": "Prehistoric Vertebra",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 584
+      }
+    },
+    {
+      "id": "915",
+      "name": "Pressure Nozzle",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 915
+      }
+    },
+    {
+      "id": "Book_PriceCatalogue",
+      "name": "Price Catalogue",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 114
+      }
+    },
+    {
+      "id": "876",
+      "name": "Prismatic Jelly",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 876
+      }
+    },
+    {
+      "id": "74",
+      "name": "Prismatic Shard",
+      "category": -2,
+      "category_name": "Gems",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 74
+      }
+    },
+    {
+      "id": "128",
+      "name": "Pufferfish",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 128
+      }
+    },
+    {
+      "id": "276",
+      "name": "Pumpkin",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 276
+      }
+    },
+    {
+      "id": "608",
+      "name": "Pumpkin Pie",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 608
+      }
+    },
+    {
+      "id": "490",
+      "name": "Pumpkin Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 490
+      }
+    },
+    {
+      "id": "236",
+      "name": "Pumpkin Soup",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 236
+      }
+    },
+    {
+      "id": "422",
+      "name": "Purple Mushroom",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 422
+      }
+    },
+    {
+      "id": "439",
+      "name": "Purple Slime Egg",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 439
+      }
+    },
+    {
+      "id": "559",
+      "name": "Pyrite",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 559
+      }
+    },
+    {
+      "id": "890",
+      "name": "Qi Bean",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 890
+      }
+    },
+    {
+      "id": "889",
+      "name": "Qi Fruit",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 889
+      }
+    },
+    {
+      "id": "858",
+      "name": "Qi Gem",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 858
+      }
+    },
+    {
+      "id": "917",
+      "name": "Qi Seasoning",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 917
+      }
+    },
+    {
+      "id": "877",
+      "name": "Quality Bobber",
+      "category": -22,
+      "category_name": "Fishing tackle",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 877
+      }
+    },
+    {
+      "id": "369",
+      "name": "Quality Fertilizer",
+      "category": -19,
+      "category_name": "Fertilizer",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 369
+      }
+    },
+    {
+      "id": "371",
+      "name": "Quality Retaining Soil",
+      "category": -19,
+      "category_name": "Fertilizer",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 371
+      }
+    },
+    {
+      "id": "621",
+      "name": "Quality Sprinkler",
+      "category": -8,
+      "category_name": "Crafting",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 621
+      }
+    },
+    {
+      "id": "80",
+      "name": "Quartz",
+      "category": -2,
+      "category_name": "Gems",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 80
+      }
+    },
+    {
+      "id": "Book_QueenOfSauce",
+      "name": "Queen Of Sauce Cookbook",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 115
+      }
+    },
+    {
+      "id": "446",
+      "name": "Rabbit's Foot",
+      "category": -18,
+      "category_name": "Animal products",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 446
+      }
+    },
+    {
+      "id": "Book_WildSeeds",
+      "name": "Raccoon Journal",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 106
+      }
+    },
+    {
+      "id": "910",
+      "name": "Radioactive Bar",
+      "category": -15,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 910
+      }
+    },
+    {
+      "id": "901",
+      "name": "Radioactive Carp",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 901
+      }
+    },
+    {
+      "id": "909",
+      "name": "Radioactive Ore",
+      "category": -15,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 909
+      }
+    },
+    {
+      "id": "264",
+      "name": "Radish",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 264
+      }
+    },
+    {
+      "id": "609",
+      "name": "Radish Salad",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 609
+      }
+    },
+    {
+      "id": "484",
+      "name": "Radish Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 484
+      }
+    },
+    {
+      "id": "681",
+      "name": "Rain Totem",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 681
+      }
+    },
+    {
+      "id": "394",
+      "name": "Rainbow Shell",
+      "category": -23,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 394
+      }
+    },
+    {
+      "id": "138",
+      "name": "Rainbow Trout",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 138
+      }
+    },
+    {
+      "id": "Raisins",
+      "name": "Raisins",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 63
+      }
+    },
+    {
+      "id": "108",
+      "name": "Rare Disc",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 108
+      }
+    },
+    {
+      "id": "347",
+      "name": "Rare Seed",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 347
+      }
+    },
+    {
+      "id": "266",
+      "name": "Red Cabbage",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 266
+      }
+    },
+    {
+      "id": "485",
+      "name": "Red Cabbage Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 485
+      }
+    },
+    {
+      "id": "146",
+      "name": "Red Mullet",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 146
+      }
+    },
+    {
+      "id": "420",
+      "name": "Red Mushroom",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 420
+      }
+    },
+    {
+      "id": "230",
+      "name": "Red Plate",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 230
+      }
+    },
+    {
+      "id": "437",
+      "name": "Red Slime Egg",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 437
+      }
+    },
+    {
+      "id": "150",
+      "name": "Red Snapper",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 150
+      }
+    },
+    {
+      "id": "338",
+      "name": "Refined Quartz",
+      "category": -15,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 338
+      }
+    },
+    {
+      "id": "252",
+      "name": "Rhubarb",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 252
+      }
+    },
+    {
+      "id": "222",
+      "name": "Rhubarb Pie",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 222
+      }
+    },
+    {
+      "id": "478",
+      "name": "Rhubarb Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 478
+      }
+    },
+    {
+      "id": "423",
+      "name": "Rice",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 423
+      }
+    },
+    {
+      "id": "232",
+      "name": "Rice Pudding",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 232
+      }
+    },
+    {
+      "id": "273",
+      "name": "Rice Shoot",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 273
+      }
+    },
+    {
+      "id": "RiverJelly",
+      "name": "River Jelly",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 132
+      }
+    },
+    {
+      "id": "607",
+      "name": "Roasted Hazelnuts",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 607
+      }
+    },
+    {
+      "id": "812",
+      "name": "Roe",
+      "category": -23,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 812
+      }
+    },
+    {
+      "id": "244",
+      "name": "Roots Platter",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 244
+      }
+    },
+    {
+      "id": "747",
+      "name": "Rotten Plant",
+      "category": -20,
+      "category_name": "Trash",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 747
+      }
+    },
+    {
+      "id": "748",
+      "name": "Rotten Plant",
+      "category": -20,
+      "category_name": "Trash",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 748
+      }
+    },
+    {
+      "id": "64",
+      "name": "Ruby",
+      "category": -2,
+      "category_name": "Gems",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 64
+      }
+    },
+    {
+      "id": "840",
+      "name": "Rustic Plank Floor",
+      "category": -24,
+      "category_name": "Decor",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 840
+      }
+    },
+    {
+      "id": "112",
+      "name": "Rusty Cog",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 112
+      }
+    },
+    {
+      "id": "110",
+      "name": "Rusty Spoon",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 110
+      }
+    },
+    {
+      "id": "111",
+      "name": "Rusty Spur",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 111
+      }
+    },
+    {
+      "id": "196",
+      "name": "Salad",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 196
+      }
+    },
+    {
+      "id": "139",
+      "name": "Salmon",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 139
+      }
+    },
+    {
+      "id": "212",
+      "name": "Salmon Dinner",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 212
+      }
+    },
+    {
+      "id": "296",
+      "name": "Salmonberry",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 296
+      }
+    },
+    {
+      "id": "164",
+      "name": "Sandfish",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 164
+      }
+    },
+    {
+      "id": "568",
+      "name": "Sandstone",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 568
+      }
+    },
+    {
+      "id": "92",
+      "name": "Sap",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 92
+      }
+    },
+    {
+      "id": "131",
+      "name": "Sardine",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 131
+      }
+    },
+    {
+      "id": "227",
+      "name": "Sashimi",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 227
+      }
+    },
+    {
+      "id": "165",
+      "name": "Scorpion Carp",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 165
+      }
+    },
+    {
+      "id": "154",
+      "name": "Sea Cucumber",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 154
+      }
+    },
+    {
+      "id": "SeaJelly",
+      "name": "Sea Jelly",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 134
+      }
+    },
+    {
+      "id": "397",
+      "name": "Sea Urchin",
+      "category": -23,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 397
+      }
+    },
+    {
+      "id": "265",
+      "name": "Seafoam Pudding",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 265
+      }
+    },
+    {
+      "id": "152",
+      "name": "Seaweed",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 152
+      }
+    },
+    {
+      "id": "79",
+      "name": "Secret Note",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 79
+      }
+    },
+    {
+      "id": "706",
+      "name": "Shad",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 706
+      }
+    },
+    {
+      "id": "720",
+      "name": "Shrimp",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 720
+      }
+    },
+    {
+      "id": "733",
+      "name": "Shrimp Cocktail",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 733
+      }
+    },
+    {
+      "id": "582",
+      "name": "Skeletal Hand",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 582
+      }
+    },
+    {
+      "id": "585",
+      "name": "Skeletal Tail",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 585
+      }
+    },
+    {
+      "id": "576",
+      "name": "Slate",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 576
+      }
+    },
+    {
+      "id": "766",
+      "name": "Slime",
+      "category": -28,
+      "category_name": "Monster loot",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 766
+      }
+    },
+    {
+      "id": "925",
+      "name": "Slime Crate",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 925
+      }
+    },
+    {
+      "id": "796",
+      "name": "Slimejack",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 796
+      }
+    },
+    {
+      "id": "137",
+      "name": "Smallmouth Bass",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 137
+      }
+    },
+    {
+      "id": "SmokedFish",
+      "name": "Smoked",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 15
+      }
+    },
+    {
+      "id": "721",
+      "name": "Snail",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 721
+      }
+    },
+    {
+      "id": "825",
+      "name": "Snake Skull",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 825
+      }
+    },
+    {
+      "id": "826",
+      "name": "Snake Vertebrae",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 826
+      }
+    },
+    {
+      "id": "416",
+      "name": "Snow Yam",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 416
+      }
+    },
+    {
+      "id": "572",
+      "name": "Soapstone",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 572
+      }
+    },
+    {
+      "id": "172",
+      "name": "Soggy Newspaper",
+      "category": -20,
+      "category_name": "Trash",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 172
+      }
+    },
+    {
+      "id": "768",
+      "name": "Solar Essence",
+      "category": -28,
+      "category_name": "Monster loot",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 768
+      }
+    },
+    {
+      "id": "898",
+      "name": "Son of Crimsonfish",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 898
+      }
+    },
+    {
+      "id": "SonarBobber",
+      "name": "Sonar Bobber",
+      "category": -22,
+      "category_name": "Fishing tackle",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 56
+      }
+    },
+    {
+      "id": "224",
+      "name": "Spaghetti",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 224
+      }
+    },
+    {
+      "id": "455",
+      "name": "Spangle Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 455
+      }
+    },
+    {
+      "id": "465",
+      "name": "Speed-Gro",
+      "category": -19,
+      "category_name": "Fertilizer",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 465
+      }
+    },
+    {
+      "id": "396",
+      "name": "Spice Berry",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 396
+      }
+    },
+    {
+      "id": "226",
+      "name": "Spicy Eel",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 226
+      }
+    },
+    {
+      "id": "686",
+      "name": "Spinner",
+      "category": -22,
+      "category_name": "Fishing tackle",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 686
+      }
+    },
+    {
+      "id": "94",
+      "name": "Spirit Torch",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 94
+      }
+    },
+    {
+      "id": "799",
+      "name": "Spook Fish",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 799
+      }
+    },
+    {
+      "id": "399",
+      "name": "Spring Onion",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 399
+      }
+    },
+    {
+      "id": "495",
+      "name": "Spring Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 495
+      }
+    },
+    {
+      "id": "599",
+      "name": "Sprinkler",
+      "category": -8,
+      "category_name": "Crafting",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 599
+      }
+    },
+    {
+      "id": "151",
+      "name": "Squid",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 151
+      }
+    },
+    {
+      "id": "814",
+      "name": "Squid Ink",
+      "category": -23,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 814
+      }
+    },
+    {
+      "id": "921",
+      "name": "Squid Ink Ravioli",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 921
+      }
+    },
+    {
+      "id": "578",
+      "name": "Star Shards",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 578
+      }
+    },
+    {
+      "id": "SkillBook_0",
+      "name": "Stardew Valley Almanac",
+      "category": -103,
+      "category_name": "Skill books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 90
+      }
+    },
+    {
+      "id": "434",
+      "name": "Stardrop",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 434
+      }
+    },
+    {
+      "id": "StardropTea",
+      "name": "Stardrop Tea",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 68
+      }
+    },
+    {
+      "id": "268",
+      "name": "Starfruit",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 268
+      }
+    },
+    {
+      "id": "486",
+      "name": "Starfruit Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 486
+      }
+    },
+    {
+      "id": "415",
+      "name": "Stepping Stone Path",
+      "category": -24,
+      "category_name": "Decor",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 415
+      }
+    },
+    {
+      "id": "836",
+      "name": "Stingray",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 836
+      }
+    },
+    {
+      "id": "606",
+      "name": "Stir Fry",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 606
+      }
+    },
+    {
+      "id": "390",
+      "name": "Stone",
+      "category": -16,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 390
+      }
+    },
+    {
+      "id": "449",
+      "name": "Stone Base",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 449
+      }
+    },
+    {
+      "id": "323",
+      "name": "Stone Fence",
+      "category": -8,
+      "category_name": "Crafting",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 323
+      }
+    },
+    {
+      "id": "329",
+      "name": "Stone Floor",
+      "category": -24,
+      "category_name": "Decor",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 329
+      }
+    },
+    {
+      "id": "841",
+      "name": "Stone Walkway Floor",
+      "category": -24,
+      "category_name": "Decor",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 841
+      }
+    },
+    {
+      "id": "158",
+      "name": "Stonefish",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 158
+      }
+    },
+    {
+      "id": "203",
+      "name": "Strange Bun",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 203
+      }
+    },
+    {
+      "id": "126",
+      "name": "Strange Doll",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 126
+      }
+    },
+    {
+      "id": "127",
+      "name": "Strange Doll",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 127
+      }
+    },
+    {
+      "id": "401",
+      "name": "Straw Floor",
+      "category": -24,
+      "category_name": "Decor",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 401
+      }
+    },
+    {
+      "id": "400",
+      "name": "Strawberry",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 400
+      }
+    },
+    {
+      "id": "745",
+      "name": "Strawberry Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 745
+      }
+    },
+    {
+      "id": "239",
+      "name": "Stuffing",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 239
+      }
+    },
+    {
+      "id": "698",
+      "name": "Sturgeon",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 698
+      }
+    },
+    {
+      "id": "245",
+      "name": "Sugar",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 245
+      }
+    },
+    {
+      "id": "496",
+      "name": "Summer Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 496
+      }
+    },
+    {
+      "id": "593",
+      "name": "Summer Spangle",
+      "category": -80,
+      "category_name": "Flowers",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 593
+      }
+    },
+    {
+      "id": "SummerSquash",
+      "name": "Summer Squash",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 81
+      }
+    },
+    {
+      "id": "SummerSquashSeeds",
+      "name": "Summer Squash Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 85
+      }
+    },
+    {
+      "id": "145",
+      "name": "Sunfish",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 145
+      }
+    },
+    {
+      "id": "421",
+      "name": "Sunflower",
+      "category": -80,
+      "category_name": "Flowers",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 421
+      }
+    },
+    {
+      "id": "431",
+      "name": "Sunflower Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 431
+      }
+    },
+    {
+      "id": "155",
+      "name": "Super Cucumber",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 155
+      }
+    },
+    {
+      "id": "237",
+      "name": "Super Meal",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 237
+      }
+    },
+    {
+      "id": "922",
+      "name": "SupplyCrate",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 922
+      }
+    },
+    {
+      "id": "923",
+      "name": "SupplyCrate",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 923
+      }
+    },
+    {
+      "id": "924",
+      "name": "SupplyCrate",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 924
+      }
+    },
+    {
+      "id": "241",
+      "name": "Survival Burger",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 241
+      }
+    },
+    {
+      "id": "417",
+      "name": "Sweet Gem Berry",
+      "category": -17,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 417
+      }
+    },
+    {
+      "id": "402",
+      "name": "Sweet Pea",
+      "category": -80,
+      "category_name": "Flowers",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 402
+      }
+    },
+    {
+      "id": "830",
+      "name": "Taro Root",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 830
+      }
+    },
+    {
+      "id": "831",
+      "name": "Taro Tuber",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 831
+      }
+    },
+    {
+      "id": "815",
+      "name": "Tea Leaves",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 815
+      }
+    },
+    {
+      "id": "251",
+      "name": "Tea Sapling",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 251
+      }
+    },
+    {
+      "id": "341",
+      "name": "Tea Set",
+      "category": -24,
+      "category_name": "Decor",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 341
+      }
+    },
+    {
+      "id": "TentKit",
+      "name": "Tent Kit",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 59
+      }
+    },
+    {
+      "id": "Book_Trash",
+      "name": "The Alleyway Buffet",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 102
+      }
+    },
+    {
+      "id": "Book_Crabbing",
+      "name": "The Art O' Crabbing",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 103
+      }
+    },
+    {
+      "id": "Book_Diamonds",
+      "name": "The Diamond Hunter",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 116
+      }
+    },
+    {
+      "id": "558",
+      "name": "Thunder Egg",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 558
+      }
+    },
+    {
+      "id": "857",
+      "name": "Tiger Slime Egg",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 857
+      }
+    },
+    {
+      "id": "699",
+      "name": "Tiger Trout",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 699
+      }
+    },
+    {
+      "id": "562",
+      "name": "Tigerseye",
+      "category": -12,
+      "category_name": "Minerals",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 562
+      }
+    },
+    {
+      "id": "701",
+      "name": "Tilapia",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 701
+      }
+    },
+    {
+      "id": "218",
+      "name": "Tom Kha Soup",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 218
+      }
+    },
+    {
+      "id": "256",
+      "name": "Tomato",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 256
+      }
+    },
+    {
+      "id": "480",
+      "name": "Tomato Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 480
+      }
+    },
+    {
+      "id": "68",
+      "name": "Topaz",
+      "category": -2,
+      "category_name": "Gems",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 68
+      }
+    },
+    {
+      "id": "93",
+      "name": "Torch",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 93
+      }
+    },
+    {
+      "id": "229",
+      "name": "Tortilla",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 229
+      }
+    },
+    {
+      "id": "694",
+      "name": "Trap Bobber",
+      "category": -22,
+      "category_name": "Fishing tackle",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 694
+      }
+    },
+    {
+      "id": "168",
+      "name": "Trash",
+      "category": -20,
+      "category_name": "Trash",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 168
+      }
+    },
+    {
+      "id": "Book_Artifact",
+      "name": "Treasure Appraisal Guide",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 140
+      }
+    },
+    {
+      "id": "166",
+      "name": "Treasure Chest",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 166
+      }
+    },
+    {
+      "id": "693",
+      "name": "Treasure Hunter",
+      "category": -22,
+      "category_name": "Fishing tackle",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 693
+      }
+    },
+    {
+      "id": "TreasureTotem",
+      "name": "Treasure Totem",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 71
+      }
+    },
+    {
+      "id": "805",
+      "name": "Tree Fertilizer",
+      "category": -19,
+      "category_name": "Fertilizer",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 805
+      }
+    },
+    {
+      "id": "589",
+      "name": "Trilobite",
+      "category": 0,
+      "category_name": "Artifacts",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 589
+      }
+    },
+    {
+      "id": "71",
+      "name": "Trimmed Lucky Purple Shorts",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 71
+      }
+    },
+    {
+      "id": "253",
+      "name": "Triple Shot Espresso",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 253
+      }
+    },
+    {
+      "id": "907",
+      "name": "Tropical Curry",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 907
+      }
+    },
+    {
+      "id": "219",
+      "name": "Trout Soup",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 219
+      }
+    },
+    {
+      "id": "430",
+      "name": "Truffle",
+      "category": -17,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 430
+      }
+    },
+    {
+      "id": "432",
+      "name": "Truffle Oil",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 432
+      }
+    },
+    {
+      "id": "591",
+      "name": "Tulip",
+      "category": -80,
+      "category_name": "Flowers",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 591
+      }
+    },
+    {
+      "id": "427",
+      "name": "Tulip Bulb",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 427
+      }
+    },
+    {
+      "id": "130",
+      "name": "Tuna",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 130
+      }
+    },
+    {
+      "id": "271",
+      "name": "Unmilled Rice",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 271
+      }
+    },
+    {
+      "id": "200",
+      "name": "Vegetable Medley",
+      "category": -7,
+      "category_name": "Cooking",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 200
+      }
+    },
+    {
+      "id": "419",
+      "name": "Vinegar",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 419
+      }
+    },
+    {
+      "id": "305",
+      "name": "Void Egg",
+      "category": -5,
+      "category_name": "Eggs",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 305
+      }
+    },
+    {
+      "id": "769",
+      "name": "Void Essence",
+      "category": -28,
+      "category_name": "Monster loot",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 769
+      }
+    },
+    {
+      "id": "808",
+      "name": "Void Ghost Pendant",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 808
+      }
+    },
+    {
+      "id": "308",
+      "name": "Void Mayonnaise",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 308
+      }
+    },
+    {
+      "id": "795",
+      "name": "Void Salmon",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 795
+      }
+    },
+    {
+      "id": "140",
+      "name": "Walleye",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 140
+      }
+    },
+    {
+      "id": "690",
+      "name": "Warp Totem: Beach",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 690
+      }
+    },
+    {
+      "id": "261",
+      "name": "Warp Totem: Desert",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 261
+      }
+    },
+    {
+      "id": "688",
+      "name": "Warp Totem: Farm",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 688
+      }
+    },
+    {
+      "id": "886",
+      "name": "Warp Totem: Island",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 886
+      }
+    },
+    {
+      "id": "689",
+      "name": "Warp Totem: Mountains",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 689
+      }
+    },
+    {
+      "id": "892",
+      "name": "Warp Totem: Qi's Arena",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 892
+      }
+    },
+    {
+      "id": "Book_Speed",
+      "name": "Way Of The Wind pt. 1",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 111
+      }
+    },
+    {
+      "id": "Book_Speed2",
+      "name": "Way Of The Wind pt. 2",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 119
+      }
+    },
+    {
+      "id": "331",
+      "name": "Weathered Floor",
+      "category": -24,
+      "category_name": "Decor",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 331
+      }
+    },
+    {
+      "id": "262",
+      "name": "Wheat",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 262
+      }
+    },
+    {
+      "id": "246",
+      "name": "Wheat Flour",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 246
+      }
+    },
+    {
+      "id": "483",
+      "name": "Wheat Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 483
+      }
+    },
+    {
+      "id": "157",
+      "name": "White Algae",
+      "category": 0,
+      "category_name": "Other",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 157
+      }
+    },
+    {
+      "id": "774",
+      "name": "Wild Bait",
+      "category": -21,
+      "category_name": "Bait",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 774
+      }
+    },
+    {
+      "id": "16",
+      "name": "Wild Horseradish",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 16
+      }
+    },
+    {
+      "id": "406",
+      "name": "Wild Plum",
+      "category": -79,
+      "category_name": "Fruit",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 406
+      }
+    },
+    {
+      "id": "348",
+      "name": "Wine",
+      "category": -26,
+      "category_name": "Artisan goods",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 123
+      }
+    },
+    {
+      "id": "412",
+      "name": "Winter Root",
+      "category": -81,
+      "category_name": "Forage",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 412
+      }
+    },
+    {
+      "id": "498",
+      "name": "Winter Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 498
+      }
+    },
+    {
+      "id": "388",
+      "name": "Wood",
+      "category": -16,
+      "category_name": "Resources",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 388
+      }
+    },
+    {
+      "id": "322",
+      "name": "Wood Fence",
+      "category": -8,
+      "category_name": "Crafting",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 322
+      }
+    },
+    {
+      "id": "328",
+      "name": "Wood Floor",
+      "category": -24,
+      "category_name": "Decor",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 328
+      }
+    },
+    {
+      "id": "405",
+      "name": "Wood Path",
+      "category": -24,
+      "category_name": "Decor",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 405
+      }
+    },
+    {
+      "id": "SkillBook_2",
+      "name": "Woodcutter's Weekly",
+      "category": -103,
+      "category_name": "Skill books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 91
+      }
+    },
+    {
+      "id": "734",
+      "name": "Woodskip",
+      "category": -4,
+      "category_name": "Fish",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 734
+      }
+    },
+    {
+      "id": "Book_Woodcutting",
+      "name": "Woody's Secret",
+      "category": -102,
+      "category_name": "Books",
+      "icon": {
+        "texture": "TileSheets/Objects_2",
+        "index": 107
+      }
+    },
+    {
+      "id": "440",
+      "name": "Wool",
+      "category": -18,
+      "category_name": "Animal products",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 440
+      }
+    },
+    {
+      "id": "280",
+      "name": "Yam",
+      "category": -75,
+      "category_name": "Vegetables",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 280
+      }
+    },
+    {
+      "id": "492",
+      "name": "Yam Seeds",
+      "category": -74,
+      "category_name": "Seeds",
+      "icon": {
+        "texture": "Maps/springobjects",
+        "index": 492
+      }
+    }
+  ],
+  "warnings": [
+    "This is an object-data catalog. Trinkets and other item types are not included.",
+    "Item data cannot establish normal availability or instance-specific quest flags. Some quest, unused, or special-use definitions may not be obtainable or giftable during normal play; an assignment does not change those game rules."
+  ]
+}

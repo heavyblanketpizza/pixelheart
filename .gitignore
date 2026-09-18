@@ -1,0 +1,94 @@
+.venv/
+__pycache__/
+*.py[cod]
+# Custom NPC projects, artwork, maps and exports stay local at any depth.
+[Pp][Rr][Oo][Jj][Ee][Cc][Tt][Ss]/
+[Aa][Rr][Tt][Ww][Oo][Rr][Kk]/
+[Aa][Rr][Tt][Ww][Oo][Rr][Kk][Ss]/
+world_assets/
+[Ee][Xx][Pp][Oo][Rr][Tt][Ss]/
+[Mm][Oo][Dd][Ss]/
+[[]CP[]] */
+Pixelheart backups/
+.pixelheart-stage-*/
+
+# User-selected save/export paths are private too; allow only bundled catalogs.
+*.[jJ][sS][oO][nN]
+*.[jJ][sS][oO][nN]5
+*.[jJ][sS][oO][nN][lL]
+*.[zZ][iI][pP]
+*.[tT][mM][xX]
+*.[tT][sS][xX]
+*.tiled-project
+*.tiled-session
+*.tmp
+!/pixelheart_core/data/vanilla_items.json
+!/pixelheart_core/data/wiki_item_images.json
+
+# Custom portraits, sprites, tilesheets and editable artwork are user data.
+*.[pP][nN][gG]
+*.[jJ][pP][gG]
+*.[jJ][pP][eE][gG]
+*.[wW][eE][bB][pP]
+*.[gG][iI][fF]
+*.[bB][mM][pP]
+*.[tT][iI][fF]
+*.[tT][iI][fF][fF]
+*.[sS][vV][gG]
+*.[aA][sS][eE]
+*.[aA][sS][eE][pP][rR][iI][tT][eE]
+*.[pP][sS][dD]
+*.[kK][rR][aA]
+*.[oO][rR][aA]
+*.[xX][cC][fF]
+# Approved public artwork: the README banner and application UI icons only.
+!/docs/assets/pixelheart-banner.png
+!/pixelheart/resources/checkmark.svg
+!/pixelheart/resources/chevron.svg
+!/pixelheart/resources/chevron-up.svg
+
+.wiki-artwork/
+# Runtime item image caches belong outside the checkout.
+**/wiki-items/
+.env
+.env.*
+!.env.example
+!.env.template
+.secrets/
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.log
+/.idea/
+/.vscode/
+/build/
+/dist/
+.DS_Store
+.pytest_cache/
+.coverage
+
+# Markdown stays local unless it is an explicitly approved user-facing guide.
+*.[mM][dD]
+*.[mM][aA][rR][kK][dD][oO][wW][nN]
+!/README.md
+!/ARTWORK.md
+!/EXPORT_FORMAT.md
+!/GAME_ITEMS.md
+!/LIFE_AND_BRANCHING.md
+!/MAP_WORKSHOP.md
+!/STORY_WORKSHOP.md
+!/WORLD_BUILDING.md
+!/pixelheart_core/data/README.md
+
+# Internal agent workspaces and prompt material stay local, in any file format.
+.codex/
+.agents/
+.claude/
+.cursor/
+.gemini/
+.aider*
+docs/internal/
+*[Pp][Rr][Oo][Mm][Pp][Tt]*

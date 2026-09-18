@@ -1,0 +1,2669 @@
+{
+  "format": "pixelheart-wiki-item-images",
+  "version": 1,
+  "source_url": "https://stardewvalleywiki.com/Modding:Objects/Object_sprites",
+  "source_revision": 183077,
+  "attribution": "Item artwork by ConcernedApe; image links from Stardew Valley Wiki. No image bytes are bundled.",
+  "items": {
+    "100": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9e/Chipped_Amphora.png",
+      "source_url": "https://stardewvalleywiki.com/File:Chipped_Amphora.png"
+    },
+    "101": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d1/Arrowhead.png",
+      "source_url": "https://stardewvalleywiki.com/File:Arrowhead.png"
+    },
+    "102": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f3/Lost_Book.png",
+      "source_url": "https://stardewvalleywiki.com/File:Lost_Book.png"
+    },
+    "103": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c0/Ancient_Doll.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ancient_Doll.png"
+    },
+    "104": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9d/Elvish_Jewelry.png",
+      "source_url": "https://stardewvalleywiki.com/File:Elvish_Jewelry.png"
+    },
+    "105": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d2/Chewing_Stick.png",
+      "source_url": "https://stardewvalleywiki.com/File:Chewing_Stick.png"
+    },
+    "106": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/ab/Ornamental_Fan.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ornamental_Fan.png"
+    },
+    "107": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a1/Dinosaur_Egg.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dinosaur_Egg.png"
+    },
+    "108": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e0/Rare_Disc.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rare_Disc.png"
+    },
+    "109": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/76/Ancient_Sword.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ancient_Sword.png"
+    },
+    "110": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/4e/Rusty_Spoon.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rusty_Spoon.png"
+    },
+    "111": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/cd/Rusty_Spur.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rusty_Spur.png"
+    },
+    "112": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/74/Rusty_Cog.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rusty_Cog.png"
+    },
+    "113": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/af/Chicken_Statue.png",
+      "source_url": "https://stardewvalleywiki.com/File:Chicken_Statue.png"
+    },
+    "114": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/4e/Springobjects114.png",
+      "source_url": "https://stardewvalleywiki.com/File:Springobjects114.png"
+    },
+    "115": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/26/Prehistoric_Tool.png",
+      "source_url": "https://stardewvalleywiki.com/File:Prehistoric_Tool.png"
+    },
+    "116": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/df/Dried_Starfish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dried_Starfish.png"
+    },
+    "117": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c0/Anchor.png",
+      "source_url": "https://stardewvalleywiki.com/File:Anchor.png"
+    },
+    "118": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b9/Glass_Shards.png",
+      "source_url": "https://stardewvalleywiki.com/File:Glass_Shards.png"
+    },
+    "119": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/fc/Bone_Flute.png",
+      "source_url": "https://stardewvalleywiki.com/File:Bone_Flute.png"
+    },
+    "120": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/07/Prehistoric_Handaxe.png",
+      "source_url": "https://stardewvalleywiki.com/File:Prehistoric_Handaxe.png"
+    },
+    "121": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/8b/Dwarvish_Helm.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dwarvish_Helm.png"
+    },
+    "122": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/58/Dwarf_Gadget.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dwarf_Gadget.png"
+    },
+    "123": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1e/Ancient_Drum.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ancient_Drum.png"
+    },
+    "124": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/7e/Golden_Mask.png",
+      "source_url": "https://stardewvalleywiki.com/File:Golden_Mask.png"
+    },
+    "125": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/37/Golden_Relic.png",
+      "source_url": "https://stardewvalleywiki.com/File:Golden_Relic.png"
+    },
+    "126": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/39/Strange_Doll_%28green%29.png",
+      "source_url": "https://stardewvalleywiki.com/File:Strange_Doll_(green).png"
+    },
+    "127": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/ef/Strange_Doll_%28yellow%29.png",
+      "source_url": "https://stardewvalleywiki.com/File:Strange_Doll_(yellow).png"
+    },
+    "128": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/ba/Pufferfish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pufferfish.png"
+    },
+    "129": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/79/Anchovy.png",
+      "source_url": "https://stardewvalleywiki.com/File:Anchovy.png"
+    },
+    "130": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c5/Tuna.png",
+      "source_url": "https://stardewvalleywiki.com/File:Tuna.png"
+    },
+    "131": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/04/Sardine.png",
+      "source_url": "https://stardewvalleywiki.com/File:Sardine.png"
+    },
+    "132": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/82/Bream.png",
+      "source_url": "https://stardewvalleywiki.com/File:Bream.png"
+    },
+    "136": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/11/Largemouth_Bass.png",
+      "source_url": "https://stardewvalleywiki.com/File:Largemouth_Bass.png"
+    },
+    "137": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a5/Smallmouth_Bass.png",
+      "source_url": "https://stardewvalleywiki.com/File:Smallmouth_Bass.png"
+    },
+    "138": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/14/Rainbow_Trout.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rainbow_Trout.png"
+    },
+    "139": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e0/Salmon.png",
+      "source_url": "https://stardewvalleywiki.com/File:Salmon.png"
+    },
+    "140": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/05/Walleye.png",
+      "source_url": "https://stardewvalleywiki.com/File:Walleye.png"
+    },
+    "141": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/43/Perch.png",
+      "source_url": "https://stardewvalleywiki.com/File:Perch.png"
+    },
+    "142": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a8/Carp.png",
+      "source_url": "https://stardewvalleywiki.com/File:Carp.png"
+    },
+    "143": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/99/Catfish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Catfish.png"
+    },
+    "144": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/31/Pike.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pike.png"
+    },
+    "145": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/56/Sunfish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Sunfish.png"
+    },
+    "146": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f2/Red_Mullet.png",
+      "source_url": "https://stardewvalleywiki.com/File:Red_Mullet.png"
+    },
+    "147": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f1/Herring.png",
+      "source_url": "https://stardewvalleywiki.com/File:Herring.png"
+    },
+    "148": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/91/Eel.png",
+      "source_url": "https://stardewvalleywiki.com/File:Eel.png"
+    },
+    "149": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/5a/Octopus.png",
+      "source_url": "https://stardewvalleywiki.com/File:Octopus.png"
+    },
+    "150": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d3/Red_Snapper.png",
+      "source_url": "https://stardewvalleywiki.com/File:Red_Snapper.png"
+    },
+    "151": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/81/Squid.png",
+      "source_url": "https://stardewvalleywiki.com/File:Squid.png"
+    },
+    "152": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/13/Seaweed.png",
+      "source_url": "https://stardewvalleywiki.com/File:Seaweed.png"
+    },
+    "153": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6d/Green_Algae.png",
+      "source_url": "https://stardewvalleywiki.com/File:Green_Algae.png"
+    },
+    "154": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a9/Sea_Cucumber.png",
+      "source_url": "https://stardewvalleywiki.com/File:Sea_Cucumber.png"
+    },
+    "155": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d5/Super_Cucumber.png",
+      "source_url": "https://stardewvalleywiki.com/File:Super_Cucumber.png"
+    },
+    "156": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/72/Ghostfish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ghostfish.png"
+    },
+    "157": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f7/White_Algae.png",
+      "source_url": "https://stardewvalleywiki.com/File:White_Algae.png"
+    },
+    "158": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/03/Stonefish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Stonefish.png"
+    },
+    "159": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/dc/Crimsonfish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Crimsonfish.png"
+    },
+    "16": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/90/Wild_Horseradish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Wild_Horseradish.png"
+    },
+    "160": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/bf/Angler.png",
+      "source_url": "https://stardewvalleywiki.com/File:Angler.png"
+    },
+    "161": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/63/Ice_Pip.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ice_Pip.png"
+    },
+    "162": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/12/Lava_Eel.png",
+      "source_url": "https://stardewvalleywiki.com/File:Lava_Eel.png"
+    },
+    "163": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/10/Legend.png",
+      "source_url": "https://stardewvalleywiki.com/File:Legend.png"
+    },
+    "164": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/bb/Sandfish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Sandfish.png"
+    },
+    "165": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/76/Scorpion_Carp.png",
+      "source_url": "https://stardewvalleywiki.com/File:Scorpion_Carp.png"
+    },
+    "166": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/32/Treasure_Chest.png",
+      "source_url": "https://stardewvalleywiki.com/File:Treasure_Chest.png"
+    },
+    "167": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d5/Joja_Cola.png",
+      "source_url": "https://stardewvalleywiki.com/File:Joja_Cola.png"
+    },
+    "168": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/7c/Trash_%28item%29.png",
+      "source_url": "https://stardewvalleywiki.com/File:Trash_(item).png"
+    },
+    "169": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/63/Driftwood.png",
+      "source_url": "https://stardewvalleywiki.com/File:Driftwood.png"
+    },
+    "170": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b5/Broken_Glasses.png",
+      "source_url": "https://stardewvalleywiki.com/File:Broken_Glasses.png"
+    },
+    "171": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/79/Broken_CD.png",
+      "source_url": "https://stardewvalleywiki.com/File:Broken_CD.png"
+    },
+    "172": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c0/Soggy_Newspaper.png",
+      "source_url": "https://stardewvalleywiki.com/File:Soggy_Newspaper.png"
+    },
+    "174": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/5d/Large_Egg.png",
+      "source_url": "https://stardewvalleywiki.com/File:Large_Egg.png"
+    },
+    "176": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/26/Egg.png",
+      "source_url": "https://stardewvalleywiki.com/File:Egg.png"
+    },
+    "178": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/aa/Hay.png",
+      "source_url": "https://stardewvalleywiki.com/File:Hay.png"
+    },
+    "18": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/4b/Daffodil.png",
+      "source_url": "https://stardewvalleywiki.com/File:Daffodil.png"
+    },
+    "180": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/01/Brown_Egg.png",
+      "source_url": "https://stardewvalleywiki.com/File:Brown_Egg.png"
+    },
+    "182": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/91/Large_Brown_Egg.png",
+      "source_url": "https://stardewvalleywiki.com/File:Large_Brown_Egg.png"
+    },
+    "184": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/92/Milk.png",
+      "source_url": "https://stardewvalleywiki.com/File:Milk.png"
+    },
+    "186": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/67/Large_Milk.png",
+      "source_url": "https://stardewvalleywiki.com/File:Large_Milk.png"
+    },
+    "188": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/5c/Green_Bean.png",
+      "source_url": "https://stardewvalleywiki.com/File:Green_Bean.png"
+    },
+    "190": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/aa/Cauliflower.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cauliflower.png"
+    },
+    "192": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c2/Potato.png",
+      "source_url": "https://stardewvalleywiki.com/File:Potato.png"
+    },
+    "194": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/18/Fried_Egg.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fried_Egg.png"
+    },
+    "195": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/12/Omelet.png",
+      "source_url": "https://stardewvalleywiki.com/File:Omelet.png"
+    },
+    "196": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/7e/Salad.png",
+      "source_url": "https://stardewvalleywiki.com/File:Salad.png"
+    },
+    "197": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6e/Cheese_Cauliflower.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cheese_Cauliflower.png"
+    },
+    "198": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/94/Baked_Fish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Baked_Fish.png"
+    },
+    "199": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/76/Parsnip_Soup.png",
+      "source_url": "https://stardewvalleywiki.com/File:Parsnip_Soup.png"
+    },
+    "20": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/57/Leek.png",
+      "source_url": "https://stardewvalleywiki.com/File:Leek.png"
+    },
+    "200": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/0a/Vegetable_Medley.png",
+      "source_url": "https://stardewvalleywiki.com/File:Vegetable_Medley.png"
+    },
+    "201": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/3d/Complete_Breakfast.png",
+      "source_url": "https://stardewvalleywiki.com/File:Complete_Breakfast.png"
+    },
+    "202": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/25/Fried_Calamari.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fried_Calamari.png"
+    },
+    "203": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/5e/Strange_Bun.png",
+      "source_url": "https://stardewvalleywiki.com/File:Strange_Bun.png"
+    },
+    "204": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/5d/Lucky_Lunch.png",
+      "source_url": "https://stardewvalleywiki.com/File:Lucky_Lunch.png"
+    },
+    "205": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/4a/Fried_Mushroom.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fried_Mushroom.png"
+    },
+    "206": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f4/Pizza.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pizza.png"
+    },
+    "207": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/24/Bean_Hotpot.png",
+      "source_url": "https://stardewvalleywiki.com/File:Bean_Hotpot.png"
+    },
+    "208": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/30/Glazed_Yams.png",
+      "source_url": "https://stardewvalleywiki.com/File:Glazed_Yams.png"
+    },
+    "209": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/cc/Carp_Surprise.png",
+      "source_url": "https://stardewvalleywiki.com/File:Carp_Surprise.png"
+    },
+    "210": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/8f/Hashbrowns.png",
+      "source_url": "https://stardewvalleywiki.com/File:Hashbrowns.png"
+    },
+    "211": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6b/Pancakes.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pancakes.png"
+    },
+    "212": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/8b/Salmon_Dinner.png",
+      "source_url": "https://stardewvalleywiki.com/File:Salmon_Dinner.png"
+    },
+    "213": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d5/Fish_Taco.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fish_Taco.png"
+    },
+    "214": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/53/Crispy_Bass.png",
+      "source_url": "https://stardewvalleywiki.com/File:Crispy_Bass.png"
+    },
+    "215": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/08/Pepper_Poppers.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pepper_Poppers.png"
+    },
+    "216": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e1/Bread.png",
+      "source_url": "https://stardewvalleywiki.com/File:Bread.png"
+    },
+    "218": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/3b/Tom_Kha_Soup.png",
+      "source_url": "https://stardewvalleywiki.com/File:Tom_Kha_Soup.png"
+    },
+    "219": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/48/Trout_Soup.png",
+      "source_url": "https://stardewvalleywiki.com/File:Trout_Soup.png"
+    },
+    "22": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b1/Dandelion.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dandelion.png"
+    },
+    "220": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/87/Chocolate_Cake.png",
+      "source_url": "https://stardewvalleywiki.com/File:Chocolate_Cake.png"
+    },
+    "221": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/32/Pink_Cake.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pink_Cake.png"
+    },
+    "222": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/21/Rhubarb_Pie.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rhubarb_Pie.png"
+    },
+    "223": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/70/Cookie.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cookie.png"
+    },
+    "224": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/08/Spaghetti.png",
+      "source_url": "https://stardewvalleywiki.com/File:Spaghetti.png"
+    },
+    "225": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/84/Fried_Eel.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fried_Eel.png"
+    },
+    "226": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f2/Spicy_Eel.png",
+      "source_url": "https://stardewvalleywiki.com/File:Spicy_Eel.png"
+    },
+    "227": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/41/Sashimi.png",
+      "source_url": "https://stardewvalleywiki.com/File:Sashimi.png"
+    },
+    "228": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b6/Maki_Roll.png",
+      "source_url": "https://stardewvalleywiki.com/File:Maki_Roll.png"
+    },
+    "229": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d7/Tortilla.png",
+      "source_url": "https://stardewvalleywiki.com/File:Tortilla.png"
+    },
+    "230": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/45/Red_Plate.png",
+      "source_url": "https://stardewvalleywiki.com/File:Red_Plate.png"
+    },
+    "231": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/73/Eggplant_Parmesan.png",
+      "source_url": "https://stardewvalleywiki.com/File:Eggplant_Parmesan.png"
+    },
+    "232": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/ec/Rice_Pudding.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rice_Pudding.png"
+    },
+    "233": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/5d/Ice_Cream.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ice_Cream.png"
+    },
+    "234": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9b/Blueberry_Tart.png",
+      "source_url": "https://stardewvalleywiki.com/File:Blueberry_Tart.png"
+    },
+    "235": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f4/Autumn%27s_Bounty.png",
+      "source_url": "https://stardewvalleywiki.com/File:Autumn%27s_Bounty.png"
+    },
+    "236": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/59/Pumpkin_Soup.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pumpkin_Soup.png"
+    },
+    "237": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d2/Super_Meal.png",
+      "source_url": "https://stardewvalleywiki.com/File:Super_Meal.png"
+    },
+    "238": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/0b/Cranberry_Sauce.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cranberry_Sauce.png"
+    },
+    "239": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9a/Stuffing.png",
+      "source_url": "https://stardewvalleywiki.com/File:Stuffing.png"
+    },
+    "24": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/db/Parsnip.png",
+      "source_url": "https://stardewvalleywiki.com/File:Parsnip.png"
+    },
+    "240": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/79/Farmer%27s_Lunch.png",
+      "source_url": "https://stardewvalleywiki.com/File:Farmer%27s_Lunch.png"
+    },
+    "241": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/87/Survival_Burger.png",
+      "source_url": "https://stardewvalleywiki.com/File:Survival_Burger.png"
+    },
+    "242": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/ff/Dish_O%27_The_Sea.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dish_O%27_The_Sea.png"
+    },
+    "243": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/12/Miner%27s_Treat.png",
+      "source_url": "https://stardewvalleywiki.com/File:Miner%27s_Treat.png"
+    },
+    "244": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e0/Roots_Platter.png",
+      "source_url": "https://stardewvalleywiki.com/File:Roots_Platter.png"
+    },
+    "245": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a9/Sugar.png",
+      "source_url": "https://stardewvalleywiki.com/File:Sugar.png"
+    },
+    "246": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/2c/Wheat_Flour.png",
+      "source_url": "https://stardewvalleywiki.com/File:Wheat_Flour.png"
+    },
+    "247": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/06/Oil.png",
+      "source_url": "https://stardewvalleywiki.com/File:Oil.png"
+    },
+    "248": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/cc/Garlic.png",
+      "source_url": "https://stardewvalleywiki.com/File:Garlic.png"
+    },
+    "250": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d1/Kale.png",
+      "source_url": "https://stardewvalleywiki.com/File:Kale.png"
+    },
+    "251": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/12/Tea_Sapling.png",
+      "source_url": "https://stardewvalleywiki.com/File:Tea_Sapling.png"
+    },
+    "252": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6e/Rhubarb.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rhubarb.png"
+    },
+    "253": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/36/Triple_Shot_Espresso.png",
+      "source_url": "https://stardewvalleywiki.com/File:Triple_Shot_Espresso.png"
+    },
+    "254": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/19/Melon.png",
+      "source_url": "https://stardewvalleywiki.com/File:Melon.png"
+    },
+    "256": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9d/Tomato.png",
+      "source_url": "https://stardewvalleywiki.com/File:Tomato.png"
+    },
+    "257": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b1/Morel.png",
+      "source_url": "https://stardewvalleywiki.com/File:Morel.png"
+    },
+    "258": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9e/Blueberry.png",
+      "source_url": "https://stardewvalleywiki.com/File:Blueberry.png"
+    },
+    "259": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/48/Fiddlehead_Fern.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fiddlehead_Fern.png"
+    },
+    "260": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f1/Hot_Pepper.png",
+      "source_url": "https://stardewvalleywiki.com/File:Hot_Pepper.png"
+    },
+    "261": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/83/Warp_Totem_Desert.png",
+      "source_url": "https://stardewvalleywiki.com/File:Warp_Totem_Desert.png"
+    },
+    "262": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e2/Wheat.png",
+      "source_url": "https://stardewvalleywiki.com/File:Wheat.png"
+    },
+    "264": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d5/Radish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Radish.png"
+    },
+    "265": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/33/Seafoam_Pudding.png",
+      "source_url": "https://stardewvalleywiki.com/File:Seafoam_Pudding.png"
+    },
+    "266": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/2d/Red_Cabbage.png",
+      "source_url": "https://stardewvalleywiki.com/File:Red_Cabbage.png"
+    },
+    "267": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/85/Flounder.png",
+      "source_url": "https://stardewvalleywiki.com/File:Flounder.png"
+    },
+    "268": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/db/Starfruit.png",
+      "source_url": "https://stardewvalleywiki.com/File:Starfruit.png"
+    },
+    "269": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/33/Midnight_Carp.png",
+      "source_url": "https://stardewvalleywiki.com/File:Midnight_Carp.png"
+    },
+    "270": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f8/Corn.png",
+      "source_url": "https://stardewvalleywiki.com/File:Corn.png"
+    },
+    "271": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/fe/Unmilled_Rice.png",
+      "source_url": "https://stardewvalleywiki.com/File:Unmilled_Rice.png"
+    },
+    "272": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/8f/Eggplant.png",
+      "source_url": "https://stardewvalleywiki.com/File:Eggplant.png"
+    },
+    "273": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/84/Rice_Shoot.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rice_Shoot.png"
+    },
+    "274": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/dd/Artichoke.png",
+      "source_url": "https://stardewvalleywiki.com/File:Artichoke.png"
+    },
+    "275": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/82/Artifact_Trove.png",
+      "source_url": "https://stardewvalleywiki.com/File:Artifact_Trove.png"
+    },
+    "276": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/64/Pumpkin.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pumpkin.png"
+    },
+    "278": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/40/Bok_Choy.png",
+      "source_url": "https://stardewvalleywiki.com/File:Bok_Choy.png"
+    },
+    "279": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/25/Magic_Rock_Candy.png",
+      "source_url": "https://stardewvalleywiki.com/File:Magic_Rock_Candy.png"
+    },
+    "280": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/52/Yam.png",
+      "source_url": "https://stardewvalleywiki.com/File:Yam.png"
+    },
+    "281": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1d/Chanterelle.png",
+      "source_url": "https://stardewvalleywiki.com/File:Chanterelle.png"
+    },
+    "282": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6e/Cranberries.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cranberries.png"
+    },
+    "283": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b8/Holly.png",
+      "source_url": "https://stardewvalleywiki.com/File:Holly.png"
+    },
+    "284": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a4/Beet.png",
+      "source_url": "https://stardewvalleywiki.com/File:Beet.png"
+    },
+    "286": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1b/Cherry_Bomb.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cherry_Bomb.png"
+    },
+    "287": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/3b/Bomb.png",
+      "source_url": "https://stardewvalleywiki.com/File:Bomb.png"
+    },
+    "288": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/4f/Mega_Bomb.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mega_Bomb.png"
+    },
+    "289": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c3/Ostrich_Egg.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ostrich_Egg.png"
+    },
+    "292": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/84/Mahogany_Seed.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mahogany_Seed.png"
+    },
+    "293": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/29/Brick_Floor.png",
+      "source_url": "https://stardewvalleywiki.com/File:Brick_Floor.png"
+    },
+    "296": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/59/Salmonberry.png",
+      "source_url": "https://stardewvalleywiki.com/File:Salmonberry.png"
+    },
+    "297": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/14/Grass_Starter.png",
+      "source_url": "https://stardewvalleywiki.com/File:Grass_Starter.png"
+    },
+    "298": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/5c/Hardwood_Fence.png",
+      "source_url": "https://stardewvalleywiki.com/File:Hardwood_Fence.png"
+    },
+    "299": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/ca/Amaranth_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Amaranth_Seeds.png"
+    },
+    "30": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1a/Springobjects030.png",
+      "source_url": "https://stardewvalleywiki.com/File:Springobjects030.png"
+    },
+    "300": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f6/Amaranth.png",
+      "source_url": "https://stardewvalleywiki.com/File:Amaranth.png"
+    },
+    "301": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/de/Grape_Starter.png",
+      "source_url": "https://stardewvalleywiki.com/File:Grape_Starter.png"
+    },
+    "302": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9b/Hops_Starter.png",
+      "source_url": "https://stardewvalleywiki.com/File:Hops_Starter.png"
+    },
+    "303": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/78/Pale_Ale.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pale_Ale.png"
+    },
+    "304": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/59/Hops.png",
+      "source_url": "https://stardewvalleywiki.com/File:Hops.png"
+    },
+    "305": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/58/Void_Egg.png",
+      "source_url": "https://stardewvalleywiki.com/File:Void_Egg.png"
+    },
+    "306": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/4e/Mayonnaise.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mayonnaise.png"
+    },
+    "307": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/23/Duck_Mayonnaise.png",
+      "source_url": "https://stardewvalleywiki.com/File:Duck_Mayonnaise.png"
+    },
+    "308": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f3/Void_Mayonnaise.png",
+      "source_url": "https://stardewvalleywiki.com/File:Void_Mayonnaise.png"
+    },
+    "309": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/cd/Acorn.png",
+      "source_url": "https://stardewvalleywiki.com/File:Acorn.png"
+    },
+    "310": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/36/Maple_Seed.png",
+      "source_url": "https://stardewvalleywiki.com/File:Maple_Seed.png"
+    },
+    "311": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/90/Pine_Cone.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pine_Cone.png"
+    },
+    "322": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1e/Wood_Fence.png",
+      "source_url": "https://stardewvalleywiki.com/File:Wood_Fence.png"
+    },
+    "323": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/2d/Stone_Fence.png",
+      "source_url": "https://stardewvalleywiki.com/File:Stone_Fence.png"
+    },
+    "324": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9d/Iron_Fence.png",
+      "source_url": "https://stardewvalleywiki.com/File:Iron_Fence.png"
+    },
+    "325": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/94/Gate.png",
+      "source_url": "https://stardewvalleywiki.com/File:Gate.png"
+    },
+    "326": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9c/Dwarvish_Translation_Guide.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dwarvish_Translation_Guide.png"
+    },
+    "328": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/58/Wood_Floor.png",
+      "source_url": "https://stardewvalleywiki.com/File:Wood_Floor.png"
+    },
+    "329": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/4e/Stone_Floor.png",
+      "source_url": "https://stardewvalleywiki.com/File:Stone_Floor.png"
+    },
+    "330": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a2/Clay.png",
+      "source_url": "https://stardewvalleywiki.com/File:Clay.png"
+    },
+    "331": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/2a/Weathered_Floor.png",
+      "source_url": "https://stardewvalleywiki.com/File:Weathered_Floor.png"
+    },
+    "333": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a4/Crystal_Floor.png",
+      "source_url": "https://stardewvalleywiki.com/File:Crystal_Floor.png"
+    },
+    "334": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f1/Copper_Bar.png",
+      "source_url": "https://stardewvalleywiki.com/File:Copper_Bar.png"
+    },
+    "335": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6c/Iron_Bar.png",
+      "source_url": "https://stardewvalleywiki.com/File:Iron_Bar.png"
+    },
+    "336": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/4e/Gold_Bar.png",
+      "source_url": "https://stardewvalleywiki.com/File:Gold_Bar.png"
+    },
+    "337": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c4/Iridium_Bar.png",
+      "source_url": "https://stardewvalleywiki.com/File:Iridium_Bar.png"
+    },
+    "338": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/98/Refined_Quartz.png",
+      "source_url": "https://stardewvalleywiki.com/File:Refined_Quartz.png"
+    },
+    "340": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c6/Honey.png",
+      "source_url": "https://stardewvalleywiki.com/File:Honey.png"
+    },
+    "341": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9b/Tea_Set.png",
+      "source_url": "https://stardewvalleywiki.com/File:Tea_Set.png"
+    },
+    "342": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c7/Pickles.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pickles.png"
+    },
+    "344": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/05/Jelly.png",
+      "source_url": "https://stardewvalleywiki.com/File:Jelly.png"
+    },
+    "346": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b3/Beer.png",
+      "source_url": "https://stardewvalleywiki.com/File:Beer.png"
+    },
+    "347": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/5b/Rare_Seed.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rare_Seed.png"
+    },
+    "348": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/69/Wine.png",
+      "source_url": "https://stardewvalleywiki.com/File:Wine.png"
+    },
+    "349": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a6/Energy_Tonic.png",
+      "source_url": "https://stardewvalleywiki.com/File:Energy_Tonic.png"
+    },
+    "350": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f1/Juice.png",
+      "source_url": "https://stardewvalleywiki.com/File:Juice.png"
+    },
+    "351": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a9/Muscle_Remedy.png",
+      "source_url": "https://stardewvalleywiki.com/File:Muscle_Remedy.png"
+    },
+    "368": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9b/Basic_Fertilizer.png",
+      "source_url": "https://stardewvalleywiki.com/File:Basic_Fertilizer.png"
+    },
+    "369": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a0/Quality_Fertilizer.png",
+      "source_url": "https://stardewvalleywiki.com/File:Quality_Fertilizer.png"
+    },
+    "370": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c7/Basic_Retaining_Soil.png",
+      "source_url": "https://stardewvalleywiki.com/File:Basic_Retaining_Soil.png"
+    },
+    "371": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/0a/Quality_Retaining_Soil.png",
+      "source_url": "https://stardewvalleywiki.com/File:Quality_Retaining_Soil.png"
+    },
+    "372": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/ed/Clam.png",
+      "source_url": "https://stardewvalleywiki.com/File:Clam.png"
+    },
+    "373": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/46/Golden_Pumpkin.png",
+      "source_url": "https://stardewvalleywiki.com/File:Golden_Pumpkin.png"
+    },
+    "376": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/37/Poppy.png",
+      "source_url": "https://stardewvalleywiki.com/File:Poppy.png"
+    },
+    "378": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/78/Copper_Ore.png",
+      "source_url": "https://stardewvalleywiki.com/File:Copper_Ore.png"
+    },
+    "380": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/87/Iron_Ore.png",
+      "source_url": "https://stardewvalleywiki.com/File:Iron_Ore.png"
+    },
+    "382": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a7/Coal.png",
+      "source_url": "https://stardewvalleywiki.com/File:Coal.png"
+    },
+    "384": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f7/Gold_Ore.png",
+      "source_url": "https://stardewvalleywiki.com/File:Gold_Ore.png"
+    },
+    "386": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e9/Iridium_Ore.png",
+      "source_url": "https://stardewvalleywiki.com/File:Iridium_Ore.png"
+    },
+    "388": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/df/Wood.png",
+      "source_url": "https://stardewvalleywiki.com/File:Wood.png"
+    },
+    "390": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d4/Stone.png",
+      "source_url": "https://stardewvalleywiki.com/File:Stone.png"
+    },
+    "392": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a4/Nautilus_Shell.png",
+      "source_url": "https://stardewvalleywiki.com/File:Nautilus_Shell.png"
+    },
+    "393": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b1/Coral.png",
+      "source_url": "https://stardewvalleywiki.com/File:Coral.png"
+    },
+    "394": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/3d/Rainbow_Shell.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rainbow_Shell.png"
+    },
+    "395": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e9/Coffee.png",
+      "source_url": "https://stardewvalleywiki.com/File:Coffee.png"
+    },
+    "396": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c6/Spice_Berry.png",
+      "source_url": "https://stardewvalleywiki.com/File:Spice_Berry.png"
+    },
+    "397": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e7/Sea_Urchin.png",
+      "source_url": "https://stardewvalleywiki.com/File:Sea_Urchin.png"
+    },
+    "398": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c2/Grape.png",
+      "source_url": "https://stardewvalleywiki.com/File:Grape.png"
+    },
+    "399": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/0c/Spring_Onion.png",
+      "source_url": "https://stardewvalleywiki.com/File:Spring_Onion.png"
+    },
+    "400": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6d/Strawberry.png",
+      "source_url": "https://stardewvalleywiki.com/File:Strawberry.png"
+    },
+    "401": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/85/Straw_Floor.png",
+      "source_url": "https://stardewvalleywiki.com/File:Straw_Floor.png"
+    },
+    "402": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d9/Sweet_Pea.png",
+      "source_url": "https://stardewvalleywiki.com/File:Sweet_Pea.png"
+    },
+    "403": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1b/Field_Snack.png",
+      "source_url": "https://stardewvalleywiki.com/File:Field_Snack.png"
+    },
+    "404": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/2e/Common_Mushroom.png",
+      "source_url": "https://stardewvalleywiki.com/File:Common_Mushroom.png"
+    },
+    "405": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e3/Wood_Path.png",
+      "source_url": "https://stardewvalleywiki.com/File:Wood_Path.png"
+    },
+    "406": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/3b/Wild_Plum.png",
+      "source_url": "https://stardewvalleywiki.com/File:Wild_Plum.png"
+    },
+    "407": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/15/Gravel_Path.png",
+      "source_url": "https://stardewvalleywiki.com/File:Gravel_Path.png"
+    },
+    "408": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/31/Hazelnut.png",
+      "source_url": "https://stardewvalleywiki.com/File:Hazelnut.png"
+    },
+    "409": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9b/Crystal_Path.png",
+      "source_url": "https://stardewvalleywiki.com/File:Crystal_Path.png"
+    },
+    "410": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/25/Blackberry.png",
+      "source_url": "https://stardewvalleywiki.com/File:Blackberry.png"
+    },
+    "411": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/90/Cobblestone_Path.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cobblestone_Path.png"
+    },
+    "412": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/11/Winter_Root.png",
+      "source_url": "https://stardewvalleywiki.com/File:Winter_Root.png"
+    },
+    "413": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a2/Blue_Slime_Egg.png",
+      "source_url": "https://stardewvalleywiki.com/File:Blue_Slime_Egg.png"
+    },
+    "414": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/16/Crystal_Fruit.png",
+      "source_url": "https://stardewvalleywiki.com/File:Crystal_Fruit.png"
+    },
+    "415": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1b/Stepping_Stone_Path.png",
+      "source_url": "https://stardewvalleywiki.com/File:Stepping_Stone_Path.png"
+    },
+    "416": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/3f/Snow_Yam.png",
+      "source_url": "https://stardewvalleywiki.com/File:Snow_Yam.png"
+    },
+    "417": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/88/Sweet_Gem_Berry.png",
+      "source_url": "https://stardewvalleywiki.com/File:Sweet_Gem_Berry.png"
+    },
+    "418": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/2f/Crocus.png",
+      "source_url": "https://stardewvalleywiki.com/File:Crocus.png"
+    },
+    "419": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/fe/Vinegar.png",
+      "source_url": "https://stardewvalleywiki.com/File:Vinegar.png"
+    },
+    "420": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e1/Red_Mushroom.png",
+      "source_url": "https://stardewvalleywiki.com/File:Red_Mushroom.png"
+    },
+    "421": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/81/Sunflower.png",
+      "source_url": "https://stardewvalleywiki.com/File:Sunflower.png"
+    },
+    "422": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/4b/Purple_Mushroom.png",
+      "source_url": "https://stardewvalleywiki.com/File:Purple_Mushroom.png"
+    },
+    "423": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/da/Rice.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rice.png"
+    },
+    "424": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a5/Cheese.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cheese.png"
+    },
+    "425": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/8e/Fairy_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fairy_Seeds.png"
+    },
+    "426": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c8/Goat_Cheese.png",
+      "source_url": "https://stardewvalleywiki.com/File:Goat_Cheese.png"
+    },
+    "427": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/42/Tulip_Bulb.png",
+      "source_url": "https://stardewvalleywiki.com/File:Tulip_Bulb.png"
+    },
+    "428": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/51/Cloth.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cloth.png"
+    },
+    "429": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/95/Jazz_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Jazz_Seeds.png"
+    },
+    "430": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f2/Truffle.png",
+      "source_url": "https://stardewvalleywiki.com/File:Truffle.png"
+    },
+    "431": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1f/Sunflower_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Sunflower_Seeds.png"
+    },
+    "432": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/3d/Truffle_Oil.png",
+      "source_url": "https://stardewvalleywiki.com/File:Truffle_Oil.png"
+    },
+    "433": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/33/Coffee_Bean.png",
+      "source_url": "https://stardewvalleywiki.com/File:Coffee_Bean.png"
+    },
+    "434": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a5/Stardrop.png",
+      "source_url": "https://stardewvalleywiki.com/File:Stardrop.png"
+    },
+    "436": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/45/Goat_Milk.png",
+      "source_url": "https://stardewvalleywiki.com/File:Goat_Milk.png"
+    },
+    "437": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/ae/Red_Slime_Egg.png",
+      "source_url": "https://stardewvalleywiki.com/File:Red_Slime_Egg.png"
+    },
+    "438": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f2/Large_Goat_Milk.png",
+      "source_url": "https://stardewvalleywiki.com/File:Large_Goat_Milk.png"
+    },
+    "439": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/65/Purple_Slime_Egg.png",
+      "source_url": "https://stardewvalleywiki.com/File:Purple_Slime_Egg.png"
+    },
+    "440": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/34/Wool.png",
+      "source_url": "https://stardewvalleywiki.com/File:Wool.png"
+    },
+    "441": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f3/Explosive_Ammo.png",
+      "source_url": "https://stardewvalleywiki.com/File:Explosive_Ammo.png"
+    },
+    "442": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/31/Duck_Egg.png",
+      "source_url": "https://stardewvalleywiki.com/File:Duck_Egg.png"
+    },
+    "444": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f9/Duck_Feather.png",
+      "source_url": "https://stardewvalleywiki.com/File:Duck_Feather.png"
+    },
+    "445": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/89/Caviar.png",
+      "source_url": "https://stardewvalleywiki.com/File:Caviar.png"
+    },
+    "446": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/ca/Rabbit%27s_Foot.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rabbit%27s_Foot.png"
+    },
+    "447": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/0e/Aged_Roe.png",
+      "source_url": "https://stardewvalleywiki.com/File:Aged_Roe.png"
+    },
+    "449": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/07/Springobjects449.png",
+      "source_url": "https://stardewvalleywiki.com/File:Springobjects449.png"
+    },
+    "453": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a2/Poppy_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Poppy_Seeds.png"
+    },
+    "454": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/01/Ancient_Fruit.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ancient_Fruit.png"
+    },
+    "455": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/85/Spangle_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Spangle_Seeds.png"
+    },
+    "456": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/53/Algae_Soup.png",
+      "source_url": "https://stardewvalleywiki.com/File:Algae_Soup.png"
+    },
+    "457": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/7e/Pale_Broth.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pale_Broth.png"
+    },
+    "459": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/84/Mead.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mead.png"
+    },
+    "461": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/06/Springobjects461.png",
+      "source_url": "https://stardewvalleywiki.com/File:Springobjects461.png"
+    },
+    "463": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/dc/Drum_Block.png",
+      "source_url": "https://stardewvalleywiki.com/File:Drum_Block.png"
+    },
+    "464": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/31/Flute_Block.png",
+      "source_url": "https://stardewvalleywiki.com/File:Flute_Block.png"
+    },
+    "465": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/94/Speed-Gro.png",
+      "source_url": "https://stardewvalleywiki.com/File:Speed-Gro.png"
+    },
+    "466": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6d/Deluxe_Speed-Gro.png",
+      "source_url": "https://stardewvalleywiki.com/File:Deluxe_Speed-Gro.png"
+    },
+    "472": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d3/Parsnip_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Parsnip_Seeds.png"
+    },
+    "473": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/26/Bean_Starter.png",
+      "source_url": "https://stardewvalleywiki.com/File:Bean_Starter.png"
+    },
+    "474": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/bb/Cauliflower_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cauliflower_Seeds.png"
+    },
+    "475": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/44/Potato_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Potato_Seeds.png"
+    },
+    "476": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d5/Garlic_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Garlic_Seeds.png"
+    },
+    "477": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/00/Kale_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Kale_Seeds.png"
+    },
+    "478": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/47/Rhubarb_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rhubarb_Seeds.png"
+    },
+    "479": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/5e/Melon_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Melon_Seeds.png"
+    },
+    "480": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e3/Tomato_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Tomato_Seeds.png"
+    },
+    "481": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/81/Blueberry_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Blueberry_Seeds.png"
+    },
+    "482": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/67/Pepper_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pepper_Seeds.png"
+    },
+    "483": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/2b/Wheat_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Wheat_Seeds.png"
+    },
+    "484": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b1/Radish_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Radish_Seeds.png"
+    },
+    "485": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/ec/Red_Cabbage_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Red_Cabbage_Seeds.png"
+    },
+    "486": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e0/Starfruit_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Starfruit_Seeds.png"
+    },
+    "487": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d1/Corn_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Corn_Seeds.png"
+    },
+    "488": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f9/Eggplant_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Eggplant_Seeds.png"
+    },
+    "489": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/71/Artichoke_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Artichoke_Seeds.png"
+    },
+    "490": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/99/Pumpkin_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pumpkin_Seeds.png"
+    },
+    "491": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/21/Bok_Choy_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Bok_Choy_Seeds.png"
+    },
+    "492": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e9/Yam_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Yam_Seeds.png"
+    },
+    "493": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/ec/Cranberry_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cranberry_Seeds.png"
+    },
+    "494": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a8/Beet_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Beet_Seeds.png"
+    },
+    "495": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/39/Spring_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Spring_Seeds.png"
+    },
+    "496": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c4/Summer_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Summer_Seeds.png"
+    },
+    "497": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/55/Fall_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fall_Seeds.png"
+    },
+    "498": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/dd/Winter_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Winter_Seeds.png"
+    },
+    "499": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/ec/Ancient_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ancient_Seeds.png"
+    },
+    "535": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/43/Geode.png",
+      "source_url": "https://stardewvalleywiki.com/File:Geode.png"
+    },
+    "536": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/bf/Frozen_Geode.png",
+      "source_url": "https://stardewvalleywiki.com/File:Frozen_Geode.png"
+    },
+    "537": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/89/Magma_Geode.png",
+      "source_url": "https://stardewvalleywiki.com/File:Magma_Geode.png"
+    },
+    "538": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/7c/Alamite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Alamite.png"
+    },
+    "539": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/98/Bixite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Bixite.png"
+    },
+    "540": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/aa/Baryte.png",
+      "source_url": "https://stardewvalleywiki.com/File:Baryte.png"
+    },
+    "541": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6b/Aerinite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Aerinite.png"
+    },
+    "542": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/97/Calcite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Calcite.png"
+    },
+    "543": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d4/Dolomite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dolomite.png"
+    },
+    "544": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/aa/Esperite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Esperite.png"
+    },
+    "545": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/4a/Fluorapatite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fluorapatite.png"
+    },
+    "546": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/54/Geminite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Geminite.png"
+    },
+    "547": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/3f/Helvite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Helvite.png"
+    },
+    "548": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/4b/Jamborite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Jamborite.png"
+    },
+    "549": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c3/Jagoite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Jagoite.png"
+    },
+    "550": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e4/Kyanite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Kyanite.png"
+    },
+    "551": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/06/Lunarite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Lunarite.png"
+    },
+    "552": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/ad/Malachite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Malachite.png"
+    },
+    "553": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/05/Neptunite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Neptunite.png"
+    },
+    "554": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/31/Lemon_Stone.png",
+      "source_url": "https://stardewvalleywiki.com/File:Lemon_Stone.png"
+    },
+    "555": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/53/Nekoite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Nekoite.png"
+    },
+    "556": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/41/Orpiment.png",
+      "source_url": "https://stardewvalleywiki.com/File:Orpiment.png"
+    },
+    "557": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/24/Petrified_Slime.png",
+      "source_url": "https://stardewvalleywiki.com/File:Petrified_Slime.png"
+    },
+    "558": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/14/Thunder_Egg.png",
+      "source_url": "https://stardewvalleywiki.com/File:Thunder_Egg.png"
+    },
+    "559": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/64/Pyrite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pyrite.png"
+    },
+    "560": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f1/Ocean_Stone.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ocean_Stone.png"
+    },
+    "561": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d0/Ghost_Crystal.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ghost_Crystal.png"
+    },
+    "562": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6e/Tigerseye.png",
+      "source_url": "https://stardewvalleywiki.com/File:Tigerseye.png"
+    },
+    "563": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9b/Jasper.png",
+      "source_url": "https://stardewvalleywiki.com/File:Jasper.png"
+    },
+    "564": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/3c/Opal.png",
+      "source_url": "https://stardewvalleywiki.com/File:Opal.png"
+    },
+    "565": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/60/Fire_Opal.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fire_Opal.png"
+    },
+    "566": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/19/Celestine.png",
+      "source_url": "https://stardewvalleywiki.com/File:Celestine.png"
+    },
+    "567": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/82/Marble.png",
+      "source_url": "https://stardewvalleywiki.com/File:Marble.png"
+    },
+    "568": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d6/Sandstone.png",
+      "source_url": "https://stardewvalleywiki.com/File:Sandstone.png"
+    },
+    "569": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/4a/Granite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Granite.png"
+    },
+    "570": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/22/Basalt.png",
+      "source_url": "https://stardewvalleywiki.com/File:Basalt.png"
+    },
+    "571": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/4e/Limestone.png",
+      "source_url": "https://stardewvalleywiki.com/File:Limestone.png"
+    },
+    "572": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/81/Soapstone.png",
+      "source_url": "https://stardewvalleywiki.com/File:Soapstone.png"
+    },
+    "573": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b1/Hematite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Hematite.png"
+    },
+    "574": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/52/Mudstone.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mudstone.png"
+    },
+    "575": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/23/Obsidian.png",
+      "source_url": "https://stardewvalleywiki.com/File:Obsidian.png"
+    },
+    "576": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/97/Slate.png",
+      "source_url": "https://stardewvalleywiki.com/File:Slate.png"
+    },
+    "577": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d9/Fairy_Stone.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fairy_Stone.png"
+    },
+    "578": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/3f/Star_Shards.png",
+      "source_url": "https://stardewvalleywiki.com/File:Star_Shards.png"
+    },
+    "579": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/ee/Prehistoric_Scapula.png",
+      "source_url": "https://stardewvalleywiki.com/File:Prehistoric_Scapula.png"
+    },
+    "580": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/ce/Prehistoric_Tibia.png",
+      "source_url": "https://stardewvalleywiki.com/File:Prehistoric_Tibia.png"
+    },
+    "581": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/58/Prehistoric_Skull.png",
+      "source_url": "https://stardewvalleywiki.com/File:Prehistoric_Skull.png"
+    },
+    "582": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/da/Skeletal_Hand.png",
+      "source_url": "https://stardewvalleywiki.com/File:Skeletal_Hand.png"
+    },
+    "583": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/62/Prehistoric_Rib.png",
+      "source_url": "https://stardewvalleywiki.com/File:Prehistoric_Rib.png"
+    },
+    "584": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e9/Prehistoric_Vertebra.png",
+      "source_url": "https://stardewvalleywiki.com/File:Prehistoric_Vertebra.png"
+    },
+    "585": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/29/Skeletal_Tail.png",
+      "source_url": "https://stardewvalleywiki.com/File:Skeletal_Tail.png"
+    },
+    "586": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/3b/Nautilus_Fossil.png",
+      "source_url": "https://stardewvalleywiki.com/File:Nautilus_Fossil.png"
+    },
+    "587": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/cf/Amphibian_Fossil.png",
+      "source_url": "https://stardewvalleywiki.com/File:Amphibian_Fossil.png"
+    },
+    "588": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e1/Palm_Fossil.png",
+      "source_url": "https://stardewvalleywiki.com/File:Palm_Fossil.png"
+    },
+    "589": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/2b/Trilobite.png",
+      "source_url": "https://stardewvalleywiki.com/File:Trilobite.png"
+    },
+    "590": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/82/Springobjects590.png",
+      "source_url": "https://stardewvalleywiki.com/File:Springobjects590.png"
+    },
+    "591": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/cf/Tulip.png",
+      "source_url": "https://stardewvalleywiki.com/File:Tulip.png"
+    },
+    "593": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9f/Summer_Spangle.png",
+      "source_url": "https://stardewvalleywiki.com/File:Summer_Spangle.png"
+    },
+    "595": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/5c/Fairy_Rose.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fairy_Rose.png"
+    },
+    "597": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/2f/Blue_Jazz.png",
+      "source_url": "https://stardewvalleywiki.com/File:Blue_Jazz.png"
+    },
+    "599": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/08/Sprinkler.png",
+      "source_url": "https://stardewvalleywiki.com/File:Sprinkler.png"
+    },
+    "60": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6a/Emerald.png",
+      "source_url": "https://stardewvalleywiki.com/File:Emerald.png"
+    },
+    "604": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a0/Plum_Pudding.png",
+      "source_url": "https://stardewvalleywiki.com/File:Plum_Pudding.png"
+    },
+    "605": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/77/Artichoke_Dip.png",
+      "source_url": "https://stardewvalleywiki.com/File:Artichoke_Dip.png"
+    },
+    "606": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/ed/Stir_Fry.png",
+      "source_url": "https://stardewvalleywiki.com/File:Stir_Fry.png"
+    },
+    "607": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/18/Roasted_Hazelnuts.png",
+      "source_url": "https://stardewvalleywiki.com/File:Roasted_Hazelnuts.png"
+    },
+    "608": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/7d/Pumpkin_Pie.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pumpkin_Pie.png"
+    },
+    "609": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b9/Radish_Salad.png",
+      "source_url": "https://stardewvalleywiki.com/File:Radish_Salad.png"
+    },
+    "610": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9e/Fruit_Salad.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fruit_Salad.png"
+    },
+    "611": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/70/Blackberry_Cobbler.png",
+      "source_url": "https://stardewvalleywiki.com/File:Blackberry_Cobbler.png"
+    },
+    "612": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9d/Cranberry_Candy.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cranberry_Candy.png"
+    },
+    "613": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/7d/Apple.png",
+      "source_url": "https://stardewvalleywiki.com/File:Apple.png"
+    },
+    "614": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/8f/Green_Tea.png",
+      "source_url": "https://stardewvalleywiki.com/File:Green_Tea.png"
+    },
+    "618": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/ca/Bruschetta.png",
+      "source_url": "https://stardewvalleywiki.com/File:Bruschetta.png"
+    },
+    "62": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a2/Aquamarine.png",
+      "source_url": "https://stardewvalleywiki.com/File:Aquamarine.png"
+    },
+    "621": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/af/Quality_Sprinkler.png",
+      "source_url": "https://stardewvalleywiki.com/File:Quality_Sprinkler.png"
+    },
+    "628": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/22/Cherry_Sapling.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cherry_Sapling.png"
+    },
+    "629": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9d/Apricot_Sapling.png",
+      "source_url": "https://stardewvalleywiki.com/File:Apricot_Sapling.png"
+    },
+    "630": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/08/Orange_Sapling.png",
+      "source_url": "https://stardewvalleywiki.com/File:Orange_Sapling.png"
+    },
+    "631": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e3/Peach_Sapling.png",
+      "source_url": "https://stardewvalleywiki.com/File:Peach_Sapling.png"
+    },
+    "632": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/10/Pomegranate_Sapling.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pomegranate_Sapling.png"
+    },
+    "633": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/68/Apple_Sapling.png",
+      "source_url": "https://stardewvalleywiki.com/File:Apple_Sapling.png"
+    },
+    "634": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/fc/Apricot.png",
+      "source_url": "https://stardewvalleywiki.com/File:Apricot.png"
+    },
+    "635": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/43/Orange.png",
+      "source_url": "https://stardewvalleywiki.com/File:Orange.png"
+    },
+    "636": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e2/Peach.png",
+      "source_url": "https://stardewvalleywiki.com/File:Peach.png"
+    },
+    "637": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1b/Pomegranate.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pomegranate.png"
+    },
+    "638": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/20/Cherry.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cherry.png"
+    },
+    "64": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a9/Ruby.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ruby.png"
+    },
+    "645": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/90/Iridium_Sprinkler.png",
+      "source_url": "https://stardewvalleywiki.com/File:Iridium_Sprinkler.png"
+    },
+    "648": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e1/Coleslaw.png",
+      "source_url": "https://stardewvalleywiki.com/File:Coleslaw.png"
+    },
+    "649": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/2d/Fiddlehead_Risotto.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fiddlehead_Risotto.png"
+    },
+    "651": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/8e/Poppyseed_Muffin.png",
+      "source_url": "https://stardewvalleywiki.com/File:Poppyseed_Muffin.png"
+    },
+    "66": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/2e/Amethyst.png",
+      "source_url": "https://stardewvalleywiki.com/File:Amethyst.png"
+    },
+    "68": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a5/Topaz.png",
+      "source_url": "https://stardewvalleywiki.com/File:Topaz.png"
+    },
+    "680": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1d/Green_Slime_Egg.png",
+      "source_url": "https://stardewvalleywiki.com/File:Green_Slime_Egg.png"
+    },
+    "681": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f7/Rain_Totem.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rain_Totem.png"
+    },
+    "682": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/cb/Mutant_Carp.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mutant_Carp.png"
+    },
+    "684": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b6/Bug_Meat.png",
+      "source_url": "https://stardewvalleywiki.com/File:Bug_Meat.png"
+    },
+    "685": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/ff/Bait.png",
+      "source_url": "https://stardewvalleywiki.com/File:Bait.png"
+    },
+    "686": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/7b/Spinner.png",
+      "source_url": "https://stardewvalleywiki.com/File:Spinner.png"
+    },
+    "687": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e8/Dressed_Spinner.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dressed_Spinner.png"
+    },
+    "688": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e4/Warp_Totem_Farm.png",
+      "source_url": "https://stardewvalleywiki.com/File:Warp_Totem_Farm.png"
+    },
+    "689": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d8/Warp_Totem_Mountains.png",
+      "source_url": "https://stardewvalleywiki.com/File:Warp_Totem_Mountains.png"
+    },
+    "69": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/69/Banana_Sapling.png",
+      "source_url": "https://stardewvalleywiki.com/File:Banana_Sapling.png"
+    },
+    "690": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/2f/Warp_Totem_Beach.png",
+      "source_url": "https://stardewvalleywiki.com/File:Warp_Totem_Beach.png"
+    },
+    "691": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/4f/Barbed_Hook.png",
+      "source_url": "https://stardewvalleywiki.com/File:Barbed_Hook.png"
+    },
+    "692": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/cb/Lead_Bobber.png",
+      "source_url": "https://stardewvalleywiki.com/File:Lead_Bobber.png"
+    },
+    "693": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/79/Treasure_Hunter.png",
+      "source_url": "https://stardewvalleywiki.com/File:Treasure_Hunter.png"
+    },
+    "694": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/da/Trap_Bobber.png",
+      "source_url": "https://stardewvalleywiki.com/File:Trap_Bobber.png"
+    },
+    "695": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/0b/Cork_Bobber.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cork_Bobber.png"
+    },
+    "698": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/42/Sturgeon.png",
+      "source_url": "https://stardewvalleywiki.com/File:Sturgeon.png"
+    },
+    "699": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/01/Tiger_Trout.png",
+      "source_url": "https://stardewvalleywiki.com/File:Tiger_Trout.png"
+    },
+    "70": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/7e/Jade.png",
+      "source_url": "https://stardewvalleywiki.com/File:Jade.png"
+    },
+    "700": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/db/Bullhead.png",
+      "source_url": "https://stardewvalleywiki.com/File:Bullhead.png"
+    },
+    "701": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/73/Tilapia.png",
+      "source_url": "https://stardewvalleywiki.com/File:Tilapia.png"
+    },
+    "702": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/bd/Chub.png",
+      "source_url": "https://stardewvalleywiki.com/File:Chub.png"
+    },
+    "703": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/8c/Magnet.png",
+      "source_url": "https://stardewvalleywiki.com/File:Magnet.png"
+    },
+    "704": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/18/Dorado.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dorado.png"
+    },
+    "705": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e1/Albacore.png",
+      "source_url": "https://stardewvalleywiki.com/File:Albacore.png"
+    },
+    "706": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/ef/Shad.png",
+      "source_url": "https://stardewvalleywiki.com/File:Shad.png"
+    },
+    "707": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/87/Lingcod.png",
+      "source_url": "https://stardewvalleywiki.com/File:Lingcod.png"
+    },
+    "708": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/02/Halibut.png",
+      "source_url": "https://stardewvalleywiki.com/File:Halibut.png"
+    },
+    "709": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/ed/Hardwood.png",
+      "source_url": "https://stardewvalleywiki.com/File:Hardwood.png"
+    },
+    "71": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e7/Springobjects071.png",
+      "source_url": "https://stardewvalleywiki.com/File:Springobjects071.png"
+    },
+    "710": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/92/Crab_Pot.png",
+      "source_url": "https://stardewvalleywiki.com/File:Crab_Pot.png"
+    },
+    "715": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9f/Lobster.png",
+      "source_url": "https://stardewvalleywiki.com/File:Lobster.png"
+    },
+    "716": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/53/Crayfish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Crayfish.png"
+    },
+    "717": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/63/Crab.png",
+      "source_url": "https://stardewvalleywiki.com/File:Crab.png"
+    },
+    "718": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/ad/Cockle.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cockle.png"
+    },
+    "719": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/aa/Mussel.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mussel.png"
+    },
+    "72": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/ea/Diamond.png",
+      "source_url": "https://stardewvalleywiki.com/File:Diamond.png"
+    },
+    "720": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/91/Shrimp.png",
+      "source_url": "https://stardewvalleywiki.com/File:Shrimp.png"
+    },
+    "721": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d2/Snail.png",
+      "source_url": "https://stardewvalleywiki.com/File:Snail.png"
+    },
+    "722": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1d/Periwinkle.png",
+      "source_url": "https://stardewvalleywiki.com/File:Periwinkle.png"
+    },
+    "723": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/54/Oyster.png",
+      "source_url": "https://stardewvalleywiki.com/File:Oyster.png"
+    },
+    "724": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6a/Maple_Syrup.png",
+      "source_url": "https://stardewvalleywiki.com/File:Maple_Syrup.png"
+    },
+    "725": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/40/Oak_Resin.png",
+      "source_url": "https://stardewvalleywiki.com/File:Oak_Resin.png"
+    },
+    "726": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/ce/Pine_Tar.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pine_Tar.png"
+    },
+    "727": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/95/Chowder.png",
+      "source_url": "https://stardewvalleywiki.com/File:Chowder.png"
+    },
+    "728": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6f/Fish_Stew.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fish_Stew.png"
+    },
+    "729": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/78/Escargot.png",
+      "source_url": "https://stardewvalleywiki.com/File:Escargot.png"
+    },
+    "73": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/54/Golden_Walnut.png",
+      "source_url": "https://stardewvalleywiki.com/File:Golden_Walnut.png"
+    },
+    "730": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/0a/Lobster_Bisque.png",
+      "source_url": "https://stardewvalleywiki.com/File:Lobster_Bisque.png"
+    },
+    "731": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/18/Maple_Bar.png",
+      "source_url": "https://stardewvalleywiki.com/File:Maple_Bar.png"
+    },
+    "732": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/70/Crab_Cakes.png",
+      "source_url": "https://stardewvalleywiki.com/File:Crab_Cakes.png"
+    },
+    "733": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/8e/Shrimp_Cocktail.png",
+      "source_url": "https://stardewvalleywiki.com/File:Shrimp_Cocktail.png"
+    },
+    "734": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/97/Woodskip.png",
+      "source_url": "https://stardewvalleywiki.com/File:Woodskip.png"
+    },
+    "74": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/56/Prismatic_Shard.png",
+      "source_url": "https://stardewvalleywiki.com/File:Prismatic_Shard.png"
+    },
+    "742": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/94/Springobjects742.png",
+      "source_url": "https://stardewvalleywiki.com/File:Springobjects742.png"
+    },
+    "745": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f2/Strawberry_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Strawberry_Seeds.png"
+    },
+    "746": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/17/Jack-O-Lantern.png",
+      "source_url": "https://stardewvalleywiki.com/File:Jack-O-Lantern.png"
+    },
+    "747": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/88/Rotten_Plant_2.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rotten_Plant_2.png"
+    },
+    "748": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/7e/Rotten_Plant.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rotten_Plant.png"
+    },
+    "749": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/09/Omni_Geode.png",
+      "source_url": "https://stardewvalleywiki.com/File:Omni_Geode.png"
+    },
+    "766": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/38/Slime.png",
+      "source_url": "https://stardewvalleywiki.com/File:Slime.png"
+    },
+    "767": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/35/Bat_Wing.png",
+      "source_url": "https://stardewvalleywiki.com/File:Bat_Wing.png"
+    },
+    "768": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f4/Solar_Essence.png",
+      "source_url": "https://stardewvalleywiki.com/File:Solar_Essence.png"
+    },
+    "769": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1f/Void_Essence.png",
+      "source_url": "https://stardewvalleywiki.com/File:Void_Essence.png"
+    },
+    "770": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/2e/Mixed_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mixed_Seeds.png"
+    },
+    "771": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/45/Fiber.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fiber.png"
+    },
+    "772": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/4b/Oil_of_Garlic.png",
+      "source_url": "https://stardewvalleywiki.com/File:Oil_of_Garlic.png"
+    },
+    "773": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6e/Life_Elixir.png",
+      "source_url": "https://stardewvalleywiki.com/File:Life_Elixir.png"
+    },
+    "774": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/da/Wild_Bait.png",
+      "source_url": "https://stardewvalleywiki.com/File:Wild_Bait.png"
+    },
+    "775": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/fd/Glacierfish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Glacierfish.png"
+    },
+    "78": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/34/Cave_Carrot.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cave_Carrot.png"
+    },
+    "787": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/25/Battery_Pack.png",
+      "source_url": "https://stardewvalleywiki.com/File:Battery_Pack.png"
+    },
+    "79": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/ec/Secret_Note.png",
+      "source_url": "https://stardewvalleywiki.com/File:Secret_Note.png"
+    },
+    "791": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/ca/Golden_Coconut.png",
+      "source_url": "https://stardewvalleywiki.com/File:Golden_Coconut.png"
+    },
+    "795": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/ad/Void_Salmon.png",
+      "source_url": "https://stardewvalleywiki.com/File:Void_Salmon.png"
+    },
+    "796": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/34/Slimejack.png",
+      "source_url": "https://stardewvalleywiki.com/File:Slimejack.png"
+    },
+    "797": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/73/Pearl.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pearl.png"
+    },
+    "798": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/83/Midnight_Squid.png",
+      "source_url": "https://stardewvalleywiki.com/File:Midnight_Squid.png"
+    },
+    "799": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/8c/Spook_Fish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Spook_Fish.png"
+    },
+    "80": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/cf/Quartz.png",
+      "source_url": "https://stardewvalleywiki.com/File:Quartz.png"
+    },
+    "800": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/7f/Blobfish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Blobfish.png"
+    },
+    "802": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/09/Cactus_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cactus_Seeds.png"
+    },
+    "803": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c3/Springobjects803.png",
+      "source_url": "https://stardewvalleywiki.com/File:Springobjects803.png"
+    },
+    "805": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/5d/Tree_Fertilizer.png",
+      "source_url": "https://stardewvalleywiki.com/File:Tree_Fertilizer.png"
+    },
+    "807": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c3/Dinosaur_Mayonnaise.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dinosaur_Mayonnaise.png"
+    },
+    "808": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/ec/Void_Ghost_Pendant.png",
+      "source_url": "https://stardewvalleywiki.com/File:Void_Ghost_Pendant.png"
+    },
+    "812": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/56/Roe.png",
+      "source_url": "https://stardewvalleywiki.com/File:Roe.png"
+    },
+    "814": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/ac/Squid_Ink.png",
+      "source_url": "https://stardewvalleywiki.com/File:Squid_Ink.png"
+    },
+    "815": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/5b/Tea_Leaves.png",
+      "source_url": "https://stardewvalleywiki.com/File:Tea_Leaves.png"
+    },
+    "82": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/5b/Fire_Quartz.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fire_Quartz.png"
+    },
+    "820": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/72/Fossilized_Skull.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fossilized_Skull.png"
+    },
+    "821": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/5c/Fossilized_Spine.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fossilized_Spine.png"
+    },
+    "822": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/3a/Fossilized_Tail.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fossilized_Tail.png"
+    },
+    "823": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/09/Fossilized_Leg.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fossilized_Leg.png"
+    },
+    "824": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/fc/Fossilized_Ribs.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fossilized_Ribs.png"
+    },
+    "825": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/25/Snake_Skull.png",
+      "source_url": "https://stardewvalleywiki.com/File:Snake_Skull.png"
+    },
+    "826": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/7e/Snake_Vertebrae.png",
+      "source_url": "https://stardewvalleywiki.com/File:Snake_Vertebrae.png"
+    },
+    "827": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6f/Mummified_Bat.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mummified_Bat.png"
+    },
+    "828": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/e9/Mummified_Frog.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mummified_Frog.png"
+    },
+    "829": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/85/Ginger.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ginger.png"
+    },
+    "830": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/01/Taro_Root.png",
+      "source_url": "https://stardewvalleywiki.com/File:Taro_Root.png"
+    },
+    "831": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/57/Taro_Tuber.png",
+      "source_url": "https://stardewvalleywiki.com/File:Taro_Tuber.png"
+    },
+    "832": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/fb/Pineapple.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pineapple.png"
+    },
+    "833": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/17/Pineapple_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pineapple_Seeds.png"
+    },
+    "834": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/38/Mango.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mango.png"
+    },
+    "835": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b0/Mango_Sapling.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mango_Sapling.png"
+    },
+    "836": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/3a/Stingray.png",
+      "source_url": "https://stardewvalleywiki.com/File:Stingray.png"
+    },
+    "837": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/bb/Lionfish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Lionfish.png"
+    },
+    "838": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/ee/Blue_Discus.png",
+      "source_url": "https://stardewvalleywiki.com/File:Blue_Discus.png"
+    },
+    "84": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/ec/Frozen_Tear.png",
+      "source_url": "https://stardewvalleywiki.com/File:Frozen_Tear.png"
+    },
+    "840": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9e/Rustic_Plank_Floor.png",
+      "source_url": "https://stardewvalleywiki.com/File:Rustic_Plank_Floor.png"
+    },
+    "841": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/51/Stone_Walkway_Floor.png",
+      "source_url": "https://stardewvalleywiki.com/File:Stone_Walkway_Floor.png"
+    },
+    "842": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c4/Journal_Scrap.png",
+      "source_url": "https://stardewvalleywiki.com/File:Journal_Scrap.png"
+    },
+    "848": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/fd/Cinder_Shard.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cinder_Shard.png"
+    },
+    "851": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/77/Magma_Cap.png",
+      "source_url": "https://stardewvalleywiki.com/File:Magma_Cap.png"
+    },
+    "852": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/87/Dragon_Tooth.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dragon_Tooth.png"
+    },
+    "856": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/26/Curiosity_Lure.png",
+      "source_url": "https://stardewvalleywiki.com/File:Curiosity_Lure.png"
+    },
+    "857": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1f/Tiger_Slime_Egg.png",
+      "source_url": "https://stardewvalleywiki.com/File:Tiger_Slime_Egg.png"
+    },
+    "858": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/78/Qi_Gem.png",
+      "source_url": "https://stardewvalleywiki.com/File:Qi_Gem.png"
+    },
+    "86": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/74/Earth_Crystal.png",
+      "source_url": "https://stardewvalleywiki.com/File:Earth_Crystal.png"
+    },
+    "872": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/fc/Fairy_Dust.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fairy_Dust.png"
+    },
+    "873": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/12/Pi%C3%B1a_Colada.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pi%C3%B1a_Colada.png"
+    },
+    "874": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b7/Bug_Steak.png",
+      "source_url": "https://stardewvalleywiki.com/File:Bug_Steak.png"
+    },
+    "875": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/36/Ectoplasm.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ectoplasm.png"
+    },
+    "876": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/45/Prismatic_Jelly.png",
+      "source_url": "https://stardewvalleywiki.com/File:Prismatic_Jelly.png"
+    },
+    "877": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/01/Quality_Bobber.png",
+      "source_url": "https://stardewvalleywiki.com/File:Quality_Bobber.png"
+    },
+    "879": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/af/Monster_Musk.png",
+      "source_url": "https://stardewvalleywiki.com/File:Monster_Musk.png"
+    },
+    "88": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/2f/Coconut.png",
+      "source_url": "https://stardewvalleywiki.com/File:Coconut.png"
+    },
+    "881": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/97/Bone_Fragment.png",
+      "source_url": "https://stardewvalleywiki.com/File:Bone_Fragment.png"
+    },
+    "885": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/05/Fiber_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fiber_Seeds.png"
+    },
+    "886": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b9/Warp_Totem_Island.png",
+      "source_url": "https://stardewvalleywiki.com/File:Warp_Totem_Island.png"
+    },
+    "889": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b9/Qi_Fruit.png",
+      "source_url": "https://stardewvalleywiki.com/File:Qi_Fruit.png"
+    },
+    "890": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a7/Qi_Bean.png",
+      "source_url": "https://stardewvalleywiki.com/File:Qi_Bean.png"
+    },
+    "891": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d4/Mushroom_Tree_Seed.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mushroom_Tree_Seed.png"
+    },
+    "892": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/38/Warp_Totem_Qi%27s_Arena.png",
+      "source_url": "https://stardewvalleywiki.com/File:Warp_Totem_Qi%27s_Arena.png"
+    },
+    "893": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/8f/Fireworks_%28Red%29.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fireworks_(Red).png"
+    },
+    "894": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/7e/Fireworks_%28Purple%29.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fireworks_(Purple).png"
+    },
+    "895": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a2/Fireworks_%28Green%29.png",
+      "source_url": "https://stardewvalleywiki.com/File:Fireworks_(Green).png"
+    },
+    "896": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/17/Galaxy_Soul.png",
+      "source_url": "https://stardewvalleywiki.com/File:Galaxy_Soul.png"
+    },
+    "898": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/12/Son_of_Crimsonfish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Son_of_Crimsonfish.png"
+    },
+    "899": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/bb/Ms._Angler.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ms._Angler.png"
+    },
+    "90": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/32/Cactus_Fruit.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cactus_Fruit.png"
+    },
+    "900": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/7a/Legend_II.png",
+      "source_url": "https://stardewvalleywiki.com/File:Legend_II.png"
+    },
+    "901": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/57/Radioactive_Carp.png",
+      "source_url": "https://stardewvalleywiki.com/File:Radioactive_Carp.png"
+    },
+    "902": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/db/Glacierfish_Jr..png",
+      "source_url": "https://stardewvalleywiki.com/File:Glacierfish_Jr..png"
+    },
+    "903": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1a/Ginger_Ale.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ginger_Ale.png"
+    },
+    "904": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/40/Banana_Pudding.png",
+      "source_url": "https://stardewvalleywiki.com/File:Banana_Pudding.png"
+    },
+    "905": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6e/Mango_Sticky_Rice.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mango_Sticky_Rice.png"
+    },
+    "906": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f1/Poi.png",
+      "source_url": "https://stardewvalleywiki.com/File:Poi.png"
+    },
+    "907": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/32/Tropical_Curry.png",
+      "source_url": "https://stardewvalleywiki.com/File:Tropical_Curry.png"
+    },
+    "908": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/58/Magic_Bait.png",
+      "source_url": "https://stardewvalleywiki.com/File:Magic_Bait.png"
+    },
+    "909": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9f/Radioactive_Ore.png",
+      "source_url": "https://stardewvalleywiki.com/File:Radioactive_Ore.png"
+    },
+    "91": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/69/Banana.png",
+      "source_url": "https://stardewvalleywiki.com/File:Banana.png"
+    },
+    "910": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/7e/Radioactive_Bar.png",
+      "source_url": "https://stardewvalleywiki.com/File:Radioactive_Bar.png"
+    },
+    "913": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/41/Enricher.png",
+      "source_url": "https://stardewvalleywiki.com/File:Enricher.png"
+    },
+    "915": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/37/Pressure_Nozzle.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pressure_Nozzle.png"
+    },
+    "917": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d2/Qi_Seasoning.png",
+      "source_url": "https://stardewvalleywiki.com/File:Qi_Seasoning.png"
+    },
+    "918": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/53/Hyper_Speed-Gro.png",
+      "source_url": "https://stardewvalleywiki.com/File:Hyper_Speed-Gro.png"
+    },
+    "919": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1c/Deluxe_Fertilizer.png",
+      "source_url": "https://stardewvalleywiki.com/File:Deluxe_Fertilizer.png"
+    },
+    "92": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/73/Sap.png",
+      "source_url": "https://stardewvalleywiki.com/File:Sap.png"
+    },
+    "920": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c3/Deluxe_Retaining_Soil.png",
+      "source_url": "https://stardewvalleywiki.com/File:Deluxe_Retaining_Soil.png"
+    },
+    "921": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/86/Squid_Ink_Ravioli.png",
+      "source_url": "https://stardewvalleywiki.com/File:Squid_Ink_Ravioli.png"
+    },
+    "922": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/14/Supply_Crate_1.png",
+      "source_url": "https://stardewvalleywiki.com/File:Supply_Crate_1.png"
+    },
+    "923": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/14/Supply_Crate_2.png",
+      "source_url": "https://stardewvalleywiki.com/File:Supply_Crate_2.png"
+    },
+    "924": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f6/Supply_Crate_3.png",
+      "source_url": "https://stardewvalleywiki.com/File:Supply_Crate_3.png"
+    },
+    "926": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/91/Cookout_Kit.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cookout_Kit.png"
+    },
+    "928": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/97/Golden_Egg.png",
+      "source_url": "https://stardewvalleywiki.com/File:Golden_Egg.png"
+    },
+    "93": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b2/Torch.png",
+      "source_url": "https://stardewvalleywiki.com/File:Torch.png"
+    },
+    "930": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/59/Secret_Heart.png",
+      "source_url": "https://stardewvalleywiki.com/File:Secret_Heart.png"
+    },
+    "94": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c1/Springobjects094.png",
+      "source_url": "https://stardewvalleywiki.com/File:Springobjects094.png"
+    },
+    "96": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b9/Dwarf_Scroll_I.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dwarf_Scroll_I.png"
+    },
+    "97": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/ca/Dwarf_Scroll_II.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dwarf_Scroll_II.png"
+    },
+    "98": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/ec/Dwarf_Scroll_III.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dwarf_Scroll_III.png"
+    },
+    "99": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/85/Dwarf_Scroll_IV.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dwarf_Scroll_IV.png"
+    },
+    "BlueGrassStarter": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/18/Blue_Grass_Starter.png",
+      "source_url": "https://stardewvalleywiki.com/File:Blue_Grass_Starter.png"
+    },
+    "Book_AnimalCatalogue": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/df/Animal_Catalogue.png",
+      "source_url": "https://stardewvalleywiki.com/File:Animal_Catalogue.png"
+    },
+    "Book_Artifact": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/02/Treasure_Appraisal_Guide.png",
+      "source_url": "https://stardewvalleywiki.com/File:Treasure_Appraisal_Guide.png"
+    },
+    "Book_Bombs": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a7/Dwarvish_Safety_Manual.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dwarvish_Safety_Manual.png"
+    },
+    "Book_Crabbing": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c6/The_Art_O%27_Crabbing.png",
+      "source_url": "https://stardewvalleywiki.com/File:The_Art_O%27_Crabbing.png"
+    },
+    "Book_Defense": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c2/Jack_Be_Nimble%2C_Jack_Be_Thick.png",
+      "source_url": "https://stardewvalleywiki.com/File:Jack_Be_Nimble,_Jack_Be_Thick.png"
+    },
+    "Book_Diamonds": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/a7/The_Diamond_Hunter.png",
+      "source_url": "https://stardewvalleywiki.com/File:The_Diamond_Hunter.png"
+    },
+    "Book_Friendship": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b7/Friendship_101.png",
+      "source_url": "https://stardewvalleywiki.com/File:Friendship_101.png"
+    },
+    "Book_Grass": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/02/Ol%27_Slitherlegs.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ol%27_Slitherlegs.png"
+    },
+    "Book_Horse": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/45/Horse_The_Book.png",
+      "source_url": "https://stardewvalleywiki.com/File:Horse_The_Book.png"
+    },
+    "Book_Marlon": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6e/Mapping_Cave_Systems.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mapping_Cave_Systems.png"
+    },
+    "Book_Mystery": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/df/Book_of_Mysteries.png",
+      "source_url": "https://stardewvalleywiki.com/File:Book_of_Mysteries.png"
+    },
+    "Book_PriceCatalogue": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d5/Price_Catalogue.png",
+      "source_url": "https://stardewvalleywiki.com/File:Price_Catalogue.png"
+    },
+    "Book_QueenOfSauce": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1f/Queen_Of_Sauce_Cookbook.png",
+      "source_url": "https://stardewvalleywiki.com/File:Queen_Of_Sauce_Cookbook.png"
+    },
+    "Book_Roe": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/7d/Jewels_Of_The_Sea.png",
+      "source_url": "https://stardewvalleywiki.com/File:Jewels_Of_The_Sea.png"
+    },
+    "Book_Speed": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/87/Way_Of_The_Wind_pt._1.png",
+      "source_url": "https://stardewvalleywiki.com/File:Way_Of_The_Wind_pt._1.png"
+    },
+    "Book_Speed2": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c7/Way_Of_The_Wind_pt._2.png",
+      "source_url": "https://stardewvalleywiki.com/File:Way_Of_The_Wind_pt._2.png"
+    },
+    "Book_Trash": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/3a/The_Alleyway_Buffet.png",
+      "source_url": "https://stardewvalleywiki.com/File:The_Alleyway_Buffet.png"
+    },
+    "Book_Void": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/15/Monster_Compendium.png",
+      "source_url": "https://stardewvalleywiki.com/File:Monster_Compendium.png"
+    },
+    "Book_WildSeeds": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1b/Ways_Of_The_Wild.png",
+      "source_url": "https://stardewvalleywiki.com/File:Ways_Of_The_Wild.png"
+    },
+    "Book_Woodcutting": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/8b/Woody%27s_Secret.png",
+      "source_url": "https://stardewvalleywiki.com/File:Woody%27s_Secret.png"
+    },
+    "Broccoli": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/f1/Broccoli.png",
+      "source_url": "https://stardewvalleywiki.com/File:Broccoli.png"
+    },
+    "BroccoliSeeds": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/97/Broccoli_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Broccoli_Seeds.png"
+    },
+    "ButterflyPowder": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/b/b0/Butterfly_Powder.png",
+      "source_url": "https://stardewvalleywiki.com/File:Butterfly_Powder.png"
+    },
+    "Carrot": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c3/Carrot.png",
+      "source_url": "https://stardewvalleywiki.com/File:Carrot.png"
+    },
+    "CarrotSeeds": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1f/Carrot_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Carrot_Seeds.png"
+    },
+    "CaveJelly": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/0a/Cave_Jelly.png",
+      "source_url": "https://stardewvalleywiki.com/File:Cave_Jelly.png"
+    },
+    "ChallengeBait": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/96/Challenge_Bait.png",
+      "source_url": "https://stardewvalleywiki.com/File:Challenge_Bait.png"
+    },
+    "DeluxeBait": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/43/Deluxe_Bait.png",
+      "source_url": "https://stardewvalleywiki.com/File:Deluxe_Bait.png"
+    },
+    "DriedFruit": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/66/Dried_Fruit.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dried_Fruit.png"
+    },
+    "DriedMushrooms": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/1a/Dried_Mushrooms.png",
+      "source_url": "https://stardewvalleywiki.com/File:Dried_Mushrooms.png"
+    },
+    "Goby": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/67/Goby.png",
+      "source_url": "https://stardewvalleywiki.com/File:Goby.png"
+    },
+    "GoldenAnimalCracker": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/c/c2/Golden_Animal_Cracker.png",
+      "source_url": "https://stardewvalleywiki.com/File:Golden_Animal_Cracker.png"
+    },
+    "GoldenBobber": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/70/Golden_Bobber.png",
+      "source_url": "https://stardewvalleywiki.com/File:Golden_Bobber.png"
+    },
+    "GoldenMysteryBox": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/fb/Golden_Mystery_Box.png",
+      "source_url": "https://stardewvalleywiki.com/File:Golden_Mystery_Box.png"
+    },
+    "MixedFlowerSeeds": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/76/Mixed_Flower_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mixed_Flower_Seeds.png"
+    },
+    "Moss": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/64/Moss.png",
+      "source_url": "https://stardewvalleywiki.com/File:Moss.png"
+    },
+    "MossSoup": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/df/Moss_Soup.png",
+      "source_url": "https://stardewvalleywiki.com/File:Moss_Soup.png"
+    },
+    "MossySeed": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/7/78/Mossy_Seed.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mossy_Seed.png"
+    },
+    "MysteryBox": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/87/Mystery_Box.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mystery_Box.png"
+    },
+    "MysticSyrup": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/5/5a/Mystic_Syrup.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mystic_Syrup.png"
+    },
+    "MysticTreeSeed": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/ff/Mystic_Tree_Seed.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mystic_Tree_Seed.png"
+    },
+    "Powdermelon": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/a/aa/Powdermelon.png",
+      "source_url": "https://stardewvalleywiki.com/File:Powdermelon.png"
+    },
+    "PowdermelonSeeds": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/de/Powdermelon_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Powdermelon_Seeds.png"
+    },
+    "PurpleBook": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/e/ef/Book_Of_Stars.png",
+      "source_url": "https://stardewvalleywiki.com/File:Book_Of_Stars.png"
+    },
+    "Raisins": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/06/Raisins.png",
+      "source_url": "https://stardewvalleywiki.com/File:Raisins.png"
+    },
+    "RiverJelly": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/80/River_Jelly.png",
+      "source_url": "https://stardewvalleywiki.com/File:River_Jelly.png"
+    },
+    "SeaJelly": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/d/d5/Sea_Jelly.png",
+      "source_url": "https://stardewvalleywiki.com/File:Sea_Jelly.png"
+    },
+    "SkillBook_0": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/2/28/Stardew_Valley_Almanac.png",
+      "source_url": "https://stardewvalleywiki.com/File:Stardew_Valley_Almanac.png"
+    },
+    "SkillBook_1": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/1/18/Bait_And_Bobber.png",
+      "source_url": "https://stardewvalleywiki.com/File:Bait_And_Bobber.png"
+    },
+    "SkillBook_2": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/46/Woodcutter%27s_Weekly.png",
+      "source_url": "https://stardewvalleywiki.com/File:Woodcutter%27s_Weekly.png"
+    },
+    "SkillBook_3": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6d/Mining_Monthly.png",
+      "source_url": "https://stardewvalleywiki.com/File:Mining_Monthly.png"
+    },
+    "SkillBook_4": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/8/85/Combat_Quarterly.png",
+      "source_url": "https://stardewvalleywiki.com/File:Combat_Quarterly.png"
+    },
+    "SmokedFish": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/4c/Smoked_Fish.png",
+      "source_url": "https://stardewvalleywiki.com/File:Smoked_Fish.png"
+    },
+    "SonarBobber": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/3/33/Sonar_Bobber.png",
+      "source_url": "https://stardewvalleywiki.com/File:Sonar_Bobber.png"
+    },
+    "SpecificBait": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/9b/Pink_Bait.png",
+      "source_url": "https://stardewvalleywiki.com/File:Pink_Bait.png"
+    },
+    "StardropTea": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/6/6c/Stardrop_Tea.png",
+      "source_url": "https://stardewvalleywiki.com/File:Stardrop_Tea.png"
+    },
+    "SummerSquash": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/4/43/Summer_Squash.png",
+      "source_url": "https://stardewvalleywiki.com/File:Summer_Squash.png"
+    },
+    "SummerSquashSeeds": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/f/fd/Summer_Squash_Seeds.png",
+      "source_url": "https://stardewvalleywiki.com/File:Summer_Squash_Seeds.png"
+    },
+    "TentKit": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/05/Tent_Kit.png",
+      "source_url": "https://stardewvalleywiki.com/File:Tent_Kit.png"
+    },
+    "TreasureTotem": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/0/06/Treasure_Totem.png",
+      "source_url": "https://stardewvalleywiki.com/File:Treasure_Totem.png"
+    },
+    "TroutDerbyTag": {
+      "url": "https://stardewvalleywiki.com/mediawiki/images/9/98/Golden_Tag.png",
+      "source_url": "https://stardewvalleywiki.com/File:Golden_Tag.png"
+    }
+  },
+  "unavailable": [
+    {
+      "id": "925",
+      "name": "Slime Crate",
+      "reason": "No corresponding static image was found on the wiki."
+    },
+    {
+      "id": "927",
+      "name": "Camping Stove",
+      "reason": "No corresponding static image was found on the wiki."
+    },
+    {
+      "id": "929",
+      "name": "Hedge",
+      "reason": "No corresponding static image was found on the wiki."
+    },
+    {
+      "id": "GoldCoin",
+      "name": "Gold Coin",
+      "reason": "No corresponding static image was found on the wiki."
+    },
+    {
+      "id": "PetLicense",
+      "name": "Pet License",
+      "reason": "No corresponding static image was found on the wiki."
+    },
+    {
+      "id": "SeedSpot",
+      "name": "Artifact Spot",
+      "reason": "The wiki provides an animated GIF, not a static PNG."
+    }
+  ]
+}

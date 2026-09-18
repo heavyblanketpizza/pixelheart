@@ -1,0 +1,3 @@
+# Compatibility list; use pyproject.toml and uv.lock for reproducible installs.
+Pillow>=12.3.0,<13
+PySide6>=6.10,<7

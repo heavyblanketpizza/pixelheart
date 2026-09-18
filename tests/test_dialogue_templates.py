@@ -1,0 +1,162 @@
+"""Safety checks for importing a small selection of teaching examples."""
+
+import copy
+import unittest
+import uuid
+
+from pixelheart_core.dialogue_templates import (
+    MAX_DIALOGUES,
+    apply_dialogue_examples,
+    dialogue_conflicts,
+    dialogue_has_advanced_commands,
+    dialogue_preview,
+)
+from pixelheart_core.validation import validate_nested
+
+
+class DialogueTemplateTests(unittest.TestCase):
+    def setUp(self):
+        self.records = [
+            {"id": "intro", "trigger": " Introduction ", "text": "My own introduction.",
+             "notes": {"drafts": ["Preserve this note."]}},
+            {"id": "monday", "trigger": "Mon", "text": "My Monday line."},
+        ]
+        self.examples = [
+            {"trigger": "Introduction", "text": "Hello, @.$h", "explanation": "First meeting."},
+            {"trigger": " spring_Mon ", "text": "Spring is here.#$b#Let's go outside."},
+        ]
+
+    def test_preview_expands_supported_commands_for_simple_dialogue(self):
+        self.assertEqual(
+            dialogue_preview("Hello, @.$h#$b#How are you?$s#$e#See you.$12"),
+            "Hello, Farmer.\nHow are you?\n\nSee you.",
+        )
+        self.assertEqual(dialogue_preview("$h$s$l$a$n$u$0$123"), "")
+        self.assertEqual(dialogue_preview(""), "")
+        self.assertFalse(dialogue_has_advanced_commands("Hello, @.$h#$b#Goodbye.$12"))
+
+    def test_mail_conditional_is_not_mistaken_for_numeric_portrait(self):
+        script = "#$1 welcomeFlag#Hello, @.$h$k#$e#Good to see you again.$1"
+        self.assertTrue(dialogue_has_advanced_commands(script))
+        self.assertEqual(dialogue_preview(script), script)
+        for text, expected in (
+            ("Hello.$1", "Hello."),
+            ("Hello.$1#$b#Goodbye.$9", "Hello.\nGoodbye."),
+            ("Hello.$12 ", "Hello. "),
+        ):
+            with self.subTest(text=text):
+                self.assertFalse(dialogue_has_advanced_commands(text))
+                self.assertEqual(dialogue_preview(text), expected)
+
+    def test_choice_scripts_and_conditional_branches_are_preserved_exactly(self):
+        scripts = [
+            "Hello, @.$h#$q 42/43 Pick an answer?#$r 42 10 reply_yes#Yes.#$r 43 0 reply_no#No.",
+            "$p 42#You said yes, @.$h|You said no, @.$s",
+            "$d eventFlag#Welcome back.$h|Nice to meet you.$s",
+            "Hello, sir.$h^Hello, ma'am.$h",
+            "Goodbye, @.$s%fork",
+            "Hello, @.$h#$b#Take this.[74]",
+            "Hello, @.$h#$e#You live at %farm.",
+            "Hello, @.$h#$b#Unknown command: $happy $foo",
+            "Hello, @.$h#$b#A token: {{PlayerName}}",
+        ]
+        for script in scripts:
+            with self.subTest(script=script):
+                self.assertTrue(dialogue_has_advanced_commands(script))
+                self.assertEqual(dialogue_preview(script), script)
+
+    def test_conflicts_match_trimmed_triggers_and_return_all_matching_rows(self):
+        duplicate = {"id": "duplicate", "trigger": "Introduction", "text": "Another draft."}
+        records = self.records + [duplicate]
+        conflicts = dialogue_conflicts(records, self.examples)
+        self.assertEqual(list(conflicts), ["Introduction"])
+        self.assertEqual(conflicts["Introduction"], [self.records[0], duplicate])
+        conflicts["Introduction"][0]["notes"]["drafts"].clear()
+        self.assertEqual(records[0]["notes"]["drafts"], ["Preserve this note."])
+
+    def test_default_import_preserves_existing_writing_and_appends_only_project_fields(self):
+        before_records, before_examples = copy.deepcopy(self.records), copy.deepcopy(self.examples)
+        imported = apply_dialogue_examples(self.records, self.examples)
+        self.assertEqual(imported[:2], self.records)
+        self.assertEqual(set(imported[2]), {"id", "trigger", "text"})
+        self.assertEqual(imported[2]["trigger"], "spring_Mon")
+        self.assertEqual(imported[2]["text"], self.examples[1]["text"])
+        self.assertEqual(str(uuid.UUID(imported[2]["id"])), imported[2]["id"])
+        self.assertNotIn(imported[2]["id"], {row["id"] for row in self.records})
+        self.assertEqual(self.records, before_records)
+        self.assertEqual(self.examples, before_examples)
+        validate_nested("dialogues", [imported[2]])
+
+    def test_replace_changes_only_selected_text_and_preserves_identity_and_metadata(self):
+        imported = apply_dialogue_examples(self.records, self.examples, {"Introduction": "replace"})
+        expected_intro = copy.deepcopy(self.records[0])
+        expected_intro["text"] = self.examples[0]["text"]
+        self.assertEqual(imported[0], expected_intro)
+        self.assertEqual(imported[1], self.records[1])
+        imported[0]["notes"]["drafts"].append("An imported-copy note.")
+        self.assertEqual(self.records[0]["notes"]["drafts"], ["Preserve this note."])
+
+    def test_all_kept_or_empty_selection_is_detached_noop(self):
+        for examples, decisions in (([], None), (self.examples[:1], None),
+                                    (self.examples[:1], {"Introduction": "keep"})):
+            with self.subTest(examples=examples, decisions=decisions):
+                imported = apply_dialogue_examples(self.records, examples, decisions)
+                self.assertEqual(imported, self.records)
+                self.assertIsNot(imported, self.records)
+                self.assertIsNot(imported[0]["notes"], self.records[0]["notes"])
+
+    def test_duplicate_existing_trigger_can_be_kept_but_never_replaced_ambiguously(self):
+        records = self.records + [{"id": "duplicate", "trigger": "Introduction", "text": "Other draft."}]
+        original = copy.deepcopy(records)
+        self.assertEqual(apply_dialogue_examples(records, self.examples[:1]), records)
+        with self.assertRaisesRegex(ValueError, "matches multiple existing entries"):
+            apply_dialogue_examples(records, self.examples, {"Introduction": "replace"})
+        self.assertEqual(records, original)
+
+    def test_import_at_capacity_is_atomic_but_replacements_and_kept_rows_are_allowed(self):
+        records = [{"id": str(i), "trigger": f"Mon{i}", "text": "Original."} for i in range(MAX_DIALOGUES)]
+        original = copy.deepcopy(records)
+        examples = [{"trigger": "Mon0", "text": "Replacement."}, {"trigger": "Tue", "text": "New."}]
+        with self.assertRaisesRegex(ValueError, "up to 250"):
+            apply_dialogue_examples(records, examples, {"Mon0": "replace"})
+        self.assertEqual(records, original)
+        replaced = apply_dialogue_examples(records, examples[:1], {"Mon0": "replace"})
+        self.assertEqual(len(replaced), MAX_DIALOGUES)
+        self.assertEqual(replaced[0], {"id": "0", "trigger": "Mon0", "text": "Replacement."})
+        self.assertEqual(apply_dialogue_examples(records, examples[:1]), records)
+        self.assertEqual(len(apply_dialogue_examples(records[:-1], examples[1:])), MAX_DIALOGUES)
+
+    def test_invalid_examples_cannot_partially_import_or_replace(self):
+        invalid_examples = [
+            None, {}, {"trigger": None, "text": "Hello"}, {"trigger": "", "text": "Hello"},
+            {"trigger": "Bad trigger", "text": "Hello"}, {"trigger": "A" * 121, "text": "Hello"},
+            {"trigger": "Tue", "text": ""}, {"trigger": "Tue", "text": "  \n"},
+            {"trigger": "Tue", "text": 3}, {"trigger": "Tue", "text": "x" * 8001},
+            {"trigger": "Tue", "text": "Contains\x00null"},
+            {"trigger": "Tue", "text": "Hello, {{PlayerName}}"},
+            {"trigger": " Introduction ", "text": "Duplicate selected trigger."},
+        ]
+        original = copy.deepcopy(self.records)
+        for invalid in invalid_examples:
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                apply_dialogue_examples(self.records, [self.examples[0], invalid], {"Introduction": "replace"})
+            self.assertEqual(self.records, original)
+
+    def test_maximum_schema_lengths_are_valid_and_unknown_decisions_fail_closed(self):
+        example = {"trigger": "A" * 120, "text": "x" * 8000, "id": "not-the-import-id"}
+        imported = apply_dialogue_examples([], [example])
+        self.assertNotEqual(imported[0]["id"], example["id"])
+        validate_nested("dialogues", imported)
+        with self.assertRaisesRegex(ValueError, '"keep" or "replace"'):
+            apply_dialogue_examples(self.records, self.examples, {"Introduction": "overwrite"})
+
+    def test_separate_imports_get_distinct_ids_and_do_not_share_records(self):
+        first = apply_dialogue_examples([], self.examples)
+        second = apply_dialogue_examples([], self.examples)
+        self.assertTrue({row["id"] for row in first}.isdisjoint({row["id"] for row in second}))
+        first[0]["text"] = "Changed in first project."
+        self.assertEqual(second[0]["text"], self.examples[0]["text"])
+
+
+if __name__ == "__main__":
+    unittest.main()
