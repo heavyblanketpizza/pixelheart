@@ -159,8 +159,8 @@ QListWidget::item:hover { background: #f3eddf; }
 QListWidget::item:selected:hover { background: #e2e8d6; }
 QListWidget:focus { border-color: #97a27f; }
 QListWidget:disabled { color: #a19888; background: #f2eee4; }
-QListWidget#giftTiles { padding: 4px; border: 1px solid #ded3bd; background: #faf5e9; }
-QListWidget#giftTiles::item { padding: 5px 4px; margin: 2px; border: 1px solid transparent; font-size: 11px; }
+QListWidget#giftTiles { padding: 3px; border: 1px solid #ded3bd; background: #faf5e9; font-size: 11px; }
+QListWidget#giftTiles::item { padding: 2px; margin: 0; border: 1px solid transparent; }
 QListWidget#giftTiles::item:selected { background: #e5ebd8; border-color: #a8b68e; }
 QListWidget#giftTiles::item:hover { background: #f1e9d6; border-color: #d6c8a9; }
 QListWidget#giftTiles[dropTarget="true"] { background: #edf1e3; border: 1px solid #8e9e75; }

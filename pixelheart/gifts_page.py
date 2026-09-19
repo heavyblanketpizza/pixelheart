@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QApplication, QWidget, QDialog, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLineEdit, QComboBox, QListWidget, QListWidgetItem, QAbstractItemView,
     QFileDialog, QDialogButtonBox, QCheckBox, QSizePolicy, QPlainTextEdit,
+    QStyledItemDelegate,
 )
 
 from pixelheart_core.catalog import load_catalog, validate_catalog, CatalogValidationError
@@ -32,6 +33,12 @@ def vanilla_catalog():
     return validate_catalog(json.loads(VANILLA_FILE.read_text(encoding="utf-8")))
 
 
+class GiftTileDelegate(QStyledItemDelegate):
+    def sizeHint(self, option, index):
+        # Keep long names inside their cell, including after a viewport resize.
+        return self.parent().gridSize() - QSize(4, 4)
+
+
 class GiftList(QListWidget):
     """Only accept item drags originating from this character's gift editor."""
     def __init__(self, page, taste=None):
@@ -42,10 +49,11 @@ class GiftList(QListWidget):
         self.setViewMode(QListWidget.ViewMode.IconMode)
         self.setMovement(QListWidget.Movement.Static)
         self.setResizeMode(QListWidget.ResizeMode.Adjust)
-        self.setIconSize(QSize(48, 48))
-        self.setGridSize(QSize(96, 98))
+        self.setIconSize(QSize(32, 32))
+        self.setGridSize(QSize(84, 86))
+        self.setItemDelegate(GiftTileDelegate(self))
         self.setWordWrap(True)
-        self.setSpacing(3)
+        self.setSpacing(0)
         self.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.setUniformItemSizes(True)
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
@@ -54,10 +62,35 @@ class GiftList(QListWidget):
         self.setDragDropMode(QAbstractItemView.DragDropMode.DragDrop)
         self.setDefaultDropAction(Qt.DropAction.MoveAction)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        # Keep column widths stable as searches/defaults change the row count.
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         self.setMinimumHeight(100)
         self.setMinimumWidth(100)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
         self.itemSelectionChanged.connect(lambda: self.page.select_list(self))
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.fit_tiles()
+
+    def fit_tiles(self):
+        """Fit whole columns and a readable first row inside each gift panel."""
+        # QListView's icon layout also reserves the styled contents margins.
+        margins = self.contentsMargins()
+        width = max(1, self.viewport().width() - margins.left() - margins.right() - 2)
+        compact = width < 240 or self.viewport().height() < 180
+        icon_size = 24 if compact else 32
+        columns = max(1, width // (78 if compact else 88))
+        cell_width = min(104, width // columns)
+        # Allow two name lines plus the inherited-default caption in taste lists.
+        lines = 3 if self.taste else 2
+        cell_height = icon_size + lines * self.fontMetrics().lineSpacing() + 14
+        grid = QSize(cell_width, cell_height)
+        if self.iconSize().width() != icon_size:
+            self.setIconSize(QSize(icon_size, icon_size))
+        if self.gridSize() != grid:
+            self.setGridSize(grid)
 
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -86,8 +119,8 @@ class GiftList(QListWidget):
         drag = QDrag(self)
         drag.setMimeData(mime)
         selected = self.selectedItems()[0]
-        drag.setPixmap(selected.icon().pixmap(48, 48))
-        drag.setHotSpot(QPoint(24, 24))
+        drag.setPixmap(selected.icon().pixmap(self.iconSize()))
+        drag.setHotSpot(QPoint(self.iconSize().width() // 2, self.iconSize().height() // 2))
         # Assignment changes happen in dropEvent, never by deleting model rows.
         drag.exec(Qt.DropAction.CopyAction | Qt.DropAction.MoveAction, Qt.DropAction.MoveAction)
 
@@ -299,11 +332,11 @@ class GiftsPage(QWidget):
         self.names = {}
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(12)
+        root.setSpacing(8)
         starter, starter_layout = card()
         starter.setStyleSheet("QFrame#card { background: #f0f3e8; border-color: #d4dcc2; }")
-        starter_layout.setContentsMargins(16, 14, 16, 14)
-        starter_layout.setSpacing(9)
+        starter_layout.setContentsMargins(16, 10, 16, 10)
+        starter_layout.setSpacing(6)
         starter_layout.addWidget(label("Start with a gift preset", "sectionTitle"))
         preset_row = QHBoxLayout()
         preset_row.setSpacing(10)
@@ -379,11 +412,11 @@ class GiftsPage(QWidget):
         self.catalog_notice = label("", "hint", True)
         root.addWidget(self.catalog_notice)
         columns = QHBoxLayout()
-        columns.setSpacing(18)
+        columns.setSpacing(12)
         library, content = card("Gift catalog")
-        library.setMinimumWidth(290)
-        content.setContentsMargins(16, 16, 16, 16)
-        content.setSpacing(10)
+        library.setMinimumWidth(250)
+        content.setContentsMargins(12, 12, 12, 12)
+        content.setSpacing(8)
         self.search = QLineEdit()
         self.search.setPlaceholderText("Search items or IDs…")
         self.search.setClearButtonEnabled(True)
@@ -395,7 +428,7 @@ class GiftsPage(QWidget):
         self.unassigned_only = QCheckBox("Without personal tastes")
         content.addWidget(self.unassigned_only)
         self.library = GiftList(self)
-        self.library.setMinimumHeight(180)
+        self.library.setMinimumHeight(140)
         content.addWidget(self.library, 1)
         self.results = label("", "hint")
         content.addWidget(self.results)
@@ -410,11 +443,16 @@ class GiftsPage(QWidget):
         content.addLayout(assign_row)
         columns.addWidget(library, 1)
         grid = QGridLayout()
-        grid.setSpacing(16)
+        grid.setSpacing(12)
+        grid.setColumnStretch(0, 1)
+        grid.setColumnStretch(1, 1)
+        grid.setRowStretch(0, 1)
+        grid.setRowStretch(1, 1)
         self.lists, self.counts = {}, {}
         for index, taste in enumerate(TASTES):
             frame, content = card()
-            content.setContentsMargins(14, 16, 14, 12)
+            content.setContentsMargins(10, 10, 10, 8)
+            content.setSpacing(8)
             title_row = QHBoxLayout()
             title_row.addWidget(label(taste.title(), "sectionTitle"))
             title_row.addStretch()
@@ -713,7 +751,6 @@ class GiftsPage(QWidget):
                 continue
             taste = assigned.get(item_id)
             item = QListWidgetItem(record["name"] + ("  ·  " + taste.title() if taste else ""))
-            item.setSizeHint(QSize(88, 90))
             item.setIcon(self.item_icon("(O)" + item_id))
             item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
             item.setData(Qt.ItemDataRole.UserRole, "(O)" + item_id)
@@ -727,7 +764,7 @@ class GiftsPage(QWidget):
                 detail = "Special gift behavior · Stardrop Tea uses its own friendship rules."
             else:
                 detail = "No vanilla gift default is available for this item."
-            item.setToolTip(f"{record['category_name']} · (O){item_id}\n" + detail)
+            item.setToolTip(f"{record['name']}\n{record['category_name']} · (O){item_id}\n" + detail)
             self.library.addItem(item)
             item.setSelected(item_id in selected)
         self.results.setText(f"{self.library.count()} of {len(self.items)} items")
@@ -742,16 +779,15 @@ class GiftsPage(QWidget):
             selected = {self.key(value) for value in target.selected_values()}
             target.blockSignals(True)
             target.clear()
-            target.setGridSize(QSize(96, 112 if show_defaults else 98))
             for value in self.assignments[taste]:
                 key = self.key(value)
                 known = key in self.items
                 item = QListWidgetItem(self.title(value) + ("" if known else " · not in catalog"))
-                item.setSizeHint(QSize(88, 104 if show_defaults else 90))
                 item.setIcon(self.item_icon(value))
                 item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
                 item.setData(Qt.ItemDataRole.UserRole, value)
-                item.setToolTip(f"Personal taste: {taste.title()} · {value}" if known else "Saved assignment retained. Import the matching game catalog or return this item to default.")
+                detail = f"Personal taste: {taste.title()} · {value}" if known else "Saved assignment retained. Import the matching game catalog or return this item to default."
+                item.setToolTip(self.title(value) + "\n" + detail)
                 target.addItem(item)
                 item.setSelected(key in selected)
                 if not known:
@@ -763,7 +799,6 @@ class GiftsPage(QWidget):
                     continue
                 value = "(O)" + item_id
                 item = QListWidgetItem(record["name"] + "\nDefault")
-                item.setSizeHint(QSize(88, 104))
                 item.setIcon(self.item_icon(value))
                 item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
                 item.setForeground(QColor("#798074"))
@@ -771,7 +806,7 @@ class GiftsPage(QWidget):
                 detail = f"Game default: {taste.title()} · Vanilla 1.6.15 · {value}\nDrag to another taste to make a personal choice."
                 if self.custom_catalog:
                     detail += "\nThis item import does not include modified gift rules."
-                item.setToolTip(detail)
+                item.setToolTip(record["name"] + "\n" + detail)
                 target.addItem(item)
                 item.setSelected(item_id in selected)
                 default_count += 1

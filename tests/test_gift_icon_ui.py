@@ -136,8 +136,11 @@ class GiftIconUITests(unittest.TestCase):
             self.page.library.startDrag(Qt.DropAction.MoveAction)
         self.assertIs(captured["source"], self.page.library)
         self.assertEqual(json.loads(bytes(captured["mime"].data(GIFT_MIME))), ["(O)Example.Mod_Coffee"])
-        self.assertEqual(captured["pixmap"].toImage().pixelColor(24, 24).name(), "#0000ff")
-        self.assertEqual((captured["hotspot"].x(), captured["hotspot"].y()), (24, 24))
+        center = captured["pixmap"].rect().center()
+        self.assertEqual(captured["pixmap"].toImage().pixelColor(center).name(), "#0000ff")
+        self.assertEqual(captured["pixmap"].size(), self.page.library.iconSize())
+        self.assertEqual((captured["hotspot"].x(), captured["hotspot"].y()),
+                         (self.page.library.iconSize().width() // 2, self.page.library.iconSize().height() // 2))
 
     def test_dialog_copy_commands_uses_exact_readonly_texture_commands(self):
         dialog = self.dialog()
