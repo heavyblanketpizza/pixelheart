@@ -549,6 +549,10 @@ def world_issues(world, character, project_root=None):
             paths = {kind: asset_path(entry.get("artwork", {}).get(kind), project_root)
                      if entry.get("artwork", {}).get(kind) and project_root else None for kind in ("portrait", "sprite")}
             for issue in validate_character(prepared, paths["portrait"], paths["sprite"]):
+                if str(issue.get("code", "")).startswith("home_"):
+                    # Inspect homes below with this world's aliases and the
+                    # primary character's map identity, once per character.
+                    continue
                 issues.append({**issue, "field": "world." + prefix + "." + issue["field"]})
         except (WorldError, TypeError, ValueError) as exc:
             add("error", prefix, str(exc))
@@ -617,6 +621,12 @@ def world_issues(world, character, project_root=None):
                     add("error", f"locations.{index}.entrance.{x}", "This entrance or return tile lies outside the connected custom map.")
     for prefix, authored in all_characters:
         _check_known_map_tiles(authored, known_dimensions, prefix, issues)
+        from .homes import home_issues
+        existing = {(issue["level"], issue["field"]) for issue in issues}
+        for issue in home_issues(authored, world, project_root, primary=character):
+            issue = {**issue, "field": prefix + issue["field"]}
+            if (issue["level"], issue["field"]) not in existing:
+                issues.append(issue)
     return issues
 
 

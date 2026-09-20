@@ -4,6 +4,42 @@ Open **Cast & locations** to add supporting characters, places, a spouse room,
 and required external mods. These become real content in the primary character's
 pack. Save the project before importing files so all assets can travel together.
 
+## Assign and design a home
+
+Choose **Assign & design home…** in **Identity**, the creator journey's
+**Give them a life** step, or a companion's profile. You can also select a place
+in **Cast & locations**, choose a character, and click **Assign resident…**.
+
+Choose an existing game location, a place from your project, or an exact location
+ID supplied by another mod. Set the resident's home tile and facing. Supplied
+project maps appear beneath the placement grid; click a tile or use the arrow
+keys to move the resident. For game or external maps, the grid is a coordinate
+aid; it does not contain the game's map artwork.
+
+To build a home, create a home in the editor, then paint it with your own
+tilesheet or import a Tiled map. The **Home interior · 12 × 12 tiles** preset
+offers an optional room starter: select floor and wall tiles, then lay out a
+room with a doorway. You can undo the layout and continue painting furniture
+and details. Configure the outside entrance, inside arrival, exit, and outside
+return tiles. A connection does not draw an exterior house on the outside map.
+
+Home sets the NPC's default position. To carry their routine to the new place,
+select **Move route stops at the old home**. This moves only stops at the exact
+old map and tile in their basic and conditional routines, including drafts.
+Other stops, scenes, and farmhouse returns remain authored separately. Review
+the evening stop in **Schedule**: assigning a home does not add a return journey,
+bed furniture, or a sleeping animation.
+
+Apply saves the changes into the open project; use **Save project** to save them
+to disk. Cancel discards the dialog's changes. Previously saved map revisions
+remain intact. A home without a supplied map can remain a draft, but exporting
+requires a complete map and valid connections. Several characters can share a
+place; give each a suitable standing tile and check their routes in-game.
+Reassign residents before removing their home from **Places & spouse room**.
+
+A spouse-room section belongs to the farmhouse after marriage and cannot serve
+as a standalone home. Use the separate spouse-room controls below.
+
 ## Supporting cast
 
 Choose **Add companion** in **Supporting cast**. Give the character a name and

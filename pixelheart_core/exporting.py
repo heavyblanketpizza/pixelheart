@@ -420,6 +420,11 @@ def validate_character(data, portrait_path=None, sprite_path=None, *, appearance
         add("warning", "romanceable", f"Romance uses {dialogue_note} and {room_note}. Test courtship, marriage, home routines, and kiss frame 28 in-game. Festival participation remains disabled.")
     issues.extend(story_issues(data))
     issues.extend(life_issues(data))
+    if world is None:
+        from .homes import home_issues
+        existing = {(issue["level"], issue["field"]) for issue in issues}
+        issues.extend(issue for issue in home_issues(data)
+                      if (issue["level"], issue["field"]) not in existing)
     if not any(issue["level"] == "error" for issue in issues):
         add("success", "export", "Structural checks passed. This starter pack still needs to be tested in Stardew Valley.")
     return issues
@@ -653,7 +658,8 @@ def build_mod_archive(
         "SpawnIfMissing": True, "CanVisitIsland": "FALSE", "IntroductionsQuest": False,
         "WinterStarParticipant": "FALSE", "FlowerDanceCanDance": False,
         "Home": [{"Id": "Default", "Location": data["home_map"].strip(),
-                  "Tile": {"X": _integer(data["home_x"]), "Y": _integer(data["home_y"])}, "Direction": "down"}],
+                  "Tile": {"X": _integer(data["home_x"]), "Y": _integer(data["home_y"])},
+                  "Direction": data.get("home_facing", "down")}],
     }
     if world_content:
         npc.update(world_content["npc_fields"])
@@ -769,11 +775,14 @@ def build_mod_archive(
         compiled_world = world_content["world"]
         lines = [f"{data['name']} — World playtest guide", "",
                  "This guide describes compiled content; it does not certify an in-game test.",
-                 "Install every required dependency from manifest.json before testing.", ""]
+                 "Install every required dependency from manifest.json before testing.", "",
+                 f"Primary character: {data['name']} ({npc_id})",
+                 f"  Home: {data['home_map']} at {data['home_x']}, {data['home_y']}; facing {data.get('home_facing', 'down')}.",
+                 "  Sleep once, check their morning position, then follow the complete route home at night.", ""]
         for entry in compiled_world["characters"]:
             companion = world_character(entry["character"], compiled_world, original_data)
             lines.extend([f"Supporting character: {companion['name']} ({exported_npc_id(companion)})",
-                          f"  Home: {companion['home_map']} at {companion['home_x']}, {companion['home_y']}",
+                          f"  Home: {companion['home_map']} at {companion['home_x']}, {companion['home_y']}; facing {companion.get('home_facing', 'down')}.",
                           "  Meet them, test dialogue and gifts, then sleep and follow their daily route.", ""])
         for place in compiled_world["locations"]:
             identity = exported_location_id(place, original_data)
@@ -793,12 +802,16 @@ def build_mod_archive(
         lines.extend(["For enabled daily-life content, test each matching season, weather, weekday,",
                       "relationship, house-upgrade, and completed-event condition. Check routines",
                       "after sleeping and compare overlapping rules in their displayed order.",
+                      "A home assignment sets the default spawn. Explicit routes keep their own destinations.",
+                      "If you moved old-home stops, verify each changed route and its final stop in-game.",
+                      "Married return-to-farmhouse stops remain separate from the unmarried home.",
                       "Inspect SMAPI logs. Keep project, NPC, and map identities stable after release.", ""])
         world_guide = "\n".join(lines)
     readme = f"""{data['name']} — Pixelheart starter NPC
 
 Target: Stardew Valley 1.6, SMAPI 4+, Content Patcher {CONTENT_PATCHER_FORMAT}+.
 NPC internal name: {npc_id}
+Home: {data['home_map']} at {data['home_x']}, {data['home_y']}; facing {data.get('home_facing', 'down')}.
 
 Install SMAPI, Content Patcher, and the required dependencies in manifest.json,
 then extract this folder into your Mods folder.
@@ -806,6 +819,11 @@ Run the game through SMAPI. Test on a backed-up save, meet the NPC at the home
 map and tile, and sleep once before checking the next day's full schedule.
 Review SMAPI's log for warnings and test dialogue, gifts, birthday, pathfinding,
 and (if enabled) romance in-game. This pack has not been tested in-game by Pixelheart.
+
+Home assignment sets the default spawn. Explicit schedule destinations stay as
+authored. Check their morning position and follow the full route to its final
+stop at night, including any old-home stops moved to the new home. Test enabled
+conditional routines too. Married return-to-farmhouse stops are separate.
 
 The supplied PNGs are included unchanged. Sheet dimensions do not verify frame
 content. Portraits use six standard emotions first; sprites need the standard

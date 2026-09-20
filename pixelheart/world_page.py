@@ -117,13 +117,17 @@ class WorldPage(QWidget):
             "romanceable": QCheckBox("Adult romance is available"),
             "season": combo([(s.title(), s) for s in ("spring", "summer", "fall", "winter")]),
             "day": number(1, 28), "home_map": MapSelector(compact=True), "home_x": number(0, 1000), "home_y": number(0, 1000),
+            "home_facing": combo([(text.title(), text) for text in ("down", "left", "right", "up")]),
         }
         profile, content = card("Someone with a place in the story")
         form_rows(content, [("Name", self.cast_fields["name"]), ("Character ID", self.cast_fields["internal_name"]),
                             ("Age", self.cast_fields["age"]), ("Game gender", self.cast_fields["gender"]),
                             ("Romance", self.cast_fields["romanceable"]), ("Birthday season", self.cast_fields["season"]),
                             ("Birthday day", self.cast_fields["day"]), ("Home map", self.cast_fields["home_map"]),
-                            ("Home tile X", self.cast_fields["home_x"]), ("Home tile Y", self.cast_fields["home_y"])])
+                            ("Home tile X", self.cast_fields["home_x"]), ("Home tile Y", self.cast_fields["home_y"]),
+                            ("Home facing", self.cast_fields["home_facing"])])
+        self.cast_home_button = button("Assign & design home…", self.edit_cast_home, "primary")
+        content.addWidget(self.cast_home_button)
         self.cast_identity = label("", "hint", True)
         content.addWidget(self.cast_identity)
         layout.addWidget(profile)
@@ -181,6 +185,15 @@ class WorldPage(QWidget):
         content.addWidget(self.map_status)
         self.map_identity = label("", "hint", True)
         content.addWidget(self.map_identity)
+        self.residents = label("", "hint", True)
+        content.addWidget(self.residents)
+        resident_row = QHBoxLayout()
+        self.resident_picker = QComboBox()
+        self.resident_picker.setAccessibleName("Character to live in this place")
+        resident_row.addWidget(self.resident_picker, 1)
+        self.assign_resident_button = button("Assign resident…", self.assign_resident)
+        resident_row.addWidget(self.assign_resident_button)
+        content.addLayout(resident_row)
         self.map_preview = label("Import a map to preview its supplied tiles.", "muted", True)
         self.map_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.map_preview.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
@@ -272,7 +285,7 @@ class WorldPage(QWidget):
         entry = self.world["characters"][index]
         character = entry["character"]
         for key, widget in self.cast_fields.items():
-            set_value(widget, character.get(key, False if key == "romanceable" else ""))
+            set_value(widget, character.get(key, "down" if key == "home_facing" else False if key == "romanceable" else ""))
         for key, widget in self.gift_fields.items():
             set_value(widget, ", ".join(map(str, character.get("gifts", {}).get(key, []))))
         self.cast_dialogue.load(character.get("dialogues", []))
@@ -281,6 +294,35 @@ class WorldPage(QWidget):
         self.refresh_cast_artwork()
         self.cast_identity.setText("Stable story actor: " + cast_actor_id(entry) + "\nYou can also use “" + character.get("internal_name", "") + "”. Keep IDs stable after publishing.")
         self.cast_fields["romanceable"].setEnabled(character.get("age", "adult") == "adult")
+
+    def edit_cast_home(self):
+        if self.cast_index >= 0:
+            self.window.open_home_editor(self.world["characters"][self.cast_index]["id"])
+
+    def assign_resident(self):
+        if self.location_index >= 0:
+            self.window.open_home_editor(self.resident_picker.currentData(),
+                                         location_id=self.world["locations"][self.location_index]["id"])
+
+    def refresh_residents(self):
+        if self.location_index < 0:
+            return
+        record = self.world["locations"][self.location_index]
+        primary = self.window.document["character"]
+        characters = [(None, primary)] + [(entry["id"], entry["character"]) for entry in self.world["characters"]]
+        selected = self.resident_picker.currentData()
+        self.resident_picker.blockSignals(True)
+        self.resident_picker.clear()
+        for identity, character in characters:
+            self.resident_picker.addItem(character.get("name") or "Unnamed character", identity)
+        self.resident_picker.setCurrentIndex(max(0, self.resident_picker.findData(selected)))
+        self.resident_picker.blockSignals(False)
+        aliases = {record["internal_name"], exported_location_id(record, primary)}
+        names = [character.get("name") or "Unnamed character" for _, character in characters if character.get("home_map") in aliases]
+        self.residents.setText("Residents: " + (", ".join(names) if names else "No one assigned yet"))
+        self.residents.setVisible(not record["spouse_room"])
+        self.resident_picker.setVisible(not record["spouse_room"])
+        self.assign_resident_button.setVisible(not record["spouse_room"])
 
     def edit_companion(self):
         if self.loading or self.cast_index < 0:
@@ -341,6 +383,16 @@ class WorldPage(QWidget):
 
     def remove_location(self):
         if self.location_index >= 0:
+            location = self.world["locations"][self.location_index]
+            primary = self.window.document["character"]
+            aliases = {location["internal_name"], exported_location_id(location, primary)}
+            characters = [primary, *(entry["character"] for entry in self.world["characters"])]
+            residents = [character.get("name") or "Unnamed character" for character in characters
+                         if character.get("home_map") in aliases]
+            if residents:
+                self.window.show_error("This place is still a home",
+                                       "Assign another home to " + ", ".join(residents) + " before removing this place.")
+                return
             del self.world["locations"][self.location_index]
             self.load(self.world)
             self.changed.emit()
@@ -374,6 +426,7 @@ class WorldPage(QWidget):
 
     def refresh_location(self):
         record = self.world["locations"][self.location_index]
+        self.refresh_residents()
         self.edit_map_button.setEnabled(bool(record["map"]))
         self.warps_card.setVisible(not record["spouse_room"])
         self.room_card.setVisible(record["spouse_room"])

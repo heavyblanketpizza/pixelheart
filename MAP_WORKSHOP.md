@@ -10,7 +10,8 @@ prompted so its map and artwork can travel together.
    already contain 16×16-pixel cells, with both image dimensions divisible by 16.
    Sheets can be up to 2048×2048 pixels and 16 MiB. Pixelheart copies the supplied
    PNG unchanged; it does not generate tile artwork.
-2. Choose **Small location · 20 × 20 tiles** or **Spouse room · 6 × 9 tiles**.
+2. Choose **Home interior · 12 × 12 tiles**, **Small location · 20 × 20 tiles**,
+   or **Spouse room · 6 × 9 tiles**.
    Select a ground or floor tile in the palette. Keep **Back · Ground and floors**
    selected and click **Fill layer**. Every Back cell needs ground before saving.
 3. Choose **Buildings · Walls and solid furniture** and paint walls or objects.
@@ -25,6 +26,13 @@ prompted so its map and artwork can travel together.
    change. Changing size keeps overlapping cells, and Undo restores cropped cells.
 5. Adjust **Zoom** and **Grid** to inspect the painting. Hover over a cell to see
    its tile X and Y coordinates. Choose **Save place to project** when ready.
+
+For a home interior, you can select a floor tile and a wall tile and use the
+room starter. It replaces the four layers with a floor and border walls, leaving
+one doorway at the bottom; Undo restores the previous painting. The home guides
+suggest resident, arrival, and exit positions. Guides are visual aids and do not
+create game warps. Set the actual positions and connections in the home editor.
+Open it using **Identity → Assign & design home…** or a companion's profile.
 
 ## Connect the place to the game
 

@@ -75,6 +75,7 @@ def new_project() -> dict:
             "home_map": "Town",
             "home_x": 32,
             "home_y": 62,
+            "home_facing": "down",
             "dialogues": [{"id": str(uuid.uuid4()), "trigger": "Introduction", "text": "Hello! It's lovely to meet you.$h"}],
             "schedule": [{"id": str(uuid.uuid4()), "time": "600", "location": "Town", "x": 32, "y": 62, "facing": "down", "activity": ""}],
             "gifts": {"love": [], "like": [], "dislike": [], "hate": []},

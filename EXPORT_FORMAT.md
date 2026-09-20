@@ -48,7 +48,7 @@ the working project.
 ## Supported authored content
 
 Identity includes name, birthday, age, manner, social anxiety, optimism, spawn map,
-spawn tile, and romance availability. The primary character must be adult,
+spawn tile, spawn facing, and romance availability. The primary character must be adult,
 including while romance is disabled. Supporting characters can export as Adult,
 Teen, or Child; only adults can be romanceable. Each companion uses the same
 character, dialogue, gift, schedule, and artwork compiler with separate assets.
@@ -57,6 +57,14 @@ Man as `Male`, and Unspecified as `Undefined`. Explicit gender is exported
 directly. Older projects migrate exact `he/him` to `Male`, `she/her` to `Female`,
 and other pronouns to `Undefined`; original pronouns remain in the project.
 NPCs are social and giftable.
+The home editor stores the existing `home_map`, `home_x`, and `home_y` fields
+and optional `home_facing` (`up`, `right`, `down`, or `left`). Older projects
+default to `down`. These compile to the NPC's `Home` entry in `Data/Characters`.
+Choosing to move home route stops rewrites only the exact previous home tile in
+the character's basic and conditional routines; scenes and farmhouse returns
+stay separate. A home assignment does not create a bed animation or automatically
+append an evening route stop. See [the home guide](WORLD_BUILDING.md#assign-and-design-a-home).
+
 The default route applies every season and weather. Enabled Life & reactions
 rules add conditional weekday dialogue, alternative routes, and spouse dialogue.
 Conditions include season, weather, weekday, hearts, relationship status,
@@ -117,6 +125,11 @@ and contain Back, Buildings, and Front layers. Relative TSX/PNG dependencies
 must stay in the map folder or subfolders. Imports and Save As copy the complete
 closure, retaining file bytes. The simple painter uses supplied tiles, not
 generated artwork. See [WORLD_BUILDING.md](WORLD_BUILDING.md).
+The painter's 12×12 home preset and optional floor/wall starter use this same
+map pipeline. Entrance warps do not add visible exterior building artwork to the
+outside map. Home checks report out-of-bounds positions and spouse-room misuse;
+map tiles that may obstruct the resident and homes on exit warps receive review
+warnings. Runtime collisions and NPC pathfinding still need in-game testing.
 
 Explicit external dependencies become manifest `Dependencies` entries with
 UniqueID, required/optional status, and optional minimum version. The exporter

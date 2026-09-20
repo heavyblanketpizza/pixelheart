@@ -19,6 +19,7 @@ TEXT_FIELDS = {
 GENDERS = ("Male", "Female", "Undefined")
 ENUM_FIELDS = {
     "gender": set(GENDERS),
+    "home_facing": {"up", "right", "down", "left"},
     "season": {"spring", "summer", "fall", "winter"},
     "age": {"adult"},
     "manners": {"polite", "neutral", "rude"},

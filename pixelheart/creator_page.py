@@ -232,6 +232,7 @@ class CreatorPage(QWidget):
     def build_world(self):
         layout = self.add_step("3  Give them a life")
         for title, description, actions in [
+            ("Somewhere to call home", "Assign an existing place or paint a home interior. Place the resident, connect the entrance, and choose whether to move their home route stops.", [("Assign & design home…", lambda: self.window.open_home_editor())]),
             ("A voice that remembers", "Let dialogue change after a chapter, with friendship, or when the relationship becomes romantic. Choose the situation in everyday language.", [("Edit responsive dialogue", lambda: self.open_editor(8))]),
             ("A routine for every part of their life", "Write rainy-day, seasonal, dating, and married routines. Later chapters can change where they spend their time.", [("Edit daily life", lambda: self.open_editor(8, "routines")), ("Edit the basic routine", lambda: self.open_editor(2))]),
             ("People and places that belong to the story", "Add supporting characters and import custom locations with entrances and exits. Keep their artwork and map dependencies in the portable project.", [("Build the supporting cast and world", lambda: self.open_editor(9))]),
