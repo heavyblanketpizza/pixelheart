@@ -58,7 +58,7 @@ class TemplateLoad(QThread):
 class ArtworkTemplateDialog(QDialog):
     """Inspect a reference first; accepting is the only project-changing action."""
 
-    def __init__(self, appearance="Default", parent=None):
+    def __init__(self, appearance="Default", parent=None, *, comparison=False):
         super().__init__(parent)
         self.setWindowTitle("Artwork from my game")
         self.resize(850, 720)
@@ -69,8 +69,8 @@ class ArtworkTemplateDialog(QDialog):
         root = QVBoxLayout(self)
         root.setContentsMargins(24, 24, 24, 24)
         root.setSpacing(10)
-        root.addWidget(label("Start with a familiar face.", "title", True))
-        root.addWidget(label("Explore an NPC's expressions and walking frames, or use their sheets as a starting point for your own artwork.", "muted", True))
+        root.addWidget(label("Choose a comparison reference." if comparison else "Start with a familiar face.", "title", True))
+        root.addWidget(label("Explore sheets from your game alongside your character. The reference is used only in this review." if comparison else "Explore an NPC's expressions and walking frames, or use their sheets as a starting point for your own artwork.", "muted", True))
         choose = QHBoxLayout()
         choose.addWidget(label("Reference NPC"))
         self.character = QComboBox()
@@ -111,10 +111,10 @@ class ArtworkTemplateDialog(QDialog):
         self.sources.setTextFormat(Qt.TextFormat.RichText)
         self.sources.setOpenExternalLinks(True)
         root.addWidget(self.sources)
-        root.addWidget(label(f"Use as starting artwork replaces the portrait and sprite sheets for {appearance}. Your character details stay the same.", "muted", True))
+        root.addWidget(label("Your project's artwork and export selections stay unchanged." if comparison else f"Use as starting artwork replaces the portrait and sprite sheets for {appearance}. Your character details stay the same.", "muted", True))
         self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok)
         self.use_button = self.buttons.button(QDialogButtonBox.StandardButton.Ok)
-        self.use_button.setText("Use as starting artwork")
+        self.use_button.setText("Use as review reference" if comparison else "Use as starting artwork")
         self.use_button.setObjectName("primary")
         self.use_button.setEnabled(False)
         self.buttons.rejected.connect(self.reject)

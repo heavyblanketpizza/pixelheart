@@ -37,6 +37,18 @@ Inputs must be static PNG files, at most 5 MB and 4,194,304 pixels. Corrupt or a
 
 The exporter validates the selected PNG sheets and writes their bytes unchanged. Preparing a sheet does not prove its expressions or animation frames work in the game. See [EXPORT_FORMAT.md](EXPORT_FORMAT.md) for the export checks.
 
+## Detailed artwork review
+
+Choose **Artwork → Detailed review…** to inspect every frame of the selected appearance. The review uses each sheet's selected original or prepared version and shows when an appearance falls back to Default. It opens separately from the compact editor preview.
+
+- Browse portraits and sprites by frame, with pixel zoom and checkerboard, light, or dark backgrounds.
+- Choose **Compare with…** to place a reference PNG, the original upload, or a sheet from **From my game…** beside each corresponding frame. Loading a comparison does not replace your artwork or change the project's export selection.
+- Play the four walking directions, or use **Join next cell** to inspect a prop or pose drawn across two adjacent sprite cells. Cells cannot be joined across a row boundary.
+- Check source dimensions and transparent cells. Larger proportional sheets are displayed at game-sized frame proportions using nearest-neighbor scaling; this preview does not prepare or resize the saved artwork. Missing reference frames stay visibly missing.
+- Choose **Save HTML review…** to save an interactive, standalone report with embedded artwork and references. It opens offline in a browser, without requiring Pixelheart.
+
+Frames are numbered from zero. Comparison matches frame positions; different characters may use extra poses differently. Walking playback previews the first four sprite rows and does not validate animation behavior in the game. The review accepts up to 512 frames per sheet.
+
 ## Templates from your game
 
 Choose **From my game…** in Artwork, select Abigail or Elliott, and follow the displayed export commands. This workflow uses SMAPI and Content Patcher on Windows, macOS, or Linux; Steam and GOG use the same exported file formats. Console editions are not supported.

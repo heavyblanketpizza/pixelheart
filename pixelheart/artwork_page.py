@@ -15,6 +15,8 @@ from pixelheart_core.artwork import inspect_artwork, prepare_artwork, ArtworkVal
 from pixelheart_core.projects import import_artwork, resolve_artwork, ProjectError, APPEARANCE_VARIANTS
 from .artwork_browser import SheetBrowser
 from .artwork_templates import ArtworkTemplateDialog, template_source_metadata
+from .artwork_review import ArtworkReviewDialog
+from pixelheart_core.artwork_review import load_review_sheet
 from .widgets import label, button, card, ArtworkPreview
 
 
@@ -93,6 +95,12 @@ class ArtworkPage(QWidget):
         self.template_button = button("From my game…", self.choose_template)
         start.addWidget(self.template_button)
         root.addLayout(start)
+        review_row = QHBoxLayout()
+        review_row.addWidget(label("Inspect every frame, compare a reference, and save an offline review.", "hint", True), 1)
+        self.review_button = button("Detailed review…", lambda: self.open_review(), "primary")
+        self.review_button.setAccessibleName("Open detailed artwork review")
+        review_row.addWidget(self.review_button)
+        root.addLayout(review_row)
         appearances = QWidget()
         appearance_layout = QVBoxLayout(appearances)
         appearance_layout.setContentsMargins(0, 0, 0, 0)
@@ -131,6 +139,8 @@ class ArtworkPage(QWidget):
             content.addWidget(select)
             options = button("Sheet options", lambda: None, "quiet")
             menu = QMenu(options)
+            review = menu.addAction("Detailed review…")
+            review.triggered.connect(lambda checked=False, k=kind: self.open_review(k))
             prepare = menu.addAction("Prepare & compare…")
             prepare.triggered.connect(lambda checked=False, k=kind: self.prepare(k))
             export = menu.addAction("Save PNG copy for editing…")
@@ -224,6 +234,48 @@ class ArtworkPage(QWidget):
                 widgets["preview"].set_image()
                 widgets["info"].setText(str(exc))
                 widgets["info"].show()
+
+    def create_review(self, kind=None):
+        """Resolve a copy: even legacy provenance normalization stays read-only."""
+        document = deepcopy(self.window.document)
+        sheets, originals, notes = {}, {}, []
+        name = document["character"].get("name") or "Your character"
+        appearance = APPEARANCE_VARIANTS.get(self.variant, "Default")
+        for asset_kind in ("portrait", "sprite"):
+            try:
+                artwork = document["artwork"]
+                override = artwork.get("variants", {}).get(self.variant, {}).get(asset_kind) if self.variant else artwork.get(asset_kind)
+                inherited = bool(self.variant and not override)
+                variant = None if inherited else self.variant
+                path = resolve_artwork(document, self.window.project_file, asset_kind, variant=variant) if self.window.project_file else None
+                if not path:
+                    continue
+                caption = name + (" · Default" if inherited else " · " + appearance)
+                sheets[asset_kind] = load_review_sheet(path, asset_kind, caption)
+                if inherited:
+                    notes.append(f"{asset_kind.title()} uses Default because {appearance} has no override.")
+                original_document = deepcopy(document)
+                records = original_document["artwork"] if variant is None else original_document["artwork"]["variants"][variant]
+                record = records.get(asset_kind)
+                if isinstance(record, dict):
+                    record["selected"] = "original"
+                original = resolve_artwork(original_document, self.window.project_file, asset_kind, variant=variant)
+                if original:
+                    originals[asset_kind] = original
+            except (ProjectError, ArtworkValidationError, OSError, ValueError) as exc:
+                notes.append(f"{asset_kind.title()}: {exc}")
+        dialog = ArtworkReviewDialog(name, sheets, appearance=appearance, originals=originals, notes=notes, parent=self)
+        active = kind or ("sprite" if "sprite" in sheets else "portrait")
+        dialog.set_kind(active)
+        dialog.select_frame(self.cards[active]["preview"].current_frame)
+        return dialog
+
+    def open_review(self, kind=None):
+        dialog = self.create_review(kind)
+        try:
+            dialog.exec()
+        finally:
+            dialog.deleteLater()
 
     def choose_template(self):
         appearance = APPEARANCE_VARIANTS.get(self.variant, "Default")
