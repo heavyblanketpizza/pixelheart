@@ -20,7 +20,7 @@ class VanillaGiftDefaultsTests(unittest.TestCase):
         self.assertNotIn("Example.ModObject", self.tastes)
         self.assertNotIn("(O)74", self.tastes)
         self.assertEqual(Counter(self.tastes.values()), {
-            "love": 5, "like": 151, "dislike": 309, "hate": 115, "neutral": 82,
+            "love": 5, "like": 151, "dislike": 307, "hate": 91, "neutral": 82,
         })
 
     def test_universal_loves_and_specific_category_exceptions(self):

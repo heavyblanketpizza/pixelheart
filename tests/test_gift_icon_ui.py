@@ -69,7 +69,7 @@ class GiftIconUITests(unittest.TestCase):
         return dialog
 
     def test_default_library_and_each_allocation_use_icon_mode_and_nonnull_icons(self):
-        self.assertEqual(self.page.library.count(), 663)
+        self.assertEqual(self.page.library.count(), 637)
         self.assertTrue(all(not self.page.library.item(row).icon().isNull()
                             for row in range(self.page.library.count())))
         for taste, item_id in zip(self.page.lists, ("395", "421", "66", "24")):

@@ -20,12 +20,42 @@ GAME_VERSION = "1.6.15"
 SOURCE_OBJECT_COUNT = 807
 
 # These use dedicated NPC interactions before ordinary gift-taste processing.
-SPECIAL_INTERACTION_IDS = frozenset({"277", "458", "460", "809"})
+SPECIAL_INTERACTION_IDS = frozenset({"71", "277", "458", "460", "809"})
 # Curated vanilla quest hand-ins; not a blanket Type: Quest exclusion. Mods may
 # repurpose these IDs, so this filter does not apply to local game imports.
 VANILLA_QUEST_HANDIN_IDS = frozenset({
     "191", "788", "789", "790", "864", "865", "866", "867", "868", "869", "870",
+    "875", "876",
 })
+# CanBeGivenAsGift defaults to true even for internal object definitions that
+# never become normal inventory gifts. Keep this reviewed, ID-based list in the
+# vanilla builder only: imported mods can repurpose the same IDs. See the
+# catalog provenance for the evidence behind each exclusion.
+VANILLA_NON_GIFT_REASONS = {
+    "30": "Unobtainable Lumber object",
+    "73": "Golden Walnut currency, rather than an inventory gift",
+    "94": "Unused Spirit Torch object",
+    "102": "Lost Book collected directly into the museum library",
+    "326": "Dwarvish Translation Guide unlocked as a special power",
+    "434": "Stardrop consumed immediately on receipt",
+    "449": "Unused Stone Base object",
+    "461": "Unused Decorative Pot object",
+    "590": "World artifact spot, rather than an inventory gift",
+    "742": "Haley's bracelet event prop, rather than an inventory gift",
+    "803": "Iridium Milk event prop, rather than an inventory gift",
+    "858": "Qi Gem currency, rather than an inventory gift",
+    "892": "Unused Warp Totem: Qi's Arena object",
+    "922": "World supply crate, rather than an inventory gift",
+    "923": "World supply crate, rather than an inventory gift",
+    "924": "World supply crate, rather than an inventory gift",
+    "925": "Unused Slime Crate object",
+    "927": "Unused Camping Stove object",
+    "929": "Unused Hedge object",
+    "930": "Heart pickup consumed immediately to restore health",
+    "GoldCoin": "Gold pickup converted directly into money",
+    "PetLicense": "Pet adoption shop action, rather than an inventory gift",
+    "SeedSpot": "World seed spot, rather than an inventory gift",
+}
 
 # Friendly filter labels. Numbers retain the exact game's category values.
 CATEGORY_NAMES = {
@@ -69,7 +99,7 @@ def read_verified(path: Path, checksum: str) -> Any:
 
 
 def exclusion_reason(item: dict[str, Any]) -> str | None:
-    """Only apply exclusions established by game data or ordinary item behavior."""
+    """Exclude non-gifts and reviewed objects unavailable for normal gifting."""
     if not item["canBeGivenAsGift"]:
         return "CanBeGivenAsGift is false"
     if "not_giftable" in item["contextTags"]:
@@ -79,10 +109,10 @@ def exclusion_reason(item: dict[str, Any]) -> str | None:
     if item["category"] == -999:
         return "World litter, rather than an inventory gift"
     if item["id"] in SPECIAL_INTERACTION_IDS:
-        return "Dedicated relationship or movie interaction"
+        return "Dedicated NPC interaction instead of an ordinary gift"
     if item["id"] in VANILLA_QUEST_HANDIN_IDS:
         return "Dedicated vanilla quest hand-in"
-    return None
+    return VANILLA_NON_GIFT_REASONS.get(item["id"])
 
 
 def build_catalog(objects: dict[str, Any], names: list[dict[str, Any]]) -> dict[str, Any]:
@@ -127,9 +157,9 @@ def build_catalog(objects: dict[str, Any], names: list[dict[str, Any]]) -> dict[
         "items": items,
         "warnings": [
             "This is an object-data catalog. Trinkets and other item types are not included.",
-            "Item data cannot establish normal availability or instance-specific quest flags. "
-            "Some quest, unused, or special-use definitions may not be obtainable or giftable "
-            "during normal play; an assignment does not change those game rules.",
+            "Known internal, unobtainable, automatically consumed, and quest-only objects "
+            "are excluded from this vanilla catalog. Instance-specific quest flags and "
+            "special NPC interactions can still affect gift acceptance.",
         ],
     }
 

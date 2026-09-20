@@ -4,7 +4,7 @@ from copy import deepcopy
 import json
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal, QMimeData, QSize, QPoint, QTimer
+from PySide6.QtCore import Qt, Signal, QMimeData, QSize, QPoint, QTimer, QEvent
 from PySide6.QtGui import QDrag, QPainter, QColor
 from PySide6.QtWidgets import (
     QApplication, QWidget, QDialog, QVBoxLayout, QHBoxLayout, QGridLayout,
@@ -44,6 +44,7 @@ class GiftList(QListWidget):
     def __init__(self, page, taste=None):
         super().__init__()
         self.page, self.taste = page, taste
+        self.drop_area = None
         self.setAccessibleName((taste.title() + " gifts") if taste else "Available gift items")
         self.setObjectName("giftTiles")
         self.setViewMode(QListWidget.ViewMode.IconMode)
@@ -60,6 +61,9 @@ class GiftList(QListWidget):
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
         self.setDragDropMode(QAbstractItemView.DragDropMode.DragDrop)
+        # Static icon movement disables drops on the viewport independently of
+        # the list widget. Explicitly restore it for native mouse drops.
+        self.viewport().setAcceptDrops(True)
         self.setDefaultDropAction(Qt.DropAction.MoveAction)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         # Keep column widths stable as searches/defaults change the row count.
@@ -69,6 +73,25 @@ class GiftList(QListWidget):
         self.setMinimumWidth(100)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
         self.itemSelectionChanged.connect(lambda: self.page.select_list(self))
+
+    def set_drop_area(self, widget):
+        """Accept the same gift drop over the panel heading and margins."""
+        self.drop_area = widget
+        widget.setAcceptDrops(True)
+        widget.installEventFilter(self)
+
+    def eventFilter(self, watched, event):
+        if watched is self.drop_area:
+            handler = {
+                QEvent.Type.DragEnter: self.dragEnterEvent,
+                QEvent.Type.DragMove: self.dragMoveEvent,
+                QEvent.Type.DragLeave: self.dragLeaveEvent,
+                QEvent.Type.Drop: self.dropEvent,
+            }.get(event.type())
+            if handler:
+                handler(event)
+                return True
+        return super().eventFilter(watched, event)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -102,9 +125,12 @@ class GiftList(QListWidget):
             painter.end()
 
     def drop_feedback(self, active):
-        self.setProperty("dropTarget", active)
-        self.style().unpolish(self)
-        self.style().polish(self)
+        for widget in (self, self.drop_area):
+            if widget is not None and widget.property("dropTarget") != active:
+                widget.setProperty("dropTarget", active)
+                widget.style().unpolish(widget)
+                widget.style().polish(widget)
+                widget.update()
         self.viewport().update()
 
     def selected_values(self):
@@ -122,7 +148,11 @@ class GiftList(QListWidget):
         drag.setPixmap(selected.icon().pixmap(self.iconSize()))
         drag.setHotSpot(QPoint(self.iconSize().width() // 2, self.iconSize().height() // 2))
         # Assignment changes happen in dropEvent, never by deleting model rows.
-        drag.exec(Qt.DropAction.CopyAction | Qt.DropAction.MoveAction, Qt.DropAction.MoveAction)
+        try:
+            drag.exec(Qt.DropAction.CopyAction | Qt.DropAction.MoveAction, Qt.DropAction.MoveAction)
+        finally:
+            for target in [self.page.library, *self.page.lists.values()]:
+                target.drop_feedback(False)
 
     def accepts(self, event):
         source = event.source()
@@ -428,6 +458,8 @@ class GiftsPage(QWidget):
         self.unassigned_only = QCheckBox("Without personal tastes")
         content.addWidget(self.unassigned_only)
         self.library = GiftList(self)
+        self.library.set_drop_area(library)
+        self.library.setToolTip("Drag an item into a taste panel. Drop it back here to restore the game default.")
         self.library.setMinimumHeight(140)
         content.addWidget(self.library, 1)
         self.results = label("", "hint")
@@ -459,7 +491,10 @@ class GiftsPage(QWidget):
             self.counts[taste] = label("0 items", "hint")
             title_row.addWidget(self.counts[taste])
             content.addLayout(title_row)
+            content.addWidget(label(f"Drop items here to set {taste.title()}", "hint"))
             target = GiftList(self, taste)
+            target.set_drop_area(frame)
+            target.setToolTip(f"Drop an item anywhere in this panel to set {taste.title()}.")
             self.lists[taste] = target
             content.addWidget(target, 1)
             content.addWidget(button("Reset selected", lambda checked=False, key=taste: self.assign_items(self.lists[key].selected_values(), None), "quiet"))

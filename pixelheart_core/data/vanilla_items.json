@@ -5,16 +5,6 @@
   "source": "vanilla",
   "items": [
     {
-      "id": "930",
-      "name": "???",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 930
-      }
-    },
-    {
       "id": "309",
       "name": "Acorn",
       "category": -74,
@@ -302,26 +292,6 @@
       "icon": {
         "texture": "Maps/springobjects",
         "index": 489
-      }
-    },
-    {
-      "id": "590",
-      "name": "Artifact Spot",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 590
-      }
-    },
-    {
-      "id": "SeedSpot",
-      "name": "Artifact Spot",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "TileSheets/Objects_2",
-        "index": 88
       }
     },
     {
@@ -862,16 +832,6 @@
       "icon": {
         "texture": "Maps/springobjects",
         "index": 542
-      }
-    },
-    {
-      "id": "927",
-      "name": "Camping Stove",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 927
       }
     },
     {
@@ -1505,16 +1465,6 @@
       }
     },
     {
-      "id": "461",
-      "name": "Decorative Pot",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 461
-      }
-    },
-    {
       "id": "DeluxeBait",
       "name": "Deluxe Bait",
       "category": -21,
@@ -1785,16 +1735,6 @@
       }
     },
     {
-      "id": "326",
-      "name": "Dwarvish Translation Guide",
-      "category": -8,
-      "category_name": "Crafting",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 326
-      }
-    },
-    {
       "id": "86",
       "name": "Earth Crystal",
       "category": -2,
@@ -1802,16 +1742,6 @@
       "icon": {
         "texture": "Maps/springobjects",
         "index": 86
-      }
-    },
-    {
-      "id": "875",
-      "name": "Ectoplasm",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 875
       }
     },
     {
@@ -2465,16 +2395,6 @@
       }
     },
     {
-      "id": "GoldCoin",
-      "name": "Gold Coin",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "TileSheets/Objects_2",
-        "index": 70
-      }
-    },
-    {
       "id": "384",
       "name": "Gold Ore",
       "category": -15,
@@ -2575,16 +2495,6 @@
       }
     },
     {
-      "id": "73",
-      "name": "Golden Walnut",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 73
-      }
-    },
-    {
       "id": "569",
       "name": "Granite",
       "category": -12,
@@ -2675,16 +2585,6 @@
       }
     },
     {
-      "id": "742",
-      "name": "Haley's Lost Bracelet",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 742
-      }
-    },
-    {
       "id": "708",
       "name": "Halibut",
       "category": -4,
@@ -2742,16 +2642,6 @@
       "icon": {
         "texture": "Maps/springobjects",
         "index": 408
-      }
-    },
-    {
-      "id": "929",
-      "name": "Hedge",
-      "category": -8,
-      "category_name": "Crafting",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 929
       }
     },
     {
@@ -2882,16 +2772,6 @@
       "icon": {
         "texture": "Maps/springobjects",
         "index": 337
-      }
-    },
-    {
-      "id": "803",
-      "name": "Iridium Milk",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 803
       }
     },
     {
@@ -3265,16 +3145,6 @@
       }
     },
     {
-      "id": "102",
-      "name": "Lost Book",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 102
-      }
-    },
-    {
       "id": "204",
       "name": "Lucky Lunch",
       "category": -7,
@@ -3282,16 +3152,6 @@
       "icon": {
         "texture": "Maps/springobjects",
         "index": 204
-      }
-    },
-    {
-      "id": "30",
-      "name": "Lumber",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 30
       }
     },
     {
@@ -4095,16 +3955,6 @@
       }
     },
     {
-      "id": "PetLicense",
-      "name": "Pet License",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "TileSheets/Objects_2",
-        "index": 138
-      }
-    },
-    {
       "id": "557",
       "name": "Petrified Slime",
       "category": -12,
@@ -4405,16 +4255,6 @@
       }
     },
     {
-      "id": "876",
-      "name": "Prismatic Jelly",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 876
-      }
-    },
-    {
       "id": "74",
       "name": "Prismatic Shard",
       "category": -2,
@@ -4522,16 +4362,6 @@
       "icon": {
         "texture": "Maps/springobjects",
         "index": 889
-      }
-    },
-    {
-      "id": "858",
-      "name": "Qi Gem",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 858
       }
     },
     {
@@ -5225,16 +5055,6 @@
       }
     },
     {
-      "id": "925",
-      "name": "Slime Crate",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 925
-      }
-    },
-    {
       "id": "796",
       "name": "Slimejack",
       "category": -4,
@@ -5415,16 +5235,6 @@
       }
     },
     {
-      "id": "94",
-      "name": "Spirit Torch",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 94
-      }
-    },
-    {
       "id": "799",
       "name": "Spook Fish",
       "category": -4,
@@ -5515,16 +5325,6 @@
       }
     },
     {
-      "id": "434",
-      "name": "Stardrop",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 434
-      }
-    },
-    {
       "id": "StardropTea",
       "name": "Stardrop Tea",
       "category": 0,
@@ -5592,16 +5392,6 @@
       "icon": {
         "texture": "Maps/springobjects",
         "index": 390
-      }
-    },
-    {
-      "id": "449",
-      "name": "Stone Base",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 449
       }
     },
     {
@@ -5822,36 +5612,6 @@
       "icon": {
         "texture": "Maps/springobjects",
         "index": 237
-      }
-    },
-    {
-      "id": "922",
-      "name": "SupplyCrate",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 922
-      }
-    },
-    {
-      "id": "923",
-      "name": "SupplyCrate",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 923
-      }
-    },
-    {
-      "id": "924",
-      "name": "SupplyCrate",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 924
       }
     },
     {
@@ -6165,16 +5925,6 @@
       }
     },
     {
-      "id": "71",
-      "name": "Trimmed Lucky Purple Shorts",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 71
-      }
-    },
-    {
       "id": "253",
       "name": "Triple Shot Espresso",
       "category": -7,
@@ -6392,16 +6142,6 @@
       "icon": {
         "texture": "Maps/springobjects",
         "index": 689
-      }
-    },
-    {
-      "id": "892",
-      "name": "Warp Totem: Qi's Arena",
-      "category": 0,
-      "category_name": "Other",
-      "icon": {
-        "texture": "Maps/springobjects",
-        "index": 892
       }
     },
     {
@@ -6637,6 +6377,6 @@
   ],
   "warnings": [
     "This is an object-data catalog. Trinkets and other item types are not included.",
-    "Item data cannot establish normal availability or instance-specific quest flags. Some quest, unused, or special-use definitions may not be obtainable or giftable during normal play; an assignment does not change those game rules."
+    "Known internal, unobtainable, automatically consumed, and quest-only objects are excluded from this vanilla catalog. Instance-specific quest flags and special NPC interactions can still affect gift acceptance."
   ]
 }

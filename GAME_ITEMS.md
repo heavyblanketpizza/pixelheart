@@ -2,8 +2,11 @@
 
 The Gifts page starts with a bundled **Stardew Valley 1.6.15 object catalog**.
 Search by name or ID, filter by item type, then drag icon tiles into Love, Like,
-Dislike, or Hate. You can also select items and use the category selector and
-Assign button. Dragging between tastes moves the assignment; dragging back to
+Dislike, or Hate. For example, search for **Tulip**, then drag its tile onto the
+**Love** panel to make it a personal loved gift. The whole panel accepts drops,
+including its heading, and highlights when ready to receive the item.
+You can also select items and use the category selector and Assign button.
+Dragging between tastes moves the assignment; dragging back to
 the catalog, Reset selected, or Delete/Backspace restores the game default.
 Unassigned items are not forced to Neutral.
 
@@ -90,9 +93,9 @@ operating system's `Pixelheart/wiki-items` cache, outside the repository and
 project folders. Once cached, they work offline. The repository includes only
 verified source links; neither projects nor exported NPC packs contain these icons.
 
-The source list covers 657 of the 663 catalog entries. Six special or unused
-entries without a verified static PNG keep labeled badges. A failed download
-does not interrupt editing; **Retry icons** retries missing files. Source artwork
+Every bundled gift has a verified static PNG source. Missing icons keep labeled
+badges until downloaded. A failed download does not interrupt editing;
+**Retry icons** retries missing files. Source artwork
 is © ConcernedApe and credited to Stardew Valley Wiki in the editor.
 
 For modded artwork or texture replacements, choose **Use local textures…**:
@@ -121,15 +124,20 @@ No game artwork is shipped with Pixelheart or written into its repository.
   candidate can be obtained or given to every NPC in every state.
 - Known non-giftable flags, `not_giftable` tags, rings, world litter, and the
   dedicated bouquet/proposal/movie-ticket interactions are excluded.
-- The bundled vanilla catalog also excludes eleven known quest hand-ins,
-  including the Advanced TV Remote and Ornate Necklace. Imported game catalogs
-  retain those definitions when eligible because mods can repurpose them.
+- The bundled vanilla catalog also excludes known quest-only objects, internal
+  props, world objects, and rewards that never stay in inventory. These include
+  the `???` heart pickup, Pet License, SupplyCrates, digging spots, Golden
+  Walnuts, Qi Gems, and Stardrops. Imported game catalogs retain those
+  definitions when eligible because mods can repurpose them.
+- Existing assignments to removed catalog items remain saved and are marked
+  **not in catalog** for review. Select them and choose **Reset selected** to
+  remove an old assignment.
 - Unresolved game translation tokens fall back to the object's internal name.
 - Item data does not identify which mod owns an item. Pixelheart preserves its
   exact ID but does not invent a mod dependency. When sharing a pack that uses
   mod items, declare the required mods in the pack's manifest and installation
   instructions. Importing an item does not bundle or recreate that item.
-- The 663-entry default catalog is pinned to 1.6.15. Its inputs, checksums,
+- The 637-entry default catalog is pinned to 1.6.15. Its inputs, checksums,
   filtering rules, and limitations are recorded in the
   [catalog provenance](pixelheart_core/data/README.md).
 

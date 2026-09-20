@@ -164,6 +164,7 @@ QListWidget#giftTiles::item { padding: 2px; margin: 0; border: 1px solid transpa
 QListWidget#giftTiles::item:selected { background: #e5ebd8; border-color: #a8b68e; }
 QListWidget#giftTiles::item:hover { background: #f1e9d6; border-color: #d6c8a9; }
 QListWidget#giftTiles[dropTarget="true"] { background: #edf1e3; border: 1px solid #8e9e75; }
+QFrame#card[dropTarget="true"] { background: #edf1e3; border: 1px solid #8e9e75; }
 QListWidget#navigation { background: transparent; border: none; padding: 0; font-size: 13px; }
 QListWidget#navigation::item { padding: 7px 10px; margin: 2px 0; color: #d9ceba; border: 1px solid transparent; border-left: 3px solid transparent; border-radius: 3px; }
 QListWidget#navigation::item:hover { background: #625540; color: #fff8e9; }

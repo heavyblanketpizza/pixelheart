@@ -72,6 +72,40 @@ class GiftDefaultsDesktopTests(unittest.TestCase):
         self.assertEqual(window.document, before)
         self.assertEqual(changes.count(), 0)
 
+    def test_non_giftable_vanilla_objects_are_absent_from_library_and_inherited_tastes(self):
+        excluded = {"930", "PetLicense", "922", "923", "924"}
+        library_ids = {
+            self.page.key(self.page.library.item(row).data(Qt.ItemDataRole.UserRole))
+            for row in range(self.page.library.count())
+        }
+        self.assertFalse(excluded & library_ids)
+        for taste in TASTES:
+            with self.subTest(taste=taste):
+                self.assertFalse(excluded & set(self.ids(taste)))
+        self.assertTrue({"791", "MysteryBox", "GoldenMysteryBox", "Book_Horse", "StardropTea"} <= library_ids)
+        self.assertIn("791", self.ids("hate"))
+        self.assertFalse(self.page.assign_items(["(O)930"], "love"))
+        self.assertEqual(self.page.dump(), {taste: [] for taste in TASTES})
+
+    def test_saved_removed_objects_are_preserved_with_warning_until_explicitly_reset(self):
+        values = ["(O)930", "(O)PetLicense", "(O)922", "(O)923", "(O)924"]
+        saved = {**{taste: [] for taste in TASTES}, "love": values, "extension": {"keep": True}}
+        changes = QSignalSpy(self.page.changed)
+        self.page.load(saved)
+        self.assertEqual(self.page.dump(), saved)
+        self.assertEqual(changes.count(), 0)
+        self.assertIn("5 saved assignment(s) are outside this catalog", self.page.feedback.text())
+        for row in range(len(values)):
+            item = self.page.lists["love"].item(row)
+            self.assertIn("not in catalog", item.text())
+            self.assertIn("Saved assignment retained", item.toolTip())
+        self.assertTrue(self.page.assign_items(values, None))
+        self.assertEqual(self.page.dump(), {**saved, "love": []})
+        self.assertEqual(self.page.feedback.text(), "")
+        self.assertEqual(changes.count(), 1)
+        for taste in TASTES:
+            self.assertFalse({"930", "PetLicense", "922", "923", "924"} & set(self.ids(taste)))
+
     def test_dragging_an_inherited_item_creates_one_override_and_reset_restores_default(self):
         self.assertIn("395", self.ids("like"))
         changes = QSignalSpy(self.page.changed)

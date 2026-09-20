@@ -267,7 +267,7 @@ class ItemIconTests(unittest.TestCase):
         path = Path(__file__).parents[1] / "pixelheart_core/data/vanilla_items.json"
         catalog = validate_catalog(json.loads(path.read_text()))
         by_id = {record["id"]: record for record in catalog["items"]}
-        self.assertEqual(len(by_id), 663)
+        self.assertEqual(len(by_id), 637)
         self.assertFalse({"191", "788", "789", "790", "864", "865", "866", "867", "868", "869", "870"} & by_id.keys())
         self.assertTrue(all("icon" in record for record in by_id.values()))
         # The Quest type alone does not make a Golden Coconut ineligible.

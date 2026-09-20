@@ -132,6 +132,20 @@ class CatalogTests(unittest.TestCase):
         result = load_catalog(self.write(source))
         self.assertEqual({item["id"] for item in result["items"]}, quest_ids)
 
+    def test_import_preserves_mod_replacements_for_curated_vanilla_exclusions(self):
+        repurposed_ids = {
+            "30", "71", "73", "102", "326", "434", "590", "742", "803", "858",
+            "875", "876", "892", "922", "923", "924", "930", "GoldCoin", "PetLicense", "SeedSpot",
+            "94", "449", "461", "925", "927", "929",
+        }
+        source = {
+            item_id: self.object("Custom replacement " + item_id, CanBeGivenAsGift=True)
+            for item_id in repurposed_ids
+        }
+        source["Example.Mod_Parcel"] = self.object("SupplyCrate", CanBeGivenAsGift=True)
+        result = load_catalog(self.write(source))
+        self.assertEqual({item["id"] for item in result["items"]}, set(source))
+
     def test_no_partial_import_when_any_record_is_malformed_including_excluded_records(self):
         malformed = [None, [], "Coffee/395", {}, {"Name": "Invalid"}, self.object(Category=True),
                      self.object(Category="-7"), self.object(Category=None), self.object(Category=2 ** 32),
