@@ -146,18 +146,11 @@ spouse rooms and required mod dependencies. Supporting characters have their own
 editable content and are packaged with the main character. Use them in a scene's
 cast when the story involves them.
 
-Use **Assign & design home…** in Identity, a companion's profile, or the creator
-journey to choose where a character lives. Place them visually on a supplied
-map, choose their facing, and optionally move route stops from their old home
-tile. Create a **12×12 home interior** with your own tilesheet, or import a Tiled
-home, then connect its entrance and exit. See the
-[home guide](WORLD_BUILDING.md#assign-and-design-a-home).
-
 For a custom place, either import an existing Tiled map bundle or choose
 **Create map from a tilesheet**. In the map workshop:
 
 1. Open your own PNG tilesheet, arranged in 16×16-pixel game tiles.
-2. Choose a **12×12 home interior**, **20×20 small location**, or **6×9 spouse room**.
+2. Choose a **20×20 small location** or **6×9 spouse room**.
 3. Select a ground tile and fill the **Back** layer. Paint walls and solid
    objects on **Buildings**, with foreground details on **Front**. Leave
    **Paths** empty when starting out; it contains hidden game metadata, not

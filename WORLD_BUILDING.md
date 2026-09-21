@@ -4,42 +4,6 @@ Open **Cast & locations** to add supporting characters, places, a spouse room,
 and required external mods. These become real content in the primary character's
 pack. Save the project before importing files so all assets can travel together.
 
-## Assign and design a home
-
-Choose **Assign & design home…** in **Identity**, the creator journey's
-**Give them a life** step, or a companion's profile. You can also select a place
-in **Cast & locations**, choose a character, and click **Assign resident…**.
-
-Choose an existing game location, a place from your project, or an exact location
-ID supplied by another mod. Set the resident's home tile and facing. Supplied
-project maps appear beneath the placement grid; click a tile or use the arrow
-keys to move the resident. For game or external maps, the grid is a coordinate
-aid; it does not contain the game's map artwork.
-
-To build a home, create a home in the editor, then paint it with your own
-tilesheet or import a Tiled map. The **Home interior · 12 × 12 tiles** preset
-offers an optional room starter: select floor and wall tiles, then lay out a
-room with a doorway. You can undo the layout and continue painting furniture
-and details. Configure the outside entrance, inside arrival, exit, and outside
-return tiles. A connection does not draw an exterior house on the outside map.
-
-Home sets the NPC's default position. To carry their routine to the new place,
-select **Move route stops at the old home**. This moves only stops at the exact
-old map and tile in their basic and conditional routines, including drafts.
-Other stops, scenes, and farmhouse returns remain authored separately. Review
-the evening stop in **Schedule**: assigning a home does not add a return journey,
-bed furniture, or a sleeping animation.
-
-Apply saves the changes into the open project; use **Save project** to save them
-to disk. Cancel discards the dialog's changes. Previously saved map revisions
-remain intact. A home without a supplied map can remain a draft, but exporting
-requires a complete map and valid connections. Several characters can share a
-place; give each a suitable standing tile and check their routes in-game.
-Reassign residents before removing their home from **Places & spouse room**.
-
-A spouse-room section belongs to the farmhouse after marriage and cannot serve
-as a standalone home. Use the separate spouse-room controls below.
-
 ## Supporting cast
 
 Choose **Add companion** in **Supporting cast**. Give the character a name and
@@ -72,49 +36,14 @@ and unique **Stable map ID**. That place appears by name in location selectors.
   those layers without changing earlier revisions. See [MAP_WORKSHOP.md](MAP_WORKSHOP.md).
 - **Import Tiled map…** copies a supplied finite, orthogonal TMX map. It must use
   16×16 tiles and contain Back, Buildings, and Front layers. Keep all referenced
-  TSX files and custom PNG sheets in its folder or subfolders. Known vanilla
-  tilesheets can remain game references, as described below. Parent traversal,
-  unsupported external references, and missing custom dependencies are rejected.
+  TSX files and PNG sheets in its folder or subfolders. External references,
+  parent traversal, and missing dependencies are rejected.
 
 The map and its dependencies are copied together into `world_assets/maps/`.
 The exporter preserves their bytes, and Save As copies the complete bundle.
 The preview draws supplied tile artwork. It cannot certify collision, actions,
 or walking paths. Rich imported maps that the simple painter cannot preserve
 must be edited in Tiled and imported again.
-
-### Use the game's native tiles
-
-For a vanilla-style residence, start by editing a similar map exported from
-your game. Preserve its tileset properties, animations, layer structure, and
-the tile scale. The blank painter preset does not supply these details for you.
-Content Patcher's `patch export "Maps/ElliottHouse"` command, for example,
-exports the currently loaded map and its sheets for inspection in Tiled.
-Exports include active mods; use only SMAPI and Content Patcher when you need
-an unmodified reference.
-
-The importer supports game references to `townInterior`, `walls_and_floors`,
-`farmhouse_tiles`, `paths`, and the spring, summer, fall, and winter
-`*_outdoorsTileSheet` sheets. Use the sheet name with an optional `Maps/` prefix
-and `.png` suffix, and retain the image's declared width and height. A local PNG
-with that name takes precedence and will be copied. To retain the game
-reference, keep its unprefixed PNG out of the imported bundle.
-
-SMAPI also supports dot-prefixed image references, such as
-`.townInterior.png`: a copy with that name can be used locally in Tiled while
-the game resolves the original vanilla asset. Pixelheart preserves supported
-dot-prefixed references and omits those reference images from its bundles.
-
-In **Assign & design home → Design this place**, choose your unpacked Content folder or
-Content Patcher export folder under **Preview with your game's tilesheets**.
-The editor provides the specific image export commands needed by the map.
-Choose **Refresh preview** after exporting. This setting stays on this computer;
-the images read from that folder are not copied into projects or mod packs.
-If they are missing, placement bounds remain available and the editor explains
-which artwork it needs. The actual game resolves these references at runtime,
-so compatible recolors remain available.
-
-The preview displays map artwork and coordinate markers. It does not simulate
-actor depth, collision, seating, lighting, or NPC routes. Verify those in-game.
 
 ## Connect the entrance and exit
 
@@ -137,77 +66,6 @@ can still be walls, furniture, or unreachable spaces.
 
 Keep Stable map IDs unchanged after using a pack in a save. Display names can
 change without changing the authored map's identity.
-
-## Furnish an imported map
-
-Advanced authored projects can store optional `interactions` and `seats` on a
-location record in `project.json`. These fields are preserved when opening,
-saving, copying, and exporting a project; the current desktop map editor does
-not provide controls for them. For example:
-
-```json
-{
-  "interactions": [
-    {"id": "Mirror", "x": 4, "y": 2, "text": "The glass is cool."}
-  ],
-  "seats": [
-    {"id": "WritingChair", "x": 2, "y": 2, "direction": "right"}
-  ]
-}
-```
-
-Both refer to existing **Buildings** tiles in the imported map. Each needs a
-unique ID within its list and a distinct tile. Interacting with a message tile
-shows its text through the game's `Message` action. The exporter stores the
-text under a project-specific key in `Strings/StringsFromMaps` and sets the
-tile's action without changing the supplied TMX file.
-
-The short seat form above describes a one-tile native map seat, facing `up`,
-`right`, `down`, `left`, or `opposite`.
-The exporter resolves the actual Buildings tile to its PNG sheet coordinates
-and adds a `Data/ChairTiles` entry. Use a unique tilesheet filename containing
-letters, digits, underscores, or hyphens, with no extra dots before `.png`.
-The sheet must use plain 16×16 tiles without spacing, margins, animation, or
-flipped chair tiles. Every occurrence of that sheet tile becomes a seat, so use
-a dedicated tile for each required chair facing. Reusing the same seat tile
-with conflicting artwork or directions is rejected. This simple seat form has
-no drawn foreground overlay; design the chair art to suit it and check the
-farmer's position in-game. These are fixed map furnishings, not furniture items
-the player can pick up and rearrange.
-
-Advanced seat records can also specify `width` and `height` (default 1),
-`seat_type` (`default`, `highback_chair`, or `custom`), paired `draw_x` and
-`draw_y` overlay tile coordinates, `is_seasonal`, and an optional
-`draw_tilesheet` game asset name. `custom` requires `offset_x`, `offset_y`, and
-`extra_height`, measured in tiles. A high-backed chair requires a one-tile-high
-seat and an explicit overlay whose draw coordinate is its bottom-left tile.
-Nonzero custom extra height with an overlay is currently unsupported.
-
-Overlay coordinates refer to `TileSheets/ChairTiles` unless `draw_tilesheet`
-is supplied. An alternate asset must already be provided by the game or a
-declared dependency; this field does not load an arbitrary project image.
-Its existence, artwork bounds, and seated appearance need in-game verification.
-All seat footprints must fit the map and not overlap other authored features.
-
-When using original game sheet references, retain the game's existing seat
-definitions and omit redundant `seats` entries. Pixelheart rejects new seat
-registrations on those sheets because they would change vanilla seating
-globally. A changed seat design needs uniquely named custom artwork.
-
-An optional `entrance_patch` supplies a small portable TMX bundle for a visible
-entrance on the outside map. `entrance_patch_x` and `entrance_patch_y` set its
-top-left position. It uses the same map requirements as an imported location.
-Export overlays its nonempty tiles, preserving the surrounding outside map.
-Test against the actual game map and installed map mods; an in-bounds patch can
-still cover scenery or an existing action.
-
-The default `entrance_mode` is `"walk"`. With `"interact"`, the outside entry
-tile must contain a Buildings tile in the supplied entrance patch. Export makes
-that tile passable and gives it a clickable `Warp` action, plus a separate NPC
-warp. Walking over the tile does not trigger entry. The outside return tile may
-therefore be the same tile. The inside exit remains a walking warp. Check the
-entry action, exit, NPC routes, every message, and sitting and standing up;
-their exact authored positions are included in `WORLD_TESTING.txt`.
 
 ## Give the spouse a room
 
@@ -257,6 +115,5 @@ Keep the working project too: it retains original/prepared artwork versions
 that were not selected for the export.
 
 References: [Content Patcher map edits](https://github.com/Pathoschild/StardewMods/blob/stable/ContentPatcher/docs/author-guide/action-editmap.md),
-[native map seating](https://stardewvalleywiki.com/Modding:Maps#Sitting_on_non-furniture_chairs),
 [game location data](https://stardewvalleywiki.com/Modding:Location_data), and
 [NPC spouse-room fields](https://stardewvalleywiki.com/Modding:NPC_data).

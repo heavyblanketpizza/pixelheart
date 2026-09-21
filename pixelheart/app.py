@@ -10,7 +10,7 @@ from PySide6.QtCore import Qt, QSize, QSaveFile, QIODevice
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QScrollArea,
-    QListWidget, QListWidgetItem, QFrame, QFileDialog, QMessageBox, QDialog,
+    QListWidget, QListWidgetItem, QFrame, QFileDialog, QMessageBox,
 )
 
 from pixelheart_core.projects import (
@@ -223,7 +223,6 @@ class MainWindow(QMainWindow):
         main.addLayout(heading)
         self.stack = QStackedWidget()
         self.identity = IdentityPage()
-        self.identity.home_requested.connect(self.open_home_editor)
         self.dialogue = RecordsPage("dialogues")
         self.schedule = SchedulePage()
         self.gifts = GiftsPage(auto_download=self.auto_download_icons)
@@ -324,67 +323,6 @@ class MainWindow(QMainWindow):
         for selector in self.findChildren(MapSelector):
             if type(selector) is MapSelector:
                 selector.set_extra_locations(locations)
-        self.world.refresh_residents()
-
-    def open_home_editor(self, companion_id=None, *, location_id=None):
-        """Apply one resident's home and its maps as one local authoring edit."""
-        from .home_editor import HomeDialog
-        self.collect()
-        primary = self.document["character"]
-        character = primary
-        if companion_id is not None:
-            entry = next((entry for entry in self.document["world"]["characters"]
-                          if entry["id"] == companion_id), None)
-            if entry is None:
-                return
-            character = entry["character"]
-
-        def ensure_home_project():
-            return self.project_file if self.ensure_saved() else None
-
-        dialog = HomeDialog(character, world=self.document["world"], primary=primary,
-                            project_file=self.project_file, parent=self,
-                            ensure_saved=ensure_home_project)
-        try:
-            if location_id is not None:
-                location = next((place for place in self.document["world"]["locations"]
-                                 if place["id"] == location_id), None)
-                if location and not location["spouse_room"]:
-                    dialog.select_home_map(location["internal_name"])
-            if dialog.exec() == QDialog.DialogCode.Accepted:
-                self.apply_home_edit(dialog.result_character, dialog.result_world, companion_id)
-        finally:
-            dialog.deleteLater()
-
-    def apply_home_edit(self, character, world, companion_id=None):
-        if character is None or world is None:
-            return
-        updated = deepcopy(self.document)
-        updated["world"] = deepcopy(world)
-        if companion_id is None:
-            updated["character"] = deepcopy(character)
-        else:
-            entry = next((entry for entry in updated["world"]["characters"]
-                          if entry["id"] == companion_id), None)
-            if entry is None:
-                return
-            entry["character"] = deepcopy(character)
-        if updated == self.document:
-            return
-        self.loading = True
-        try:
-            self.document = updated
-            self.identity.load(updated["character"])
-            self.schedule.load(updated["character"].get("schedule", []))
-            self.life.load(updated["character"])
-            self.world.load(updated["world"])
-            self.refresh_locations()
-        finally:
-            self.loading = False
-        self.dirty = True
-        self.update_title()
-        self.creator.refresh()
-        self.statusBar().showMessage("Home updated. Review the daily route and test the entrance and evening return in-game.", 12000)
 
     def artwork_changed(self):
         self.content_changed()

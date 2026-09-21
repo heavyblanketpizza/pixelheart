@@ -25,7 +25,7 @@ from .widgets import label, button
 
 
 LAYERS = ("Back", "Buildings", "Front", "Paths")
-PRESETS = {"small_location": (20, 20), "home_interior": (12, 12), "spouse_room": (6, 9)}
+PRESETS = {"small_location": (20, 20), "spouse_room": (6, 9)}
 TILE_SIZE = 16
 MAX_SHEET_SIZE = 2048
 MAX_SHEET_BYTES = 16 * 1024 * 1024
@@ -65,7 +65,7 @@ class TileMapDraft:
 
     def __init__(self, preset="small_location"):
         if preset not in PRESETS:
-            raise WorldError("Choose a small location, home interior, or spouse room.")
+            raise WorldError("Choose a small location or spouse room.")
         self.width, self.height = PRESETS[preset]
         self.layers = {name: [0] * (self.width * self.height) for name in LAYERS}
         self.history = []
@@ -119,27 +119,6 @@ class TileMapDraft:
         self.layers[layer] = [tile] * (self.width * self.height)
         return True
 
-    def layout_room(self, floor_tile, wall_tile):
-        """Replace all layers with a floored room and one bottom doorway."""
-        for tile in (floor_tile, wall_tile):
-            self._position("Back", 0, 0, tile)
-            if tile == 0:
-                raise WorldError("Choose a floor tile and a wall tile from your tilesheet.")
-        layers = {name: [0] * (self.width * self.height) for name in LAYERS}
-        layers["Back"] = [floor_tile] * (self.width * self.height)
-        for y in range(self.height):
-            for x in range(self.width):
-                perimeter = x in (0, self.width - 1) or y in (0, self.height - 1)
-                doorway = (x, y) == (self.width // 2, self.height - 1)
-                if perimeter and not doorway:
-                    layers["Buildings"][y * self.width + x] = wall_tile
-        if layers == self.layers:
-            return False
-        self.end_stroke()
-        self._remember()
-        self.layers = layers
-        return True
-
     def flood(self, layer, x, y, tile):
         index = self._position(layer, x, y, tile)
         previous = self.layers[layer][index]
@@ -160,7 +139,7 @@ class TileMapDraft:
 
     def resize(self, preset):
         if preset not in PRESETS:
-            raise WorldError("Choose a small location, home interior, or spouse room.")
+            raise WorldError("Choose a small location or spouse room.")
         width, height = PRESETS[preset]
         if (width, height) == (self.width, self.height):
             return False
@@ -329,7 +308,6 @@ class MapCanvas(QWidget):
         self.tile = 1
         self.scale = 2
         self.grid = True
-        self.room_guides = False
         self.hover = None
         self.setMouseTracking(True)
         self.setAccessibleName("Map canvas; paint the selected layer")
@@ -369,15 +347,6 @@ class MapCanvas(QWidget):
                 if self.grid:
                     painter.setPen(QPen(QColor(56, 41, 66, 65), 1))
                     painter.drawRect(target)
-        if self.room_guides:
-            x = self.draft.width // 2
-            for y, caption, color in ((self.draft.height // 2, "N", "#735799"),
-                                      (self.draft.height - 2, "A", "#317a79"),
-                                      (self.draft.height - 1, "E", "#ab5474")):
-                target = QRect(x * cell + 2, y * cell + 2, cell - 4, cell - 4)
-                painter.fillRect(target, QColor(color))
-                painter.setPen(QColor("#ffffff"))
-                painter.drawText(target, Qt.AlignmentFlag.AlignCenter, caption)
         if self.hover is not None:
             x, y = self.hover
             painter.setPen(QPen(QColor("#ae5479"), 2))
@@ -431,8 +400,6 @@ class MapWorkshop(QDialog):
         self.result_size = None
         self.result_is_spouse_room = False
         self.sheet = None
-        self.floor_tile = None
-        self.wall_tile = None
         self.draft = TileMapDraft()
         self.setWindowTitle("Create a place — Pixelheart")
         self.resize(1120, 850)
@@ -446,7 +413,6 @@ class MapWorkshop(QDialog):
         top.addWidget(self.open_button)
         self.preset = QComboBox()
         self.preset.addItem("Small location · 20 × 20 tiles", "small_location")
-        self.preset.addItem("Home interior · 12 × 12 tiles", "home_interior")
         self.preset.addItem("Spouse room · 6 × 9 tiles", "spouse_room")
         self.preset.setAccessibleName("Map size preset")
         self.preset.currentIndexChanged.connect(self.resize_map)
@@ -514,33 +480,6 @@ class MapWorkshop(QDialog):
         self.grid.toggled.connect(self.toggle_grid)
         options.addWidget(self.grid)
         right_layout.addLayout(options)
-        self.room_panel = QWidget()
-        room_layout = QVBoxLayout(self.room_panel)
-        room_layout.setContentsMargins(0, 0, 0, 0)
-        room_layout.setSpacing(5)
-        room_layout.addWidget(label("ROOM STARTER · OPTIONAL", "eyebrow"))
-        room_layout.addWidget(label("Select a tile in your palette, then use it for the floor or walls. The room starter replaces all layers; Undo restores them.", "muted", True))
-        room_tiles = QHBoxLayout()
-        self.floor_button = button("Use selected as floor", lambda: self.select_room_tile("floor"), "quiet")
-        self.wall_button = button("Use selected as walls", lambda: self.select_room_tile("wall"), "quiet")
-        self.room_button = button("Lay out a simple room", self.layout_room)
-        self.floor_button.setEnabled(False)
-        self.wall_button.setEnabled(False)
-        self.room_button.setEnabled(False)
-        room_tiles.addWidget(self.floor_button)
-        room_tiles.addWidget(self.wall_button)
-        room_tiles.addWidget(self.room_button)
-        room_layout.addLayout(room_tiles)
-        self.room_selection = label("Floor: not chosen · Walls: not chosen", "hint", True)
-        room_layout.addWidget(self.room_selection)
-        self.room_guide = QCheckBox("Show suggested home positions")
-        self.room_guide.setChecked(True)
-        self.room_guide.toggled.connect(self.update_room_controls)
-        room_layout.addWidget(self.room_guide)
-        self.room_guide_note = label("N · NPC at (6, 6)   A · Player arrival at (6, 10)   E · Exit at (6, 11). These guides are not saved; set home positions after saving.", "hint", True)
-        room_layout.addWidget(self.room_guide_note)
-        self.room_panel.setVisible(False)
-        right_layout.addWidget(self.room_panel)
         self.canvas = MapCanvas(self.draft)
         self.canvas.changed.connect(self.changed)
         self.canvas.hovered.connect(lambda x, y: self.position.setText(f"Tile X {x} · Y {y}  |  {self.canvas.layer}"))
@@ -567,7 +506,7 @@ class MapWorkshop(QDialog):
     def set_preset(self, preset):
         index = self.preset.findData(preset)
         if index < 0:
-            raise WorldError("Choose a small location, home interior, or spouse room.")
+            raise WorldError("Choose a small location or spouse room.")
         self.preset.setCurrentIndex(index)
 
     def choose_sheet(self):
@@ -584,13 +523,10 @@ class MapWorkshop(QDialog):
         if highest > sheet["tile_count"]:
             raise WorldError("This sheet has fewer tiles than your map uses. Keep the original sheet or clear those map tiles first.")
         self.sheet = sheet
-        self.floor_tile = None
-        self.wall_tile = None
         self.canvas.load(sheet)
         self.palette.load(sheet)
         self.palette_scroll.setFixedHeight(min(320, max(100, self.palette.height() + 4)))
         self.save_button.setEnabled(True)
-        self.update_room_controls()
         self.notice.setText(f"{Path(path).name} · {sheet['width']} × {sheet['height']} pixels · {sheet['tile_count']} tiles. Choose a floor tile and fill Back to begin.")
 
     def load_map(self, reference):
@@ -600,8 +536,6 @@ class MapWorkshop(QDialog):
         # Apply state only after every imported feature has been checked. A
         # rejected external map leaves the current editing session untouched.
         self.draft, self.sheet = draft, sheet
-        self.floor_tile = None
-        self.wall_tile = None
         self.result_reference = None
         self.result_size = None
         self.result_is_spouse_room = False
@@ -609,7 +543,7 @@ class MapWorkshop(QDialog):
         self.canvas.load(sheet)
         self.palette.load(sheet)
         self.palette_scroll.setFixedHeight(min(320, max(100, self.palette.height() + 4)))
-        preset = next(key for key, dimensions in PRESETS.items() if dimensions == (draft.width, draft.height))
+        preset = "spouse_room" if (draft.width, draft.height) == PRESETS["spouse_room"] else "small_location"
         blocked = self.preset.blockSignals(True)
         self.preset.setCurrentIndex(self.preset.findData(preset))
         self.preset.blockSignals(blocked)
@@ -617,7 +551,6 @@ class MapWorkshop(QDialog):
         self.canvas.refresh_size()
         self.save_button.setEnabled(True)
         self.undo_button.setEnabled(False)
-        self.update_room_controls()
         self.setWindowTitle("Edit your painted place — Pixelheart")
         self.notice.setText("Editing the saved map. Save place to project creates a new revision; the previous map and supplied PNG stay intact.")
 
@@ -636,43 +569,10 @@ class MapWorkshop(QDialog):
             "Paths": "Hidden game metadata, not decorative ground. Leave this layer empty unless you know the game's tile meanings."}
         self.layer_note.setText(descriptions[self.canvas.layer])
 
-    def update_room_controls(self):
-        is_home = (self.draft.width, self.draft.height) == PRESETS["home_interior"]
-        self.room_panel.setVisible(is_home)
-        self.floor_button.setEnabled(self.sheet is not None)
-        self.wall_button.setEnabled(self.sheet is not None)
-        self.room_button.setEnabled(self.sheet is not None and self.floor_tile is not None and self.wall_tile is not None)
-        floor = f"tile {self.floor_tile}" if self.floor_tile is not None else "not chosen"
-        wall = f"tile {self.wall_tile}" if self.wall_tile is not None else "not chosen"
-        self.room_selection.setText(f"Floor: {floor} · Walls: {wall}")
-        self.canvas.room_guides = is_home and self.room_guide.isChecked()
-        self.canvas.update()
-
-    def select_room_tile(self, role):
-        if self.sheet is None:
-            self.notice.setText("Open a tilesheet first.")
-            return
-        if role == "floor":
-            self.floor_tile = self.canvas.tile
-        elif role == "wall":
-            self.wall_tile = self.canvas.tile
-        else:
-            raise WorldError("Choose the room floor or walls.")
-        self.update_room_controls()
-
-    def layout_room(self):
-        if self.sheet is None or self.floor_tile is None or self.wall_tile is None:
-            self.notice.setText("Open a tilesheet and choose both a floor tile and a wall tile first.")
-            return
-        if self.draft.layout_room(self.floor_tile, self.wall_tile):
-            self.changed()
-        self.notice.setText("Room laid out with a doorway at the bottom center. Paint furniture and details next. Undo restores the previous layers.")
-
     def resize_map(self):
         if self.draft.resize(self.preset.currentData()):
             self.zoom.setCurrentIndex(self.zoom.findData(3 if self.preset.currentData() == "spouse_room" else 2))
             self.canvas.refresh_size()
-            self.update_room_controls()
             self.changed()
 
     def change_zoom(self):
@@ -697,12 +597,11 @@ class MapWorkshop(QDialog):
 
     def undo(self):
         if self.draft.undo():
-            selected = next(key for key, dimensions in PRESETS.items() if dimensions == (self.draft.width, self.draft.height))
+            selected = "spouse_room" if (self.draft.width, self.draft.height) == PRESETS["spouse_room"] else "small_location"
             blocked = self.preset.blockSignals(True)
             self.preset.setCurrentIndex(self.preset.findData(selected))
             self.preset.blockSignals(blocked)
             self.canvas.refresh_size()
-            self.update_room_controls()
             self.changed()
 
     def save_map(self):

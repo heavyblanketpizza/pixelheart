@@ -20,7 +20,6 @@ from pixelheart_core.story import exported_npc_id
 from .editors import line, number, value, set_value, connect_change, RecordsPage, SchedulePage
 from .widgets import label, button, card, ArtworkPreview
 from .location_picker import MapSelector
-from .game_import import game_source_directory, map_game_content_root
 
 
 def combo(options):
@@ -53,7 +52,7 @@ class WorldPage(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         intro, layout = card("A life with people and places", "Create real supporting characters, bring in your own maps, and connect every place to the valley.")
-        layout.addWidget(label("Supporting cast need their own portrait and sprite sheets. Imported maps keep custom tilesheets with the project; native tilesheets remain game references. All locations and routes still need an in-game playtest.", "hint", True))
+        layout.addWidget(label("Supporting cast need their own portrait and sprite sheets. Imported maps keep their tilesheets with the project. All locations and routes still need an in-game playtest.", "hint", True))
         root.addWidget(intro)
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
@@ -118,17 +117,13 @@ class WorldPage(QWidget):
             "romanceable": QCheckBox("Adult romance is available"),
             "season": combo([(s.title(), s) for s in ("spring", "summer", "fall", "winter")]),
             "day": number(1, 28), "home_map": MapSelector(compact=True), "home_x": number(0, 1000), "home_y": number(0, 1000),
-            "home_facing": combo([(text.title(), text) for text in ("down", "left", "right", "up")]),
         }
         profile, content = card("Someone with a place in the story")
         form_rows(content, [("Name", self.cast_fields["name"]), ("Character ID", self.cast_fields["internal_name"]),
                             ("Age", self.cast_fields["age"]), ("Game gender", self.cast_fields["gender"]),
                             ("Romance", self.cast_fields["romanceable"]), ("Birthday season", self.cast_fields["season"]),
                             ("Birthday day", self.cast_fields["day"]), ("Home map", self.cast_fields["home_map"]),
-                            ("Home tile X", self.cast_fields["home_x"]), ("Home tile Y", self.cast_fields["home_y"]),
-                            ("Home facing", self.cast_fields["home_facing"])])
-        self.cast_home_button = button("Assign & design home…", self.edit_cast_home, "primary")
-        content.addWidget(self.cast_home_button)
+                            ("Home tile X", self.cast_fields["home_x"]), ("Home tile Y", self.cast_fields["home_y"])])
         self.cast_identity = label("", "hint", True)
         content.addWidget(self.cast_identity)
         layout.addWidget(profile)
@@ -182,19 +177,10 @@ class WorldPage(QWidget):
         content.addWidget(button("Create map from a tilesheet…", self.create_map))
         self.edit_map_button = button("Edit painted map…", self.edit_map)
         content.addWidget(self.edit_map_button)
-        self.map_status = label("Import a finite 16×16 tile TMX map with Back, Buildings, and Front layers. Keep custom TSX and PNG files beside it; vanilla tilesheets can reference the game.", "hint", True)
+        self.map_status = label("Import a finite 16×16 tile TMX map with Back, Buildings, and Front layers. Keep its TSX and PNG files in the same folder or subfolders.", "hint", True)
         content.addWidget(self.map_status)
         self.map_identity = label("", "hint", True)
         content.addWidget(self.map_identity)
-        self.residents = label("", "hint", True)
-        content.addWidget(self.residents)
-        resident_row = QHBoxLayout()
-        self.resident_picker = QComboBox()
-        self.resident_picker.setAccessibleName("Character to live in this place")
-        resident_row.addWidget(self.resident_picker, 1)
-        self.assign_resident_button = button("Assign resident…", self.assign_resident)
-        resident_row.addWidget(self.assign_resident_button)
-        content.addLayout(resident_row)
         self.map_preview = label("Import a map to preview its supplied tiles.", "muted", True)
         self.map_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.map_preview.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
@@ -286,7 +272,7 @@ class WorldPage(QWidget):
         entry = self.world["characters"][index]
         character = entry["character"]
         for key, widget in self.cast_fields.items():
-            set_value(widget, character.get(key, "down" if key == "home_facing" else False if key == "romanceable" else ""))
+            set_value(widget, character.get(key, False if key == "romanceable" else ""))
         for key, widget in self.gift_fields.items():
             set_value(widget, ", ".join(map(str, character.get("gifts", {}).get(key, []))))
         self.cast_dialogue.load(character.get("dialogues", []))
@@ -295,35 +281,6 @@ class WorldPage(QWidget):
         self.refresh_cast_artwork()
         self.cast_identity.setText("Stable story actor: " + cast_actor_id(entry) + "\nYou can also use “" + character.get("internal_name", "") + "”. Keep IDs stable after publishing.")
         self.cast_fields["romanceable"].setEnabled(character.get("age", "adult") == "adult")
-
-    def edit_cast_home(self):
-        if self.cast_index >= 0:
-            self.window.open_home_editor(self.world["characters"][self.cast_index]["id"])
-
-    def assign_resident(self):
-        if self.location_index >= 0:
-            self.window.open_home_editor(self.resident_picker.currentData(),
-                                         location_id=self.world["locations"][self.location_index]["id"])
-
-    def refresh_residents(self):
-        if self.location_index < 0:
-            return
-        record = self.world["locations"][self.location_index]
-        primary = self.window.document["character"]
-        characters = [(None, primary)] + [(entry["id"], entry["character"]) for entry in self.world["characters"]]
-        selected = self.resident_picker.currentData()
-        self.resident_picker.blockSignals(True)
-        self.resident_picker.clear()
-        for identity, character in characters:
-            self.resident_picker.addItem(character.get("name") or "Unnamed character", identity)
-        self.resident_picker.setCurrentIndex(max(0, self.resident_picker.findData(selected)))
-        self.resident_picker.blockSignals(False)
-        aliases = {record["internal_name"], exported_location_id(record, primary)}
-        names = [character.get("name") or "Unnamed character" for _, character in characters if character.get("home_map") in aliases]
-        self.residents.setText("Residents: " + (", ".join(names) if names else "No one assigned yet"))
-        self.residents.setVisible(not record["spouse_room"])
-        self.resident_picker.setVisible(not record["spouse_room"])
-        self.assign_resident_button.setVisible(not record["spouse_room"])
 
     def edit_companion(self):
         if self.loading or self.cast_index < 0:
@@ -384,16 +341,6 @@ class WorldPage(QWidget):
 
     def remove_location(self):
         if self.location_index >= 0:
-            location = self.world["locations"][self.location_index]
-            primary = self.window.document["character"]
-            aliases = {location["internal_name"], exported_location_id(location, primary)}
-            characters = [primary, *(entry["character"] for entry in self.world["characters"])]
-            residents = [character.get("name") or "Unnamed character" for character in characters
-                         if character.get("home_map") in aliases]
-            if residents:
-                self.window.show_error("This place is still a home",
-                                       "Assign another home to " + ", ".join(residents) + " before removing this place.")
-                return
             del self.world["locations"][self.location_index]
             self.load(self.world)
             self.changed.emit()
@@ -427,32 +374,29 @@ class WorldPage(QWidget):
 
     def refresh_location(self):
         record = self.world["locations"][self.location_index]
-        self.refresh_residents()
         self.edit_map_button.setEnabled(bool(record["map"]))
         self.warps_card.setVisible(not record["spouse_room"])
         self.room_card.setVisible(record["spouse_room"])
         self.map_identity.setText("This map section is placed in FarmHouse; it is not a separate location." if record["spouse_room"] else "Use “" + record["internal_name"] + "” for schedules and story locations. Game map: " + exported_location_id(record, self.window.document["character"]))
-        self.map_status.setText(record["map"] or "Import a finite TMX map with custom or game tilesheets. Layers: Back, Buildings, Front.")
-        key = (str(self.window.project_file), record["map"], game_source_directory())
+        self.map_status.setText(record["map"] or "Import a finite TMX map with local TSX and PNG tilesheets. Layers: Back, Buildings, Front.")
+        key = (str(self.window.project_file), record["map"])
         if key != self._preview_key:
             self._preview_key = key
             if record["map"] and self.window.project_file:
                 try:
                     from PIL.ImageQt import ImageQt
-                    map_path = asset_path(record["map"], self.window.project_file.parent)
-                    source_root = map_game_content_root() if map_bundle(map_path).get("game_assets") else None
-                    preview = render_map_preview(map_path, 600, game_content_root=source_root)
+                    preview = render_map_preview(asset_path(record["map"], self.window.project_file.parent), 600)
                     pixmap = QPixmap.fromImage(ImageQt(preview))
                     self.map_preview.setPixmap(pixmap.scaled(400, 230, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.FastTransformation))
-                except (ValueError, OSError) as exc:
-                    self.map_preview.setText("Preview unavailable: " + str(exc) + " Choose local game tilesheets in Assign resident → Design this place.")
+                except WorldError as exc:
+                    self.map_preview.setText("Preview unavailable: " + str(exc))
             else:
                 self.map_preview.setText("Import a map to preview its supplied tiles.")
 
     def import_location(self):
         if self.location_index < 0:
             return
-        path, _ = QFileDialog.getOpenFileName(self, "Import a Tiled map with game or custom tilesheets", "", "Tiled maps (*.tmx)")
+        path, _ = QFileDialog.getOpenFileName(self, "Import a Tiled map and its local tilesheets", "", "Tiled maps (*.tmx)")
         if not path:
             return
         identity = self.world["locations"][self.location_index]["id"]

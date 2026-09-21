@@ -40,7 +40,7 @@ APPEARANCE_VARIANTS = {
 }
 _NESTED_KEYS = {
     "dialogues": {"id", "trigger", "text", "source", "source_history"},
-    "schedule": {"id", "time", "location", "x", "y", "facing", "activity", "animation"},
+    "schedule": {"id", "time", "location", "x", "y", "facing", "activity"},
     "events": {"id", "name", "hearts", "location", "description", "story"},
     "relationships": {"id", "name", "relation", "description", "story"},
 }
@@ -75,7 +75,6 @@ def new_project() -> dict:
             "home_map": "Town",
             "home_x": 32,
             "home_y": 62,
-            "home_facing": "down",
             "dialogues": [{"id": str(uuid.uuid4()), "trigger": "Introduction", "text": "Hello! It's lovely to meet you.$h"}],
             "schedule": [{"id": str(uuid.uuid4()), "time": "600", "location": "Town", "x": 32, "y": 62, "facing": "down", "activity": ""}],
             "gifts": {"love": [], "like": [], "dislike": [], "hate": []},

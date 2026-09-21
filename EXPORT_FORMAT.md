@@ -48,7 +48,7 @@ the working project.
 ## Supported authored content
 
 Identity includes name, birthday, age, manner, social anxiety, optimism, spawn map,
-spawn tile, spawn facing, and romance availability. The primary character must be adult,
+spawn tile, and romance availability. The primary character must be adult,
 including while romance is disabled. Supporting characters can export as Adult,
 Teen, or Child; only adults can be romanceable. Each companion uses the same
 character, dialogue, gift, schedule, and artwork compiler with separate assets.
@@ -57,37 +57,12 @@ Man as `Male`, and Unspecified as `Undefined`. Explicit gender is exported
 directly. Older projects migrate exact `he/him` to `Male`, `she/her` to `Female`,
 and other pronouns to `Undefined`; original pronouns remain in the project.
 NPCs are social and giftable.
-The home editor stores the existing `home_map`, `home_x`, and `home_y` fields
-and optional `home_facing` (`up`, `right`, `down`, or `left`). Older projects
-default to `down`. These compile to the NPC's `Home` entry in `Data/Characters`.
-Choosing to move home route stops rewrites only the exact previous home tile in
-the character's basic and conditional routines; scenes and farmhouse returns
-stay separate. A home assignment does not create a bed animation or automatically
-append an evening route stop. See [the home guide](WORLD_BUILDING.md#assign-and-design-a-home).
-
 The default route applies every season and weather. Enabled Life & reactions
 rules add conditional weekday dialogue, alternative routes, and spouse dialogue.
 Conditions include season, weather, weekday, hearts, relationship status,
 completed event, and minimum farmhouse upgrade. Rules update each morning;
 later matching rules override earlier ones. Married routines use dated marriage
 schedule keys. See [LIFE_AND_BRANCHING.md](LIFE_AND_BRANCHING.md).
-
-Advanced project JSON can define `character.animations`, for example
-`{"sleep": "51/51/51//laying_down"}`, and set `"animation": "sleep"` on an
-explicit map/tile schedule stop. Both default routes and conditional routines
-export the owned key as `<lowercase exported NPC ID>_sleep` in
-`Data/animationDescriptions`. These fields survive save, Save As, and export
-backups; the desktop schedule table preserves them but does not author them.
-Animation names use up to 48 lowercase letters, numbers, and underscores,
-starting with a letter. Up to 32 descriptions are supported, with three
-nonempty numeric frame lists (`entry/repeat/leaving`), an optional empty message
-field, and optional `laying_down` and `offset X Y` flags. Offsets are bounded to
-−64 through 64 pixels. Every frame must exist in the default and each supplied
-appearance sprite sheet. Message references and arbitrary animation commands
-are not supported. Use an actual map/tile destination for an explicit animation;
-the game's special `bed` destination ignores that field. Names containing
-`sleep` invoke the game's sleeping behavior, so reserve them for sleep poses.
-Activity descriptions remain author notes and never select an animation.
 
 Artwork can include optional `spring`, `summer`, `fall`, `winter`, and `beach`
 appearances in addition to the required default portrait and sprite sheets.
@@ -114,8 +89,7 @@ dialogue. Enabled authored spouse dialogue overrides supported morning and eveni
 slots; the game supplies other default interactions. Kiss frame 28 remains the
 default. A supplied 6×9 map section can replace the primary character's spouse
 room through `SpouseRoom.MapAsset` and `MapSourceRect`. Festival and island
-participation remain disabled. Sleep requires an explicit animation and a
-reachable final destination, as described above.
+participation remain disabled; sleep animations need further authoring.
 
 Scenes marked **Ready** compile into `EditData` patches targeting
 `Data/Events/<location>`. Structured scene beats support dialogue, emotes, movement,
@@ -140,41 +114,9 @@ Supplied custom maps compile to `Load Maps/<id>`, `Data/Locations` entries with
 section is loaded as a map asset and placed in the farmhouse; it is not created
 as a separate destination. TMX maps must be finite, orthogonal, use 16×16 tiles,
 and contain Back, Buildings, and Front layers. Relative TSX/PNG dependencies
-must stay in the map folder or subfolders. Supported vanilla tilesheets may
-instead remain game asset references, including SMAPI's dot-prefixed local
-reference convention; those images are omitted from the bundle. Preview pixels
-can be read from a computer-local game export folder without recording that
-path in the project. Imports and Save As copy the complete local
+must stay in the map folder or subfolders. Imports and Save As copy the complete
 closure, retaining file bytes. The simple painter uses supplied tiles, not
 generated artwork. See [WORLD_BUILDING.md](WORLD_BUILDING.md).
-The painter's 12×12 home preset and optional floor/wall starter use this same
-map pipeline. Entrance warps do not add visible exterior building artwork to the
-outside map. Home checks report out-of-bounds positions and spouse-room misuse;
-map tiles that may obstruct the resident and homes on exit warps receive review
-warnings. Runtime collisions and NPC pathfinding still need in-game testing.
-
-Advanced location metadata can add `interactions` (`id`, `x`, `y`, `text`) and
-`seats` (`id`, `x`, `y`, `direction`). Interactions compile to
-namespaced `Strings/StringsFromMaps` entries and `EditMap.MapTiles` Message
-actions on existing Buildings tiles. Seats compile to native `Data/ChairTiles`
-entries resolved from the actual PNG filename and tile coordinates, using the
-no-overlay default seat type unless explicit width, height, type, offsets, or
-draw metadata is supplied. See the map furnishings guide below for these
-advanced fields. New seat registrations on game-owned sheets are rejected;
-original native furniture retains the game's seating definitions.
-Conflicting shared seat definitions, overlapping footprints, missing
-Buildings tiles, unsupported chair tile transforms, and out-of-bounds features
-block export. Furniture artwork stays in the supplied map; these are fixed map
-features, not movable player-owned furniture.
-
-Optional `entrance_patch` TMX bundles export under `assets/entrances/<id>/` with
-all local dependencies and an `EditMap` Overlay at `entrance_patch_x/y` on the
-connected outside map. The optional `entrance_mode: "interact"` uses a clickable,
-passable Buildings tile in that patch and `AddNpcWarps`, instead of a player
-walk-on entrance warp. The inside exit is unchanged. These fields survive
-ordinary save, Save As, and export/reopen workflows. See the
-[map furnishings guide](WORLD_BUILDING.md#furnish-an-imported-map) for schema and
-tilesheet requirements; these advanced fields currently have no desktop controls.
 
 Explicit external dependencies become manifest `Dependencies` entries with
 UniqueID, required/optional status, and optional minimum version. The exporter

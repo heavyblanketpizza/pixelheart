@@ -21,9 +21,6 @@ class StageCanvas(QWidget):
         self.background = QImage()
         self.map_size = None
         self.background_key = None
-        self.background_source_key = None
-        self.game_assets = []
-        self.preview_error = ""
         self.preview_note = "Staging grid · verify walkable tiles in-game"
         self.setMinimumHeight(260)
         self.setMaximumHeight(360)
@@ -48,35 +45,26 @@ class StageCanvas(QWidget):
         self.bounds = (left, top, max(16, max(xs) - left + 6), max(12, max(ys) - top + 6))
         self.update()
 
-    def set_map(self, path=None, *, refresh=False):
-        from .game_import import game_source_directory, map_game_content_root
+    def set_map(self, path=None):
         key = str(path) if path else None
-        source_key = game_source_directory()
-        if not refresh and key == self.background_key and source_key == self.background_source_key:
+        if key == self.background_key:
             return
         self.background_key = key
-        self.background_source_key = source_key
         self.background = QImage()
         self.map_size = None
-        self.game_assets = []
-        self.preview_error = ""
         self.preview_note = "Staging grid · verify walkable tiles in-game"
         if path:
             try:
                 from pixelheart_core.world import map_bundle, render_map_preview
                 bundle = map_bundle(path)
+                pixels = render_map_preview(path).convert("RGBA")
+                self.background = QImage(pixels.tobytes(), pixels.width, pixels.height, QImage.Format.Format_RGBA8888).copy()
                 self.map_size = (bundle["width"], bundle["height"])
-                self.game_assets = bundle.get("game_assets", [])
+                self.preview_note = "Your supplied map · verify walkability in-game"
                 self.bounds = (0, 0, max(bundle["width"], max((actor.get("x", 0) + 2 for actor in self.actors), default=0)),
                                max(bundle["height"], max((actor.get("y", 0) + 2 for actor in self.actors), default=0)))
-                source_root = map_game_content_root() if self.game_assets else None
-                pixels = render_map_preview(path, game_content_root=source_root).convert("RGBA")
-                self.background = QImage(pixels.tobytes(), pixels.width, pixels.height, QImage.Format.Format_RGBA8888).copy()
-                self.preview_note = "Map artwork · verify walkability in-game"
-                self.setToolTip("Click a character to select them. Click a tile or use arrow keys to move them. Coordinates refer to the game's tiles.")
             except (ValueError, OSError) as exc:
-                self.preview_error = str(exc)
-                self.preview_note = "Artwork unavailable · coordinate grid only"
+                self.preview_note = "Grid only · this map cannot be previewed"
                 self.setToolTip(str(exc))
         self.update()
 

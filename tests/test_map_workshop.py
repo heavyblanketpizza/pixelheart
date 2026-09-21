@@ -12,7 +12,7 @@ from PySide6.QtCore import Qt, QPoint
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog
 
-from pixelheart.map_workshop import TileMapDraft, MapWorkshop, inspect_tilesheet, read_painted_map, LAYERS, PRESETS
+from pixelheart.map_workshop import TileMapDraft, MapWorkshop, inspect_tilesheet, read_painted_map, LAYERS
 from pixelheart_core.world import WorldError, map_bundle
 from pixelheart.theme import apply_theme
 
@@ -102,49 +102,6 @@ class MapDraftTests(_MapFiles, unittest.TestCase):
         with self.assertRaises(WorldError):
             draft.to_tmx(self.sheet)
 
-    def test_home_layout_has_walkable_arrival_and_exit_and_one_undo(self):
-        draft = TileMapDraft("home_interior")
-        self.assertEqual((draft.width, draft.height), (12, 12))
-        draft.paint("Front", 2, 3, 3)
-        draft.paint("Paths", 3, 3, 4)
-        before = draft.snapshot()
-        history_size = len(draft.history)
-        self.assertTrue(draft.layout_room(1, 2))
-        self.assertEqual(len(draft.history), history_size + 1)
-        self.assertEqual(draft.layers["Back"], [1] * 144)
-        self.assertFalse(any(draft.layers["Front"]))
-        self.assertFalse(any(draft.layers["Paths"]))
-        for y in range(draft.height):
-            for x in range(draft.width):
-                expected = 2 if (x in (0, 11) or y in (0, 11)) and (x, y) != (6, 11) else 0
-                self.assertEqual(draft.layers["Buildings"][y * 12 + x], expected)
-        self.assertFalse(draft.layout_room(1, 2))
-        self.assertEqual(len(draft.history), history_size + 1)
-        draft.undo()
-        self.assertEqual(draft.snapshot(), before)
-
-    def test_invalid_room_tiles_leave_existing_layers_and_undo_untouched(self):
-        draft = TileMapDraft("home_interior")
-        draft.fill("Back", 1)
-        before = draft.snapshot()
-        history_size = len(draft.history)
-        for floor, wall in ((0, 2), (1, 0), (True, 2), (1, -1), (1, 16385)):
-            with self.subTest(floor=floor, wall=wall), self.assertRaises(WorldError):
-                draft.layout_room(floor, wall)
-        self.assertEqual(draft.snapshot(), before)
-        self.assertEqual(len(draft.history), history_size)
-
-    def test_home_layout_reopens_losslessly_without_gameplay_properties(self):
-        draft = TileMapDraft("home_interior")
-        draft.layout_room(1, 2)
-        draft.paint("Front", 3, 4, 3)
-        path = self.root / "place.tmx"
-        path.write_bytes(draft.to_tmx(self.sheet))
-        loaded, sheet = read_painted_map(path)
-        self.assertEqual(loaded.snapshot(), draft.snapshot())
-        self.assertEqual(loaded.to_tmx(sheet), path.read_bytes())
-        self.assertIsNone(ET.fromstring(path.read_bytes()).find("properties"))
-
     def test_tmx_is_accepted_as_a_complete_portable_game_map(self):
         draft = TileMapDraft("spouse_room")
         draft.fill("Back", 1)
@@ -224,62 +181,6 @@ class MapWorkshopTests(_MapFiles, unittest.TestCase):
         self.assertEqual(self.dialog.draft.layers["Back"][7], 2)
         self.dialog.undo()
         self.assertEqual(self.dialog.draft.layers["Back"][7], 0)
-
-    def test_home_room_starter_requires_tile_choices_and_undo_restores_design(self):
-        self.dialog.set_preset("home_interior")
-        self.dialog.show()
-        self.app.processEvents()
-        self.assertTrue(self.dialog.room_panel.isVisible())
-        self.assertTrue(self.dialog.canvas.room_guides)
-        self.assertFalse(self.dialog.room_button.isEnabled())
-        self.dialog.load_tilesheet(self.source)
-        QTest.mouseClick(self.dialog.floor_button, Qt.MouseButton.LeftButton)
-        self.assertFalse(self.dialog.room_button.isEnabled())
-        QTest.mouseClick(self.dialog.palette, Qt.MouseButton.LeftButton, pos=QPoint(42, 8))
-        QTest.mouseClick(self.dialog.wall_button, Qt.MouseButton.LeftButton)
-        self.assertTrue(self.dialog.room_button.isEnabled())
-        self.dialog.draft.paint("Front", 4, 4, 3)
-        before = self.dialog.draft.snapshot()
-        QTest.mouseClick(self.dialog.room_button, Qt.MouseButton.LeftButton)
-        self.assertEqual(self.dialog.draft.layers["Back"], [1] * 144)
-        self.assertEqual(self.dialog.draft.layers["Buildings"][0], 2)
-        self.assertEqual(self.dialog.draft.layers["Buildings"][11 * 12 + 6], 0)
-        self.assertFalse(any(self.dialog.draft.layers["Front"]))
-        self.dialog.undo()
-        self.assertEqual(self.dialog.draft.snapshot(), before)
-        self.dialog.room_guide.setChecked(False)
-        self.assertFalse(self.dialog.canvas.room_guides)
-
-    def test_home_preset_reopens_and_resize_undo_restores_its_controls(self):
-        self.dialog.set_preset("home_interior")
-        self.dialog.load_tilesheet(self.source)
-        self.dialog.draft.layout_room(1, 2)
-        reference = self.dialog.save_map()
-        self.assertEqual(self.dialog.result_size, PRESETS["home_interior"])
-        self.assertFalse(self.dialog.result_is_spouse_room)
-        self.dialog.set_preset("spouse_room")
-        self.dialog.load_map(reference)
-        self.assertEqual(self.dialog.preset.currentData(), "home_interior")
-        self.assertTrue(self.dialog.canvas.room_guides)
-        self.dialog.set_preset("small_location")
-        self.assertFalse(self.dialog.canvas.room_guides)
-        self.dialog.undo()
-        self.assertEqual(self.dialog.preset.currentData(), "home_interior")
-        self.assertEqual((self.dialog.draft.width, self.dialog.draft.height), PRESETS["home_interior"])
-        self.assertTrue(self.dialog.canvas.room_guides)
-
-    def test_new_tilesheet_requires_room_tiles_to_be_selected_again(self):
-        self.dialog.set_preset("home_interior")
-        self.dialog.load_tilesheet(self.source)
-        self.dialog.select_room_tile("floor")
-        self.dialog.select_tile(4)
-        self.dialog.select_room_tile("wall")
-        smaller = self.root / "small.png"
-        Image.new("RGBA", (16, 16)).save(smaller)
-        self.dialog.load_tilesheet(smaller)
-        self.assertIsNone(self.dialog.floor_tile)
-        self.assertIsNone(self.dialog.wall_tile)
-        self.assertFalse(self.dialog.room_button.isEnabled())
 
     def test_save_returns_portable_reference_and_copies_original_png(self):
         self.dialog.set_preset("spouse_room")

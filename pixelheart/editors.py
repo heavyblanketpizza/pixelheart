@@ -89,7 +89,6 @@ def connect_change(widget, callback):
 
 class IdentityPage(QWidget):
     changed = Signal()
-    home_requested = Signal()
 
     def __init__(self):
         super().__init__()
@@ -107,7 +106,6 @@ class IdentityPage(QWidget):
             "bio": QPlainTextEdit(),
             "home_map": MapSelector(),
             "home_x": number(), "home_y": number(),
-            "home_facing": combo(["down", "left", "right", "up"]),
         }
         for caption, gender in (("Woman", "Female"), ("Man", "Male"), ("Unspecified", "Undefined")):
             self.fields["gender"].addItem(caption, gender)
@@ -159,11 +157,9 @@ class IdentityPage(QWidget):
         content.addWidget(label("Character notes"))
         content.addWidget(self.fields["bio"])
         root.addWidget(personality)
-        home, content = card("Where they live", "Choose an existing home or design a connected interior of their own.")
-        self.home_button = button("Assign & design home…", self.home_requested.emit, "primary")
-        content.addWidget(self.home_button)
+        home, content = card("A place in the valley", "The map and tile where your character first appears.")
         row = QHBoxLayout()
-        for caption, key in [("Home map", "home_map"), ("Tile X", "home_x"), ("Tile Y", "home_y"), ("Facing", "home_facing")]:
+        for caption, key in [("Home map", "home_map"), ("Tile X", "home_x"), ("Tile Y", "home_y")]:
             column = QVBoxLayout()
             column.setSpacing(8)
             column.addWidget(label(caption))
@@ -171,7 +167,7 @@ class IdentityPage(QWidget):
             row.addLayout(column, 2 if key == "home_map" else 1)
             row.setAlignment(column, Qt.AlignmentFlag.AlignTop)
         content.addLayout(row)
-        content.addWidget(label("Home sets their starting position. In the home editor, you can also move route stops that use their old home tile. Check their evening return in Schedule.", "hint", True))
+        content.addWidget(label("Choose an existing location, or select Custom / mod location for one added by a mod. The tile still needs to be walkable in-game.", "hint", True))
         root.addWidget(home)
         right = QVBoxLayout()
         right.setSpacing(16)
@@ -218,7 +214,6 @@ class IdentityPage(QWidget):
         # use an explicit game gender and never rewrite those original notes.
         legacy_gender = infer_legacy_gender(data.get("pronouns"))
         set_value(self.fields["gender"], data.get("gender", legacy_gender))
-        set_value(self.fields["home_facing"], data.get("home_facing", "down"))
         self.birthday.set_date(data.get("season", "spring"), data.get("day", 1))
         for key, widget in self.fields.items():
             if key in data:

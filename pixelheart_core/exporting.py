@@ -26,7 +26,6 @@ from .world import WorldError, world_character, world_issues, compile_world, exp
 from .validation import GENDERS
 from .dialogue_templates import MAX_DIALOGUES
 from .provenance import source_metadata
-from .animations import animation_entries, animation_issues, animation_reference_error, animation_suffix
 
 
 CONTENT_PATCHER_FORMAT = "2.9.0"
@@ -362,10 +361,8 @@ def validate_character(data, portrait_path=None, sprite_path=None, *, appearance
             _facing(stop.get("facing", "down"))
         except ValueError:
             add("error", field, "Facing must be up, right, down, left, or 0–3.")
-        if error := animation_reference_error(stop, data.get("animations", {})):
-            add("error", field + ".animation", error)
     if any(isinstance(stop, dict) and stop.get("activity") for stop in schedule):
-        add("warning", "schedule", "Activity descriptions are author notes. Only explicit named animation fields create custom animations.")
+        add("warning", "schedule", "Activity descriptions are saved as author notes. Exported stops set position and facing, without custom animations.")
     add("warning", "schedule", "Map names, walkable tiles, and routes require in-game testing. One daily route is used for all seasons and weather.")
 
     gifts = data.get("gifts", {})
@@ -391,10 +388,7 @@ def validate_character(data, portrait_path=None, sprite_path=None, *, appearance
         add("warning", "gifts", "No personal gift tastes are set; the game will use universal tastes.")
 
     portrait_size = _artwork_size(portrait_path, "portrait", romanceable, add)
-    sprite_size = _artwork_size(sprite_path, "sprite", romanceable, add)
-    definitions = data.get("animations", {})
-    definitions_valid = not animation_issues(definitions)
-    issues.extend(animation_issues(definitions, sprite_size))
+    _artwork_size(sprite_path, "sprite", romanceable, add)
     _validate_portrait_indices(dialogues, portrait_size, add)
     _validate_story_portrait_indices(data, portrait_size, add)
     _validate_life_portrait_indices(data, portrait_size, add)
@@ -409,8 +403,6 @@ def validate_character(data, portrait_path=None, sprite_path=None, *, appearance
                 _validate_portrait_indices(dialogues, size, add, variant)
                 _validate_story_portrait_indices(data, size, add, variant)
                 _validate_life_portrait_indices(data, size, add, variant)
-            elif definitions_valid and size:
-                issues.extend(animation_issues(definitions, size, appearance=variant))
     if "beach" in appearance_sheets:
         add("warning", "appearances.beach", "Beach artwork is exported as island attire. Island visits remain disabled; resort participation needs separate setup and in-game testing.")
     if romanceable:
@@ -428,11 +420,6 @@ def validate_character(data, portrait_path=None, sprite_path=None, *, appearance
         add("warning", "romanceable", f"Romance uses {dialogue_note} and {room_note}. Test courtship, marriage, home routines, and kiss frame 28 in-game. Festival participation remains disabled.")
     issues.extend(story_issues(data))
     issues.extend(life_issues(data))
-    if world is None:
-        from .homes import home_issues
-        existing = {(issue["level"], issue["field"]) for issue in issues}
-        issues.extend(issue for issue in home_issues(data)
-                      if (issue["level"], issue["field"]) not in existing)
     if not any(issue["level"] == "error" for issue in issues):
         add("success", "export", "Structural checks passed. This starter pack still needs to be tested in Stardew Valley.")
     return issues
@@ -666,8 +653,7 @@ def build_mod_archive(
         "SpawnIfMissing": True, "CanVisitIsland": "FALSE", "IntroductionsQuest": False,
         "WinterStarParticipant": "FALSE", "FlowerDanceCanDance": False,
         "Home": [{"Id": "Default", "Location": data["home_map"].strip(),
-                  "Tile": {"X": _integer(data["home_x"]), "Y": _integer(data["home_y"])},
-                  "Direction": data.get("home_facing", "down")}],
+                  "Tile": {"X": _integer(data["home_x"]), "Y": _integer(data["home_y"])}, "Direction": "down"}],
     }
     if world_content:
         npc.update(world_content["npc_fields"])
@@ -678,8 +664,6 @@ def build_mod_archive(
         {"Action": "Load", "Target": f"Characters/schedules/{npc_id}", "FromFile": "assets/schedule.json"},
         {"Action": "EditData", "Target": "Data/Characters", "Entries": {npc_id: npc}},
     ]
-    if entries := animation_entries(data, npc_id):
-        changes.append({"Action": "EditData", "Target": "Data/animationDescriptions", "Entries": entries})
     appearance_files = {}
     appearance_backup = {}
     for variant, sheets in _appearance_sheets(appearances, lambda *_: None).items():
@@ -720,7 +704,7 @@ def build_mod_archive(
         if world_content["dependencies"]:
             manifest["Dependencies"] = world_content["dependencies"]
     route = "/".join(
-        f"{_time(stop['time'])} {stop['location'].strip()} {_integer(stop['x'])} {_integer(stop['y'])} {_facing(stop.get('facing', 'down'))}{animation_suffix(stop, npc_id)}"
+        f"{_time(stop['time'])} {stop['location'].strip()} {_integer(stop['x'])} {_integer(stop['y'])} {_facing(stop.get('facing', 'down'))}"
         for stop in data["schedule"]
     )
     files = {
@@ -785,14 +769,11 @@ def build_mod_archive(
         compiled_world = world_content["world"]
         lines = [f"{data['name']} — World playtest guide", "",
                  "This guide describes compiled content; it does not certify an in-game test.",
-                 "Install every required dependency from manifest.json before testing.", "",
-                 f"Primary character: {data['name']} ({npc_id})",
-                 f"  Home: {data['home_map']} at {data['home_x']}, {data['home_y']}; facing {data.get('home_facing', 'down')}.",
-                 "  Sleep once, check their morning position, then follow the complete route home at night.", ""]
+                 "Install every required dependency from manifest.json before testing.", ""]
         for entry in compiled_world["characters"]:
             companion = world_character(entry["character"], compiled_world, original_data)
             lines.extend([f"Supporting character: {companion['name']} ({exported_npc_id(companion)})",
-                          f"  Home: {companion['home_map']} at {companion['home_x']}, {companion['home_y']}; facing {companion.get('home_facing', 'down')}.",
+                          f"  Home: {companion['home_map']} at {companion['home_x']}, {companion['home_y']}",
                           "  Meet them, test dialogue and gifts, then sleep and follow their daily route.", ""])
         for place in compiled_world["locations"]:
             identity = exported_location_id(place, original_data)
@@ -804,31 +785,20 @@ def build_mod_archive(
                 entrance = place["entrance"]
                 source = next((exported_location_id(item, original_data) for item in compiled_world["locations"]
                                if item["internal_name"] == entrance["map"]), entrance["map"])
-                entry_action = "Interact to enter" if place.get("entrance_mode") == "interact" else "Enter"
-                lines.extend([f"  {entry_action} from {source} tile {entrance['x']}, {entrance['y']}.",
+                lines.extend([f"  Enter from {source} tile {entrance['x']}, {entrance['y']}.",
                               f"  Arrive inside at {place['entry_x']}, {place['entry_y']}.",
                               f"  Exit from {place['exit_x']}, {place['exit_y']} to {source} tile {entrance['arrival_x']}, {entrance['arrival_y']}.",
                               "  Test both warps, collision, tile actions, event staging, and NPC pathfinding."])
-            for interaction in place.get("interactions", []):
-                lines.append(f"  Inspect {interaction['id']} at {interaction['x']}, {interaction['y']}: {interaction['text']}")
-            for seat in place.get("seats", []):
-                lines.append(f"  Sit at {seat['x']}, {seat['y']} facing {seat['direction']} ({seat['id']}); stand up and check the exit path.")
-            if place.get("entrance_patch"):
-                lines.append(f"  Check the visible entrance patch at {place['entrance_patch_x']}, {place['entrance_patch_y']} on the outside map in every season.")
             lines.append("")
         lines.extend(["For enabled daily-life content, test each matching season, weather, weekday,",
                       "relationship, house-upgrade, and completed-event condition. Check routines",
                       "after sleeping and compare overlapping rules in their displayed order.",
-                      "A home assignment sets the default spawn. Explicit routes keep their own destinations.",
-                      "If you moved old-home stops, verify each changed route and its final stop in-game.",
-                      "Married return-to-farmhouse stops remain separate from the unmarried home.",
                       "Inspect SMAPI logs. Keep project, NPC, and map identities stable after release.", ""])
         world_guide = "\n".join(lines)
     readme = f"""{data['name']} — Pixelheart starter NPC
 
 Target: Stardew Valley 1.6, SMAPI 4+, Content Patcher {CONTENT_PATCHER_FORMAT}+.
 NPC internal name: {npc_id}
-Home: {data['home_map']} at {data['home_x']}, {data['home_y']}; facing {data.get('home_facing', 'down')}.
 
 Install SMAPI, Content Patcher, and the required dependencies in manifest.json,
 then extract this folder into your Mods folder.
@@ -836,11 +806,6 @@ Run the game through SMAPI. Test on a backed-up save, meet the NPC at the home
 map and tile, and sleep once before checking the next day's full schedule.
 Review SMAPI's log for warnings and test dialogue, gifts, birthday, pathfinding,
 and (if enabled) romance in-game. This pack has not been tested in-game by Pixelheart.
-
-Home assignment sets the default spawn. Explicit schedule destinations stay as
-authored. Check their morning position and follow the full route to its final
-stop at night, including any old-home stops moved to the new home. Test enabled
-conditional routines too. Married return-to-farmhouse stops are separate.
 
 The supplied PNGs are included unchanged. Sheet dimensions do not verify frame
 content. Portraits use six standard emotions first; sprites need the standard
@@ -863,10 +828,8 @@ Romance uses the game's courtship and marriage systems, default kiss frame 28,
 and generic spouse dialogue wherever authored lines do not apply. A supplied
 spouse-room section replaces the default room. Supporting cast and supplied maps
 are included when authored; WORLD_TESTING.txt records their identities and entrances.
-Explicit named animations are exported to Data/animationDescriptions and checked
-against every supplied sprite sheet. Activity notes do not create animations.
-Sleep requires an authored sleep animation and a reachable final map/tile stop.
-Festival and island participation remain disabled. project.json is an authoring
+Sleep animations and festival or island participation require further authoring;
+festival and island participation remain disabled. project.json is an authoring
 backup. Desktop exports can reopen it after extracting the complete pack folder;
 they retain the creator plan, test records, and selected artwork and map references.
 

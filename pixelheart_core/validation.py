@@ -4,7 +4,6 @@ import uuid
 
 from .dialogue_templates import MAX_DIALOGUES
 from .provenance import source_metadata
-from .animations import ANIMATION_KEY, animation_issues
 
 
 class DraftValidationError(ValueError):
@@ -20,7 +19,6 @@ TEXT_FIELDS = {
 GENDERS = ("Male", "Female", "Undefined")
 ENUM_FIELDS = {
     "gender": set(GENDERS),
-    "home_facing": {"up", "right", "down", "left"},
     "season": {"spring", "summer", "fall", "winter"},
     "age": {"adult"},
     "manners": {"polite", "neutral", "rude"},
@@ -31,7 +29,7 @@ ENUM_FIELDS = {
 }
 INT_FIELDS = {"day": (1, 28), "home_x": (0, 1000), "home_y": (0, 1000)}
 NESTED_FIELDS = {"dialogues", "schedule", "gifts", "events", "relationships"}
-EDITABLE_FIELDS = set(TEXT_FIELDS) | set(ENUM_FIELDS) | set(INT_FIELDS) | NESTED_FIELDS | {"romanceable", "life", "animations"}
+EDITABLE_FIELDS = set(TEXT_FIELDS) | set(ENUM_FIELDS) | set(INT_FIELDS) | NESTED_FIELDS | {"romanceable", "life"}
 READ_ONLY_FIELDS = {"id", "status", "created_at", "updated_at", "portrait_url", "sprite_url"}
 MAX_GIFTS_PER_TASTE = 5000
 
@@ -103,11 +101,6 @@ def validate_draft(data):
         errors.update({issue["field"]: issue["message"] for issue in life_errors})
         if not life_errors:
             cleaned["life"] = normalize_life(data["life"])
-    if "animations" in data:
-        animation_errors = animation_issues(data["animations"])
-        errors.update({issue["field"]: issue["message"] for issue in animation_errors})
-        if not animation_errors:
-            cleaned["animations"] = dict(data["animations"])
     if errors:
         raise DraftValidationError(errors)
     return cleaned
@@ -162,7 +155,7 @@ def validate_nested(key, value):
     seen_ids = set()
     for index, entry in enumerate(value):
         suffix = f".{index}"
-        metadata_fields = {"source", "source_history"} if key == "dialogues" else {"animation"} if key == "schedule" else set()
+        metadata_fields = {"source", "source_history"} if key == "dialogues" else set()
         if not isinstance(entry, dict) or set(entry) - (set(schema) | {"id"} | metadata_fields):
             fail("Each entry must be an object with the expected fields.", suffix)
         entry_id = entry.get("id", str(uuid.uuid4()))
@@ -175,11 +168,6 @@ def validate_nested(key, value):
                 result.update(source_metadata(entry))
             except ValueError as exc:
                 fail(str(exc), suffix + ".source")
-        if key == "schedule" and "animation" in entry:
-            animation = entry["animation"]
-            if not isinstance(animation, str) or (animation and not ANIMATION_KEY.fullmatch(animation)):
-                fail("Choose a lowercase animation name of at most 48 letters, numbers, or underscores.", suffix + ".animation")
-            result["animation"] = animation
         for field, (kind, maximum, default) in schema.items():
             item = entry.get(field, default)
             if kind == "text":
