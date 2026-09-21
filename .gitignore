@@ -66,6 +66,8 @@ secrets/
 /.vscode/
 /build/
 /dist/
+/runtime/**/bin/
+/runtime/**/obj/
 .DS_Store
 .pytest_cache/
 .coverage

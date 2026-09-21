@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>Pixelheart.Interiors</AssemblyName>
+    <RootNamespace>Pixelheart.Interiors</RootNamespace>
+    <Version>0.1.0</Version>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableModDeploy>false</EnableModDeploy>
+    <EnableModZip>false</EnableModZip>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
+    <None Update="manifest.json.in" CopyToOutputDirectory="PreserveNewest" TargetPath="manifest.json" />
+  </ItemGroup>
+  <Target Name="GenerateRuntimeManifest" BeforeTargets="PrepareForBuild">
+    <Copy SourceFiles="manifest.json.in" DestinationFiles="manifest.json" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

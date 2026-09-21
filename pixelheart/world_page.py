@@ -173,6 +173,10 @@ class WorldPage(QWidget):
         self.entrance_fields = {"map": MapSelector(compact=True), **{key: number(0, 1000) for key in ("x", "y", "arrival_x", "arrival_y")}}
         details, content = card("A place that belongs to them")
         form_rows(content, [("Place name", self.location_fields["name"]), ("Stable map ID", self.location_fields["internal_name"])])
+        self.interior_button = button("Design interior…", self.design_interior, "primary")
+        content.addWidget(self.interior_button)
+        self.assign_home_button = button("Set as their residence", self.assign_home)
+        content.addWidget(self.assign_home_button)
         content.addWidget(button("Import Tiled map…", self.import_location, "primary"))
         content.addWidget(button("Create map from a tilesheet…", self.create_map))
         self.edit_map_button = button("Edit painted map…", self.edit_map)
@@ -374,18 +378,27 @@ class WorldPage(QWidget):
 
     def refresh_location(self):
         record = self.world["locations"][self.location_index]
-        self.edit_map_button.setEnabled(bool(record["map"]))
+        design = record.get("interior")
+        self.edit_map_button.setEnabled(bool(record["map"]) and design is None)
+        self.interior_button.setText("Edit interior…" if design else "Design interior…")
+        self.assign_home_button.setVisible(not record["spouse_room"])
+        self.assign_home_button.setEnabled(bool(design or record["map"]))
+        self.location_fields["spouse_room"].setEnabled(design is None)
         self.warps_card.setVisible(not record["spouse_room"])
         self.room_card.setVisible(record["spouse_room"])
         self.map_identity.setText("This map section is placed in FarmHouse; it is not a separate location." if record["spouse_room"] else "Use “" + record["internal_name"] + "” for schedules and story locations. Game map: " + exported_location_id(record, self.window.document["character"]))
-        self.map_status.setText(record["map"] or "Import a finite TMX map with local TSX and PNG tilesheets. Layers: Back, Buildings, Front.")
-        key = (str(self.window.project_file), record["map"])
+        self.map_status.setText(f"Interior · {len(design['rooms'])} room(s) · {len(design['furniture'])} furniture item(s) · {len(design['animations'])} tile animation(s)" if design else record["map"] or "Import a finite TMX map with local TSX and PNG tilesheets. Layers: Back, Buildings, Front.")
+        key = (str(self.window.project_file), record["map"], repr(design))
         if key != self._preview_key:
             self._preview_key = key
-            if record["map"] and self.window.project_file:
+            if (design or record["map"]) and self.window.project_file:
                 try:
                     from PIL.ImageQt import ImageQt
-                    preview = render_map_preview(asset_path(record["map"], self.window.project_file.parent), 600)
+                    if design:
+                        from pixelheart_core.interiors import render_interior
+                        preview = render_interior(design, self.window.project_file.parent)
+                    else:
+                        preview = render_map_preview(asset_path(record["map"], self.window.project_file.parent), 600)
                     pixmap = QPixmap.fromImage(ImageQt(preview))
                     self.map_preview.setPixmap(pixmap.scaled(400, 230, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.FastTransformation))
                 except WorldError as exc:
@@ -406,6 +419,7 @@ class WorldPage(QWidget):
             self.location_list.setCurrentRow(next(index for index, entry in enumerate(self.world["locations"]) if entry["id"] == identity))
             reference = import_map(path, self.window.project_file)
             self.world["locations"][self.location_index]["map"] = reference
+            self.world["locations"][self.location_index].pop("interior", None)
             self.refresh_location()
             self.changed.emit()
         except (WorldError, OSError) as exc:
@@ -413,6 +427,52 @@ class WorldPage(QWidget):
 
     def create_map(self):
         self._paint_map()
+
+    def design_interior(self):
+        if self.location_index < 0:
+            return
+        identity = self.world["locations"][self.location_index]["id"]
+        if not self.window.ensure_saved():
+            return
+        self.location_list.setCurrentRow(next(index for index, item in enumerate(self.world["locations"]) if item["id"] == identity))
+        from .interior_editor import InteriorEditor
+        from PySide6.QtWidgets import QDialog
+        from pixelheart_core.interiors import reachable_tiles
+        record = self.world["locations"][self.location_index]
+        try:
+            dialog = InteriorEditor(self.window.project_file, record.get("interior"),
+                                    "spouse" if record["spouse_room"] else "residence", self)
+            if dialog.exec() == QDialog.DialogCode.Accepted and dialog.result_design:
+                entry = tuple(dialog.result_design["entry"])
+                floors = reachable_tiles(dialog.result_design)
+                if len(floors) < 2 and not record["spouse_room"]:
+                    raise WorldError("Leave a free exit tile reachable from the interior entry.")
+                exit_position = (record["exit_x"], record["exit_y"])
+                if not record["spouse_room"] and (exit_position not in floors or exit_position == entry):
+                    exit_position = min(floors - {entry}, key=lambda p: (abs(p[0]-entry[0])+abs(p[1]-entry[1]), p[1], p[0]))
+                record["interior"] = dialog.result_design
+                record["map"] = None
+                record["room_x"] = record["room_y"] = 0
+                record["entry_x"], record["entry_y"] = dialog.result_design["entry"]
+                record["exit_x"], record["exit_y"] = exit_position
+                self.select_location(self.location_index)
+                self.changed.emit()
+            dialog.deleteLater()
+        except (ValueError, OSError) as exc:
+            self.window.show_error("Interior needs attention", str(exc))
+
+    def assign_home(self):
+        if self.location_index < 0:
+            return
+        record = self.world["locations"][self.location_index]
+        if record["spouse_room"]:
+            return
+        # Update the identity form too: collect() reads it as the source of truth.
+        character = deepcopy(self.window.document["character"])
+        character.update(home_map=record["internal_name"], home_x=record["entry_x"], home_y=record["entry_y"])
+        self.window.document["character"].update(character)
+        self.window.identity.load(character)
+        self.changed.emit()
 
     def edit_map(self):
         self._paint_map(edit=True)
@@ -440,6 +500,7 @@ class WorldPage(QWidget):
         if dialog.exec() == QDialog.DialogCode.Accepted and dialog.result_reference:
             record = self.world["locations"][self.location_index]
             record["map"] = dialog.result_reference
+            record.pop("interior", None)
             if dialog.result_is_spouse_room:
                 record.update(spouse_room=True, room_x=0, room_y=0)
             self.select_location(self.location_index)

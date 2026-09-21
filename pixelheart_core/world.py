@@ -135,6 +135,14 @@ def world_structure_issues(world):
                             except WorldError as exc:
                                 add(field + ".artwork." + kind, str(exc))
             elif key == "locations":
+                if "interior" in record:
+                    try:
+                        from .interiors import normalize_interior
+                        interior = normalize_interior(record["interior"])
+                        if (interior["kind"] == "spouse") != record.get("spouse_room", False):
+                            add(field + ".interior", "The interior mode must match the place's spouse-room setting.")
+                    except (ValueError, TypeError) as exc:
+                        add(field + ".interior", str(exc))
                 for name in ("name", "internal_name"):
                     if name in record and (not isinstance(record[name], str) or len(record[name]) > (80 if name == "name" else 40)):
                         add(field + "." + name, "Use a short text name (map IDs have at most 40 characters).")
@@ -398,6 +406,9 @@ def world_asset_references(world):
     for location in world["locations"]:
         if location["map"]:
             yield location["map"]
+        if "interior" in location:
+            from .interiors import interior_asset_references
+            yield from interior_asset_references(location["interior"])
 
 
 def copy_world_assets(world, source_root, destination_root):
@@ -567,9 +578,25 @@ def world_issues(world, character, project_root=None):
         if internal.casefold() in vanilla_names:
             add("error", prefix + ".internal_name", "Use a new place ID instead of an existing vanilla map name.")
         try:
-            if not location["map"] or project_root is None:
-                raise WorldError("Import this place's TMX map and its local tilesheets before exporting.")
-            bundle = map_bundle(asset_path(location["map"], project_root))
+            if "interior" in location:
+                from .interiors import interior_export_issues, reachable_tiles
+                if project_root is None:
+                    raise WorldError("Save the interior project before exporting.")
+                design = location["interior"]
+                failures = interior_export_issues(design, project_root)
+                if failures:
+                    raise WorldError(failures[0]["message"])
+                bundle = {"width": design["width"], "height": design["height"]}
+                if not location["spouse_room"]:
+                    if [location["entry_x"], location["entry_y"]] != design["entry"]:
+                        raise WorldError("The place's arrival must match its designed interior entry.")
+                    if (location["exit_x"], location["exit_y"]) not in reachable_tiles(design):
+                        raise WorldError("Keep an unobstructed route from the interior entry to its exit.")
+                add("warning", prefix + ".interior", "Designed interiors require the separately built Pixelheart Interiors SMAPI companion and Stardew Valley 1.6.9 or later. Game behavior has to be playtested.")
+            else:
+                if not location["map"] or project_root is None:
+                    raise WorldError("Import this place's TMX map and its local tilesheets before exporting.")
+                bundle = map_bundle(asset_path(location["map"], project_root))
             if not location["spouse_room"]:
                 known_dimensions[internal] = (bundle["width"], bundle["height"])
                 known_dimensions[exported_location_id(location, character)] = (bundle["width"], bundle["height"])
@@ -617,6 +644,15 @@ def world_issues(world, character, project_root=None):
                     add("error", f"locations.{index}.entrance.{x}", "This entrance or return tile lies outside the connected custom map.")
     for prefix, authored in all_characters:
         _check_known_map_tiles(authored, known_dimensions, prefix, issues)
+        from .interiors import reachable_tiles
+        home = next((p for p in world["locations"] if "interior" in p and not p["spouse_room"]
+                     and authored.get("home_map") in (p["internal_name"], exported_location_id(p, character))), None)
+        if home:
+            try:
+                if (int(authored["home_x"]), int(authored["home_y"])) not in reachable_tiles(home["interior"]):
+                    add("error", prefix + "home_x", "The resident's home position must have an unobstructed route from the interior entry.")
+            except (KeyError, ValueError, TypeError):
+                pass  # The character validator reports malformed coordinates.
     return issues
 
 
@@ -706,31 +742,98 @@ def compile_world(world, character, project_root):
                 if name.startswith(folder + "assets/"):
                     files[prefix + name.removeprefix(folder + "assets/")] = archive.read(name)
             repeat_events.extend(story_repeat_events(companion, mod_id=exported_mod_id(character)))
-    for index, location in enumerate(world["locations"]):
-        source = asset_path(location["map"], project_root)
-        bundle = map_bundle(source)
-        prefix = "assets/maps/" + hashlib.sha256(location["id"].encode()).hexdigest()[:16] + "/"
-        backup_world["locations"][index]["map"] = prefix + bundle["entry"]
-        files.update({prefix + name: payload for name, payload in bundle["files"].items()})
+    prepared_interiors, map_targets, runtime_designs, interior_dependencies = {}, {}, {}, set()
+    for location in world["locations"]:
         identity = exported_location_id(location, character)
-        patches.append({"Action": "Load", "Target": "Maps/" + identity, "FromFile": prefix + bundle["entry"]})
+        map_targets[location["internal_name"]] = ["Maps/" + identity]
+        if "interior" in location:
+            from .interiors import compile_interior
+            prefix = "assets/maps/" + hashlib.sha256(location["id"].encode()).hexdigest()[:16] + "/"
+            compiled = compile_interior(location["interior"], identity, exported_npc_id(character), project_root, prefix)
+            protected = ([location["interior"]["spouse_stand"]] if location["spouse_room"] else
+                         [location["interior"]["entry"], [location["exit_x"], location["exit_y"]]])
+            for authored in ([] if location["spouse_room"] else [character, *(c["character"] for c in world["characters"])]):
+                if authored.get("home_map") == location["internal_name"]:
+                    protected.append([int(authored["home_x"]), int(authored["home_y"])])
+                stops = list(authored.get("schedule", []))
+                for routine in authored.get("life", {}).get("routines", []):
+                    stops.extend(routine.get("stops", []))
+                for stop in stops:
+                    if stop.get("location") == location["internal_name"]:
+                        protected.append([int(stop["x"]), int(stop["y"])])
+            compiled["runtime"]["protected_tiles"] = protected
+            prepared_interiors[location["id"]] = compiled
+            runtime_designs[identity] = compiled["runtime"]
+            interior_dependencies.update(compiled["dependencies"])
+            map_targets[location["internal_name"]].extend(v["map_asset"] for v in compiled["runtime"]["variants"])
+    for index, location in enumerate(world["locations"]):
+        prefix = "assets/maps/" + hashlib.sha256(location["id"].encode()).hexdigest()[:16] + "/"
+        identity = exported_location_id(location, character)
+        if location["id"] in prepared_interiors:
+            compiled = prepared_interiors[location["id"]]
+            files.update(compiled["files"])
+            patches.extend(compiled["patches"])
+            default_file = next(p["FromFile"] for p in compiled["patches"] if p["Target"] == compiled["map_asset"] and p["Action"] == "Load")
+            patches.append({"Action": "Load", "Target": "Maps/" + identity, "FromFile": default_file})
+            patches.extend({**patch, "Target": "Maps/" + identity}
+                           for patch in copy.deepcopy(compiled["patches"])
+                           if patch["Target"] == compiled["map_asset"] and patch["Action"] == "EditMap")
+            backup_world["locations"][index]["map"] = None
+            # Keep authoring references portable inside the editable project backup.
+            from .interiors import interior_asset_references
+            for reference in interior_asset_references(location["interior"]):
+                files[reference] = _read_asset(asset_path(reference, project_root))
+        else:
+            source = asset_path(location["map"], project_root)
+            bundle = map_bundle(source)
+            backup_world["locations"][index]["map"] = prefix + bundle["entry"]
+            files.update({prefix + name: payload for name, payload in bundle["files"].items()})
+            patches.append({"Action": "Load", "Target": "Maps/" + identity, "FromFile": prefix + bundle["entry"]})
         if location["spouse_room"]:
             npc_fields["SpouseRoom"] = {"MapAsset": identity, "MapSourceRect": {
                 "X": location["room_x"], "Y": location["room_y"], "Width": 6, "Height": 9}}
         else:
             patches.append({"Action": "EditData", "Target": "Data/Locations", "Entries": {
                 identity: {"DisplayName": location["name"], "DefaultArrivalTile": {"X": location["entry_x"], "Y": location["entry_y"]},
-                           "CreateOnLoad": {"MapPath": "Maps/" + identity}}}})
+                           "CreateOnLoad": {"MapPath": "Maps/" + identity,
+                                            **({"Type": "StardewValley.Locations.DecoratableLocation"} if "interior" in location else {})}}}})
             entrance = location["entrance"]
             source_name = next((exported_location_id(other, character) for other in world["locations"]
                                 if other["internal_name"] == entrance["map"]), entrance["map"])
             patches.extend([
-                {"Action": "EditMap", "Target": "Maps/" + source_name, "AddWarps": [f"{entrance['x']} {entrance['y']} {identity} {location['entry_x']} {location['entry_y']}"]},
-                {"Action": "EditMap", "Target": "Maps/" + identity, "AddWarps": [f"{location['exit_x']} {location['exit_y']} {source_name} {entrance['arrival_x']} {entrance['arrival_y']}"]},
+                {"Action": "EditMap", "Target": ", ".join(map_targets.get(entrance["map"], ["Maps/" + source_name])), "AddWarps": [f"{entrance['x']} {entrance['y']} {identity} {location['entry_x']} {location['entry_y']}"]},
+                {"Action": "EditMap", "Target": ", ".join(map_targets[location["internal_name"]]), "AddWarps": [f"{location['exit_x']} {location['exit_y']} {source_name} {entrance['arrival_x']} {entrance['arrival_y']}"]},
             ])
     dependencies = [{"UniqueID": item["id"], "IsRequired": item.get("required", True),
                      **({"MinimumVersion": item["minimum_version"]} if item.get("minimum_version") else {})}
                     for item in world["dependencies"]]
+    if runtime_designs:
+        patches.append({"Action": "EditData", "Target": "Pixelheart.Interiors/Designs", "Entries": runtime_designs})
+        for identity in sorted(interior_dependencies | {"Pixelheart.Interiors"}):
+            existing = next((d for d in dependencies if d["UniqueID"].casefold() == identity.casefold()), None)
+            if existing is None:
+                dependencies.append({"UniqueID": identity, "IsRequired": True,
+                                     **({"MinimumVersion": "0.1.0"} if identity == "Pixelheart.Interiors" else {})})
+            else:
+                existing["IsRequired"] = True
+                if identity == "Pixelheart.Interiors":
+                    specified = existing.get("MinimumVersion", "0.0.0")
+                    version = tuple(map(int, specified.split("-")[0].split("+")[0].split(".")))
+                    if version < (0, 1, 0) or (version == (0, 1, 0) and "-" in specified):
+                        existing["MinimumVersion"] = "0.1.0"
+        files["INTERIOR_TESTING.txt"] = ("PIXELHEART INTERIORS — PLAYTEST REQUIRED\n\n"
+            "Install the separately built Pixelheart.Interiors 0.1.0+ companion, Stardew Valley 1.6.9+, SMAPI 4.1+, "
+            "Content Patcher, and every furniture provider declared by this pack. This archive does not include the companion DLL.\n\n"
+            "On a disposable test save:\n"
+            "1. Enter each residence and check floor/wall appearance, collision, entry, and return warp.\n"
+            "2. Sit, rotate, collect, and replace furniture; test lights, storage, and installed-mod animations.\n"
+            "3. Save/reload and confirm moved or collected furniture does not respawn.\n"
+            "4. Use F8 to add/remove optional rooms in single-player. Occupied rooms must refuse removal.\n"
+            "5. Follow the resident's schedules and verify every home destination remains reachable.\n"
+            "6. After marriage, check the spouse room's actual position, furniture, and standing point.\n"
+            "7. Apply wallpaper/flooring, change rooms, and reload; check that player choices persist.\n\n"
+            "If placement was deferred, resolve the reported obstruction or missing item and run pixelheart_interiors_retry. "
+            "Structural room changes are not enabled in multiplayer. Preview animations do not add custom game item behavior.\n").encode("utf-8")
     return {"patches": patches, "files": files, "npc_fields": npc_fields,
             "dependencies": dependencies, "repeat_events": repeat_events, "story_guides": story_guides, "world": backup_world}
 

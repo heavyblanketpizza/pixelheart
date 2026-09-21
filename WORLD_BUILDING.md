@@ -45,6 +45,71 @@ The preview draws supplied tile artwork. It cannot certify collision, actions,
 or walking paths. Rich imported maps that the simple painter cannot preserve
 must be edited in Tiled and imported again.
 
+## Design an interior
+
+Choose a place and **Design interior…** to open the residence designer. For a
+spouse room, select **Use a section as the primary character's spouse room**
+before opening the designer. The spouse canvas stays 6×9 tiles. A residence
+can contain connected floor regions and up to four optional rooms.
+
+The designer separates the room structure from furniture items:
+
+- **Surfaces:** import a local 16-pixel tilesheet and choose floor and three wall
+  tiles. Without artwork, the canvas shows a neutral layout guide.
+- **Rooms:** add connected rectangular rooms or remove empty ones. Occupied
+  rooms and blocked standing positions are rejected. Room additions are offered
+  by the companion in-game; arbitrary wall drawing is not included.
+- **Furniture:** import the companion's resolved library or unpacked
+  `Data/Furniture` JSON. Select, place, drag, rotate, or remove items. Each
+  placement retains its actual furniture ID and mod metadata. Raw data may
+  need explicit preview rectangles and dimensions; unknown artwork shows a
+  placeholder. Rugs can sit under other furniture. Tabletop arrangements and
+  arbitrary custom furniture behavior are not simulated by the Python preview.
+- **Animate:** preview supplied tile frames. Exported map animations require
+  equal frame durations. Furniture preview frames are separate metadata;
+  furniture behavior and animations in-game come from the installed item/mod.
+
+Imports are staged until **Save interior design**. Cancel discards edits and
+staged assets. Undo and redo work across room, furniture, and surface edits.
+Save As carries the private tilesheets and preview textures with the project.
+**Set as their residence** updates the character's home; review their authored
+schedules separately. Saving an interior replaces that place's imported map.
+
+Designed interiors require the separate **Pixelheart Interiors** SMAPI companion,
+Stardew Valley 1.6.9+, SMAPI 4.1+, and Content Patcher. The companion source is in
+`runtime/Pixelheart.Interiors`; it is not a bundled, verified binary. On a
+development machine with the .NET SDK and Stardew/SMAPI installed, build with:
+
+```sh
+dotnet build runtime/Pixelheart.Interiors/Pixelheart.Interiors.csproj -c Release -p:GamePath="/path/to/Stardew Valley/game-folder"
+```
+
+Build output contains the companion DLL and its manifest. Install those together
+in a separate `Pixelheart Interiors` folder under Mods, alongside the exported
+NPC pack. The Python exporter declares this dependency; it does not install or
+download the companion automatically.
+
+With the companion running, `pixelheart_export_furniture` in the SMAPI console
+creates a private library JSON and PNG textures in the companion's `exports`
+folder. Import its `library.json` in the designer to use the loaded game's
+furniture bounds and rotation previews. The export reflects default appearances;
+it does not enumerate every texture variant or custom drawing effect. Record
+required provider mods in the item's details where needed.
+
+The companion initializes successful furniture placements once per save and
+keeps those records when players move or collect items. Missing items or blocked
+placements are deferred, never substituted or overwritten. Use
+`pixelheart_interiors_retry` after resolving a reported obstruction.
+Press **F8** inside a designed residence for optional room changes. Removal
+refuses occupied rooms and protected home/schedule coordinates. Structural room
+changes currently require single-player. Spouse rooms use their actual farmhouse
+position, detected from an exported marker, rather than a fixed world coordinate.
+
+The companion still requires compilation against an installed game and live
+acceptance testing. Verify furniture callbacks, native wallpaper/floor regions,
+initial surface appearance, spouse positioning, map reloads, and save/reload
+before treating an exported design as ready for play.
+
 ## Connect the entrance and exit
 
 Complete **Give the player a way in and out** for every standalone place:
