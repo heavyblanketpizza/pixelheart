@@ -40,7 +40,7 @@ APPEARANCE_VARIANTS = {
 }
 _NESTED_KEYS = {
     "dialogues": {"id", "trigger", "text", "source", "source_history"},
-    "schedule": {"id", "time", "location", "x", "y", "facing", "activity"},
+    "schedule": {"id", "time", "location", "x", "y", "facing", "activity", "animation"},
     "events": {"id", "name", "hearts", "location", "description", "story"},
     "relationships": {"id", "name", "relation", "description", "story"},
 }

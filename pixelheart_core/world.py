@@ -26,12 +26,26 @@ from PIL import Image
 
 from .story import exported_npc_id, story_repeat_events
 from .locations import VANILLA_LOCATIONS
+from .map_seats import SeatError, compile_seat_definition, seat_structure_issues, validate_seat_geometry
 
 
 MAX_ASSET_BYTES = 16 * 1024 * 1024
 MAX_BUNDLE_BYTES = 64 * 1024 * 1024
 MAX_ARCHIVE_BYTES = 256 * 1024 * 1024
 IDENTIFIER = re.compile(r"[A-Za-z][A-Za-z0-9_.-]{0,191}\Z")
+
+# Deliberately small: an absent custom PNG must still be an import error. These
+# vanilla sheets are documented by Modding:Maps (floor/wall, Paths and outdoor
+# sheets), its interior-door guide (townInterior), and farmhouse map guidance.
+# SMAPI resolves a missing local image against Content/Maps, with an optional
+# Maps/ prefix and .png suffix. See ModContentManager.TryGetTilesheetAssetName:
+# https://github.com/Pathoschild/SMAPI/blob/develop/src/SMAPI/Framework/ContentManagers/ModContentManager.cs
+GAME_MAP_TILESHEETS = frozenset({
+    "townInterior", "walls_and_floors", "farmhouse_tiles", "paths",
+    "spring_outdoorsTileSheet", "summer_outdoorsTileSheet",
+    "fall_outdoorsTileSheet", "winter_outdoorsTileSheet",
+})
+_GAME_MAP_ASSETS = {name.casefold(): "Maps/" + name for name in GAME_MAP_TILESHEETS}
 
 
 class WorldError(ValueError):
@@ -59,7 +73,9 @@ def new_location():
             "room_width": 6, "room_height": 9,
             "entrance": {"map": "Town", "x": 32, "y": 62,
                          "arrival_x": 32, "arrival_y": 63},
-            "entry_x": 2, "entry_y": 2, "exit_x": 2, "exit_y": 3}
+            "entry_x": 2, "entry_y": 2, "exit_x": 2, "exit_y": 3,
+            "interactions": [], "seats": [], "entrance_patch": None,
+            "entrance_patch_x": 0, "entrance_patch_y": 0, "entrance_mode": "walk"}
 
 
 def relative_path(reference):
@@ -140,12 +156,15 @@ def world_structure_issues(world):
                         add(field + "." + name, "Use a short text name (map IDs have at most 40 characters).")
                 if "spouse_room" in record and type(record["spouse_room"]) is not bool:
                     add(field + ".spouse_room", "Choose whether this is a spouse room.")
-                if record.get("map") is not None:
-                    try:
-                        relative_path(record["map"])
-                    except WorldError as exc:
-                        add(field + ".map", str(exc))
-                for name in ("room_x", "room_y", "entry_x", "entry_y", "exit_x", "exit_y", "room_width", "room_height"):
+                if record.get("entrance_mode", "walk") not in ("walk", "interact"):
+                    add(field + ".entrance_mode", "Choose a walk or interact entrance.")
+                for name in ("map", "entrance_patch"):
+                    if record.get(name) is not None:
+                        try:
+                            relative_path(record[name])
+                        except WorldError as exc:
+                            add(field + "." + name, str(exc))
+                for name in ("room_x", "room_y", "entry_x", "entry_y", "exit_x", "exit_y", "room_width", "room_height", "entrance_patch_x", "entrance_patch_y"):
                     if name in record and (type(record[name]) is not int or not 0 <= record[name] <= 1000):
                         add(field + "." + name, "Tile values must be whole numbers from 0 to 1000.")
                 entrance = record.get("entrance", {})
@@ -157,6 +176,32 @@ def world_structure_issues(world):
                             add(field + ".entrance." + name, "Entrance tiles must be whole numbers from 0 to 1000.")
                     if "map" in entrance and not isinstance(entrance["map"], str):
                         add(field + ".entrance.map", "Use a map's internal name.")
+                for kind in ("interactions", "seats"):
+                    features = record.get(kind, [])
+                    if not isinstance(features, list) or len(features) > 128:
+                        add(field + "." + kind, "Use a list with up to 128 map features.")
+                        continue
+                    feature_ids = set()
+                    for number, feature in enumerate(features):
+                        feature_field = f"{field}.{kind}.{number}"
+                        if not isinstance(feature, dict):
+                            add(feature_field, "Each map feature must be an object.")
+                            continue
+                        identity = feature.get("id")
+                        if not isinstance(identity, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,63}", identity) or identity in feature_ids:
+                            add(feature_field + ".id", "Give each feature a unique ID using a letter followed by up to 63 letters, digits, or underscores.")
+                        else:
+                            feature_ids.add(identity)
+                        for coordinate in ("x", "y"):
+                            if type(feature.get(coordinate)) is not int or not 0 <= feature[coordinate] <= 1000:
+                                add(feature_field + "." + coordinate, "Feature tiles must be whole numbers from 0 to 1000.")
+                        if kind == "interactions":
+                            value = feature.get("text")
+                            if not isinstance(value, str) or not value.strip() or len(value) > 4000 or "\x00" in value:
+                                add(feature_field + ".text", "Write nonempty interaction text of at most 4000 characters.")
+                        else:
+                            for issue in seat_structure_issues(feature):
+                                add(feature_field + ("." + issue["field"] if issue["field"] else ""), issue["message"])
             else:
                 if not isinstance(identity, str) or not IDENTIFIER.fullmatch(identity):
                     add(field + ".id", "Use the dependency's SMAPI UniqueID.")
@@ -187,13 +232,74 @@ def _xml(path):
         raise WorldError(f"Invalid Tiled XML in {path.name}: {exc}") from exc
 
 
+def _game_tilesheet_asset(source):
+    """Recognize only supported vanilla image references, never arbitrary paths."""
+    parts = relative_path(source).parts
+    if len(parts) == 2 and parts[0].casefold() == "maps":
+        parts = parts[1:]
+    if len(parts) != 1:
+        return None
+    # SMAPI ignores leading dots on the image filename. A dot-prefixed copy
+    # can therefore supply Tiled's editing artwork without shipping that PNG.
+    name = parts[0].lstrip(".")
+    if name.lower().endswith(".png"):
+        name = name[:-4]
+    return _GAME_MAP_ASSETS.get(name.casefold())
+
+
+def _declared_game_image_size(image):
+    try:
+        width, height = int(image.attrib["width"]), int(image.attrib["height"])
+        if width <= 0 or height <= 0 or width % 16 or height % 16 or width * height > 16_777_216:
+            raise ValueError
+        return width, height
+    except (KeyError, ValueError):
+        raise WorldError("Game tilesheet references need declared width and height containing complete 16×16 tiles (at most 16 million pixels).") from None
+
+
+def _local_tilesheet_path(directory, source):
+    """Match SMAPI's optional local PNG/XNB extension before game fallback."""
+    path = directory / relative_path(source)
+    if not path.suffix and not path.exists() and not path.is_symlink():
+        for extension in (".png", ".xnb"):
+            candidate = path.with_suffix(extension)
+            if candidate.exists() or candidate.is_symlink():
+                return candidate
+    return path
+
+
+def _preview_game_tilesheet(asset, game_content_root):
+    if game_content_root is None:
+        raise WorldError(f"Preview needs the game's {asset} tilesheet. Select an unpacked Content folder or Content Patcher export folder; the game supplies this asset when the map is installed.")
+    root = Path(game_content_root).expanduser().resolve()
+    candidates = [root / (asset + ".png"), root / (asset.replace("/", "_") + ".png")]
+    if root.name.casefold() == "maps":
+        candidates.append(root / (asset.split("/", 1)[1] + ".png"))
+    for candidate in candidates:
+        if not candidate.resolve().is_relative_to(root):
+            raise WorldError("Preview game tilesheets cannot point through a symlink outside the selected folder.")
+        if candidate.is_file():
+            payload = _read_asset(candidate)
+            with Image.open(io.BytesIO(payload)) as pixels:
+                if pixels.format != "PNG" or pixels.width * pixels.height > 16_777_216:
+                    raise WorldError("Preview game tilesheets must be PNG images of at most 16 million pixels.")
+                return pixels.convert("RGBA")
+    raise WorldError(f"Preview could not find {asset}.png in the selected unpacked Content or Content Patcher export folder. Unpack or export that game tilesheet first.")
+
+
 def map_bundle(path):
-    """Return validated TMX/TSX/PNG sources, with references inside map's folder."""
+    """Return local sources and known game-supplied tilesheet asset references.
+
+    Game references are preserved verbatim in XML and excluded from ``files``.
+    Local images take precedence, matching SMAPI's tilesheet resolution.
+    Dot-prefixed vanilla copies are editor references only and never packaged.
+    """
     path = Path(path).expanduser()
     if path.suffix.lower() != ".tmx":
         raise WorldError("Import a finite orthogonal .tmx map exported by Tiled.")
     root = path.parent.resolve()
     files = {}
+    game_assets = set()
     queue = [path]
     while queue:
         current = queue.pop()
@@ -215,7 +321,26 @@ def map_bundle(path):
             for item in xml.iter():
                 if "source" in item.attrib:
                     source = item.attrib["source"]
-                    dependency = current.parent / relative_path(source)
+                    reference_path = relative_path(source)
+                    game_asset = _game_tilesheet_asset(source) if item.tag == "image" else None
+                    if item.tag == "image" and reference_path.name.startswith("."):
+                        if not game_asset:
+                            raise WorldError("Dot-prefixed tilesheet images must reference a supported vanilla game asset. Rename custom artwork and its image reference without the leading dot.")
+                        undotted = reference_path.with_name(reference_path.name.lstrip("."))
+                        override = _local_tilesheet_path(current.parent, undotted.as_posix())
+                        if override.exists() or override.is_symlink():
+                            raise WorldError("A dot-prefixed game tilesheet has an undotted local override. Remove or rename the undotted copy so the game uses its own artwork.")
+                        _declared_game_image_size(item)
+                        game_assets.add(game_asset)
+                        continue
+                    dependency = (_local_tilesheet_path(current.parent, source) if item.tag == "image"
+                                  else current.parent / relative_path(source))
+                    if not dependency.resolve().is_relative_to(root):
+                        raise WorldError("Map dependencies must stay in the selected map's folder.")
+                    if not dependency.exists() and not dependency.is_symlink() and game_asset:
+                        _declared_game_image_size(item)
+                        game_assets.add(game_asset)
+                        continue
                     if dependency.suffix.lower() not in (".tsx", ".png"):
                         raise WorldError("Map dependencies must be local TSX tilesets or PNG tilesheets.")
                     queue.append(dependency)
@@ -243,7 +368,8 @@ def map_bundle(path):
     layers = {layer.get("name") for layer in xml.findall("layer")}
     if not {"Back", "Buildings", "Front"} <= layers:
         raise WorldError("A game map needs Back, Buildings, and Front tile layers.")
-    return {"files": files, "width": width, "height": height, "layers": sorted(layers), "entry": path.name}
+    return {"files": files, "width": width, "height": height, "layers": sorted(layers),
+            "entry": path.name, "game_assets": sorted(game_assets)}
 
 
 def _layer_gids(layer, width, height):
@@ -279,7 +405,7 @@ def _layer_gids(layer, width, height):
         raise WorldError(f"Invalid map tile data: {exc}") from exc
 
 
-def _render_map_preview(path, max_size=1024):
+def _render_map_preview(path, max_size=1024, *, game_content_root=None):
     """Render supplied orthogonal tiles only; this is not collision simulation."""
     path = Path(path)
     bundle = map_bundle(path)
@@ -300,8 +426,12 @@ def _render_map_preview(path, max_size=1024):
         margin, spacing = int(tileset.get("margin", "0")), int(tileset.get("spacing", "0"))
         if margin < 0 or spacing < 0:
             raise WorldError("Tilesheet margins and spacing cannot be negative.")
-        with Image.open(directory / relative_path(image.get("source"))) as pixels:
-            sheet = pixels.convert("RGBA")
+        image_path = _local_tilesheet_path(directory, image.get("source"))
+        if image_path.is_file() and not relative_path(image.get("source")).name.startswith("."):
+            with Image.open(image_path) as pixels:
+                sheet = pixels.convert("RGBA")
+        else:
+            sheet = _preview_game_tilesheet(_game_tilesheet_asset(image.get("source")), game_content_root)
         columns = int(tileset.get("columns") or max(1, (sheet.width - margin + spacing) // (16 + spacing)))
         if columns <= 0:
             raise WorldError("The tilesheet has no tile columns.")
@@ -344,12 +474,17 @@ def _render_map_preview(path, max_size=1024):
     return result
 
 
-def render_map_preview(path, max_size=1024):
-    """Return a bounded PIL image or a readable WorldError for unsupported maps."""
+def render_map_preview(path, max_size=1024, *, game_content_root=None):
+    """Render local tiles and optional read-only, unpacked game tilesheets.
+
+    ``game_content_root`` accepts an unpacked Content folder, its Maps folder,
+    or a Content Patcher export folder containing Maps_<asset>.png files.
+    Missing game artwork is an explicit error, never a transparent substitute.
+    """
     if type(max_size) is not int or not 1 <= max_size <= 4096:
         raise WorldError("Preview size must be from 1 to 4096 pixels.")
     try:
-        return _render_map_preview(path, max_size)
+        return _render_map_preview(path, max_size, game_content_root=game_content_root)
     except WorldError:
         raise
     except (OSError, ValueError, TypeError, Image.DecompressionBombError) as exc:
@@ -396,8 +531,9 @@ def world_asset_references(world):
             if isinstance(reference, str):
                 yield reference
     for location in world["locations"]:
-        if location["map"]:
-            yield location["map"]
+        for key in ("map", "entrance_patch"):
+            if location[key]:
+                yield location[key]
 
 
 def copy_world_assets(world, source_root, destination_root):
@@ -430,6 +566,94 @@ def cast_actor_id(companion_or_id):
     if not isinstance(identity, str) or not identity:
         raise WorldError("A supporting actor needs a stable record ID.")
     return "PixelheartCast." + hashlib.sha256(identity.encode()).hexdigest()[:24]
+
+
+def _map_features(location, path, bundle):
+    """Resolve authored furniture against real Buildings tiles, never a preview."""
+    if not location["interactions"] and not location["seats"]:
+        return {}
+    xml = _xml(path)
+    width, height = bundle["width"], bundle["height"]
+    layer = next(item for item in xml.findall("layer") if item.get("name") == "Buildings")
+    if any(int(layer.get(key, str(value))) != value for key, value in (("width", width), ("height", height))):
+        raise WorldError("Map features require a Buildings layer with the map's full dimensions.")
+    if any(float(layer.get(key, "0")) != 0 for key in ("offsetx", "offsety", "x", "y")):
+        raise WorldError("Map features do not support an offset Buildings layer.")
+    gids = _layer_gids(layer, width, height)
+    occupied = set()
+    for kind in ("interactions", "seats"):
+        for feature in location[kind]:
+            point = (feature["x"], feature["y"])
+            if point[0] >= width or point[1] >= height:
+                raise WorldError(f"Map feature {feature['id']} lies outside the imported map.")
+            if kind == "seats":
+                try:
+                    validate_seat_geometry(feature, map_width=width, map_height=height)
+                except SeatError as exc:
+                    raise WorldError(str(exc)) from exc
+                footprint = {(x, y) for x in range(point[0], point[0] + feature.get("width", 1))
+                             for y in range(point[1], point[1] + feature.get("height", 1))}
+            else:
+                footprint = {point}
+            if footprint & occupied:
+                raise WorldError("Give each interaction and seat a different tile and nonoverlapping footprint; a seat cannot also have a message action.")
+            occupied.update(footprint)
+            if not gids[point[1] * width + point[0]] & 0x0FFFFFFF:
+                raise WorldError(f"Map feature {feature['id']} needs an existing Buildings tile.")
+    if not location["seats"]:
+        return {}
+    sheets = []
+    for declaration in xml.findall("tileset"):
+        tileset, directory = declaration, path.parent
+        if declaration.get("source"):
+            source = path.parent / relative_path(declaration.get("source"))
+            tileset, directory = _xml(source), source.parent
+        sheets.append((int(declaration.get("firstgid", "1")), tileset, directory))
+    sheets.sort(key=lambda item: item[0])
+    chairs = {}
+    chair_images = {}
+    for seat in location["seats"]:
+        gid = gids[seat["y"] * width + seat["x"]]
+        if gid & 0xF0000000:
+            raise WorldError("Seat tiles cannot be flipped or rotated; use a separate facing tile in the tilesheet.")
+        selected = next((item for item in reversed(sheets) if item[0] <= gid), None)
+        if selected is None:
+            raise WorldError("A seat references an unknown tilesheet.")
+        first, tileset, directory = selected
+        image = tileset.find("image")
+        if image is None or any(tileset.get(key, "16") != "16" for key in ("tilewidth", "tileheight")) or any(int(tileset.get(key, "0")) != 0 for key in ("margin", "spacing")):
+            raise WorldError("Seats need a regular 16×16 PNG tilesheet without margins or spacing.")
+        image_path = _local_tilesheet_path(directory, image.get("source"))
+        if (image_path.name.startswith(".") or not image_path.exists()) and _game_tilesheet_asset(image.get("source")):
+            raise WorldError("This seat uses a game tilesheet. Use the game's existing seat definition, or move custom chair artwork into a uniquely named local tilesheet; authoring this seat would override vanilla seating globally.")
+        name = image_path.stem
+        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,191}", name):
+            raise WorldError("Seat tilesheet filenames need a unique name using letters, digits, underscores, or hyphens, with no dots before .png.")
+        with Image.open(image_path) as pixels:
+            columns, rows = pixels.width // 16, pixels.height // 16
+            if pixels.width % 16 or pixels.height % 16 or int(tileset.get("columns") or columns) != columns:
+                raise WorldError("Seat tilesheets must contain complete 16×16 tiles in their declared columns.")
+        tile = gid - first
+        if not 0 <= tile < columns * rows or tile >= int(tileset.get("tilecount") or columns * rows):
+            raise WorldError("A seat references a tile outside its tilesheet.")
+        tile_definition = next((item for item in tileset.findall("tile") if int(item.get("id", "-1")) == tile), None)
+        if tile_definition is not None and (tile_definition.find("animation") is not None or any(item.get("name") == "Action" for item in tile_definition.findall("properties/property"))):
+            raise WorldError("Seat tiles must be still tiles without a tileset Action property.")
+        key = f"{name}/{tile % columns}/{tile // columns}"
+        try:
+            # draw_tilesheet is a pre-existing game/dependency asset key. It is
+            # not a project-relative file and must never be copied implicitly.
+            value = compile_seat_definition(seat)
+        except SeatError as exc:
+            raise WorldError(str(exc)) from exc
+        definition = (value, hashlib.sha256(_read_asset(image_path)).hexdigest())
+        if name in chair_images and chair_images[name] != definition[1]:
+            raise WorldError("Seat tilesheet filenames are global; different chair artwork needs a different filename.")
+        chair_images[name] = definition[1]
+        if key in chairs and chairs[key] != definition:
+            raise WorldError("Every use of the same seat tile must have the same seating options and artwork.")
+        chairs[key] = definition
+    return chairs
 
 
 def _character_references(character):
@@ -562,6 +786,9 @@ def world_issues(world, character, project_root=None):
     entrances = set()
     locations_by_name = {location["internal_name"]: location for location in world["locations"]}
     known_dimensions = {}
+    chair_definitions = {}
+    chair_images = {}
+    entrance_patch_dimensions = {}
     for index, location in enumerate(world["locations"]):
         prefix = f"locations.{index}"
         internal = location["internal_name"]
@@ -574,6 +801,40 @@ def world_issues(world, character, project_root=None):
             if not location["map"] or project_root is None:
                 raise WorldError("Import this place's TMX map and its local tilesheets before exporting.")
             bundle = map_bundle(asset_path(location["map"], project_root))
+            for key, definition in _map_features(location, asset_path(location["map"], project_root), bundle).items():
+                if key in chair_definitions and chair_definitions[key] != definition:
+                    add("error", prefix + ".seats", "Seat tilesheet names are global: use unique filenames or identical seat artwork and seating options across places.")
+                image_name = key.split("/", 1)[0]
+                if image_name in chair_images and chair_images[image_name] != definition[1]:
+                    add("error", prefix + ".seats", "Seat tilesheet filenames are global; different chair artwork needs a different filename.")
+                chair_images[image_name] = definition[1]
+                chair_definitions[key] = definition
+            for seat_index, seat in enumerate(location["seats"]):
+                if seat.get("draw_tilesheet"):
+                    add("warning", prefix + f".seats.{seat_index}.draw_tilesheet",
+                        "The seating overlay must already be supplied by the game or a declared mod dependency. "
+                        "Its artwork and bounds are not verified or copied by this export; check the seated pose in-game.")
+            if location["entrance_patch"]:
+                if location["spouse_room"]:
+                    add("error", prefix + ".entrance_patch", "A spouse-room section cannot have an outside entrance patch.")
+                patch_bundle = map_bundle(asset_path(location["entrance_patch"], project_root))
+                entrance_patch_dimensions[internal] = (patch_bundle["width"], patch_bundle["height"])
+                if location["entrance_mode"] == "interact":
+                    x = location["entrance"]["x"] - location["entrance_patch_x"]
+                    y = location["entrance"]["y"] - location["entrance_patch_y"]
+                    if not 0 <= x < patch_bundle["width"] or not 0 <= y < patch_bundle["height"]:
+                        add("error", prefix + ".entrance_patch", "The interaction entrance must lie inside its entrance patch.")
+                    else:
+                        patch_xml = _xml(asset_path(location["entrance_patch"], project_root))
+                        buildings = next(layer for layer in patch_xml.findall("layer") if layer.get("name") == "Buildings")
+                        if any(int(buildings.get(key, str(value))) != value for key, value in (("width", patch_bundle["width"]), ("height", patch_bundle["height"]))):
+                            add("error", prefix + ".entrance_patch", "An interaction entrance needs a Buildings layer with the patch's full dimensions.")
+                        elif any(float(buildings.get(key, "0")) != 0 for key in ("offsetx", "offsety", "x", "y")):
+                            add("error", prefix + ".entrance_patch", "An interaction entrance cannot use an offset Buildings layer.")
+                        elif not _layer_gids(buildings, patch_bundle["width"], patch_bundle["height"])[y * patch_bundle["width"] + x] & 0x0FFFFFFF:
+                            add("error", prefix + ".entrance_patch", "The interaction entrance needs an existing Buildings tile in its entrance patch.")
+            elif location["entrance_mode"] == "interact":
+                add("error", prefix + ".entrance_patch", "An interaction entrance needs an entrance patch with a Buildings tile.")
             if not location["spouse_room"]:
                 known_dimensions[internal] = (bundle["width"], bundle["height"])
                 known_dimensions[exported_location_id(location, character)] = (bundle["width"], bundle["height"])
@@ -606,7 +867,7 @@ def world_issues(world, character, project_root=None):
                         add("error", prefix + "." + x, "Arrival and exit tiles must lie inside the imported map.")
                 if (location["entry_x"], location["entry_y"]) == (location["exit_x"], location["exit_y"]):
                     add("error", prefix, "Use different arrival and exit tiles to avoid an immediate return warp.")
-                if (entrance["x"], entrance["y"]) == (entrance["arrival_x"], entrance["arrival_y"]):
+                if location["entrance_mode"] == "walk" and (entrance["x"], entrance["y"]) == (entrance["arrival_x"], entrance["arrival_y"]):
                     add("error", prefix + ".entrance", "The return arrival must differ from the entrance trigger tile.")
             add("warning", prefix, "Check this map's collision layers, entrance, return warp, and NPC routes in-game; the preview cannot verify pathfinding.")
         except (WorldError, OSError, ValueError) as exc:
@@ -619,6 +880,10 @@ def world_issues(world, character, project_root=None):
             for x, y in (("x", "y"), ("arrival_x", "arrival_y")):
                 if location["entrance"][x] >= width or location["entrance"][y] >= height:
                     add("error", f"locations.{index}.entrance.{x}", "This entrance or return tile lies outside the connected custom map.")
+            if location["internal_name"] in entrance_patch_dimensions:
+                patch_width, patch_height = entrance_patch_dimensions[location["internal_name"]]
+                if location["entrance_patch_x"] + patch_width > width or location["entrance_patch_y"] + patch_height > height:
+                    add("error", f"locations.{index}.entrance_patch", "The entrance patch extends outside the connected custom map.")
     for prefix, authored in all_characters:
         _check_known_map_tiles(authored, known_dimensions, prefix, issues)
         from .homes import home_issues
@@ -724,6 +989,17 @@ def compile_world(world, character, project_root):
         files.update({prefix + name: payload for name, payload in bundle["files"].items()})
         identity = exported_location_id(location, character)
         patches.append({"Action": "Load", "Target": "Maps/" + identity, "FromFile": prefix + bundle["entry"]})
+        if location["interactions"]:
+            patches.append({"Action": "EditData", "Target": "Strings/StringsFromMaps", "Entries": {
+                identity + "." + item["id"]: item["text"] for item in location["interactions"]}})
+            patches.append({"Action": "EditMap", "Target": "Maps/" + identity, "MapTiles": [
+                {"Layer": "Buildings", "Position": {"X": item["x"], "Y": item["y"]},
+                 "SetProperties": {"Action": "Message " + identity + "." + item["id"]}}
+                for item in location["interactions"]]})
+        chairs = _map_features(location, source, bundle)
+        if chairs:
+            patches.append({"Action": "EditData", "Target": "Data/ChairTiles", "Entries": {
+                key: definition[0] for key, definition in chairs.items()}})
         if location["spouse_room"]:
             npc_fields["SpouseRoom"] = {"MapAsset": identity, "MapSourceRect": {
                 "X": location["room_x"], "Y": location["room_y"], "Width": 6, "Height": 9}}
@@ -734,10 +1010,24 @@ def compile_world(world, character, project_root):
             entrance = location["entrance"]
             source_name = next((exported_location_id(other, character) for other in world["locations"]
                                 if other["internal_name"] == entrance["map"]), entrance["map"])
-            patches.extend([
-                {"Action": "EditMap", "Target": "Maps/" + source_name, "AddWarps": [f"{entrance['x']} {entrance['y']} {identity} {location['entry_x']} {location['entry_y']}"]},
-                {"Action": "EditMap", "Target": "Maps/" + identity, "AddWarps": [f"{location['exit_x']} {location['exit_y']} {source_name} {entrance['arrival_x']} {entrance['arrival_y']}"]},
-            ])
+            if location["entrance_patch"]:
+                patch_bundle = map_bundle(asset_path(location["entrance_patch"], project_root))
+                patch_prefix = "assets/entrances/" + hashlib.sha256(location["id"].encode()).hexdigest()[:16] + "/"
+                backup_world["locations"][index]["entrance_patch"] = patch_prefix + patch_bundle["entry"]
+                files.update({patch_prefix + name: payload for name, payload in patch_bundle["files"].items()})
+                patches.append({"Action": "EditMap", "Target": "Maps/" + source_name,
+                                "FromFile": patch_prefix + patch_bundle["entry"], "PatchMode": "Overlay",
+                                "ToArea": {"X": location["entrance_patch_x"], "Y": location["entrance_patch_y"],
+                                           "Width": patch_bundle["width"], "Height": patch_bundle["height"]}})
+            warp = f"{entrance['x']} {entrance['y']} {identity} {location['entry_x']} {location['entry_y']}"
+            if location["entrance_mode"] == "interact":
+                patches.append({"Action": "EditMap", "Target": "Maps/" + source_name, "AddNpcWarps": [warp], "MapTiles": [
+                    {"Layer": "Buildings", "Position": {"X": entrance["x"], "Y": entrance["y"]},
+                     "SetProperties": {"Passable": "T", "Action": f"Warp {location['entry_x']} {location['entry_y']} {identity}"}}]})
+            else:
+                patches.append({"Action": "EditMap", "Target": "Maps/" + source_name, "AddWarps": [warp]})
+            patches.append({"Action": "EditMap", "Target": "Maps/" + identity, "AddWarps": [
+                f"{location['exit_x']} {location['exit_y']} {source_name} {entrance['arrival_x']} {entrance['arrival_y']}"]})
     dependencies = [{"UniqueID": item["id"], "IsRequired": item.get("required", True),
                      **({"MinimumVersion": item["minimum_version"]} if item.get("minimum_version") else {})}
                     for item in world["dependencies"]]

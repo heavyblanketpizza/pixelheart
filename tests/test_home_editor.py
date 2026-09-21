@@ -81,6 +81,22 @@ class HomeEditorTests(unittest.TestCase):
         dialog.result_world["locations"][0]["name"] = "Independent result"
         self.assertEqual(self.world["locations"][0]["name"], "A quiet home")
 
+    def test_clickable_entrance_allows_return_to_same_tile_and_preserves_authored_features(self):
+        self.location.update(entrance_mode="interact", entrance_patch="home.tmx",
+                             entrance_patch_x=30, entrance_patch_y=60,
+                             interactions=[{"id": "Desk", "x": 4, "y": 3, "text": "A folded letter."}])
+        self.location["entrance"].update(arrival_x=32, arrival_y=62)
+        dialog = self.dialog(project_file=self.project)
+        dialog.select_home_map("QuietHome")
+        dialog.home_x.setValue(6)
+        dialog.home_y.setValue(6)
+        dialog.apply()
+        self.assertEqual(dialog.result(), QDialog.DialogCode.Accepted)
+        result = dialog.result_world["locations"][0]
+        self.assertEqual(result["entrance_mode"], "interact")
+        self.assertEqual(result["entrance_patch"], "home.tmx")
+        self.assertEqual(result["interactions"], self.location["interactions"])
+
     def test_opt_in_moves_matching_stops_but_preserves_stop_facing(self):
         self.character["schedule"][0]["facing"] = "right"
         dialog = self.dialog()

@@ -20,6 +20,7 @@ from pixelheart_core.story import exported_npc_id
 from .editors import line, number, value, set_value, connect_change, RecordsPage, SchedulePage
 from .widgets import label, button, card, ArtworkPreview
 from .location_picker import MapSelector
+from .game_import import game_source_directory, map_game_content_root
 
 
 def combo(options):
@@ -52,7 +53,7 @@ class WorldPage(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         intro, layout = card("A life with people and places", "Create real supporting characters, bring in your own maps, and connect every place to the valley.")
-        layout.addWidget(label("Supporting cast need their own portrait and sprite sheets. Imported maps keep their tilesheets with the project. All locations and routes still need an in-game playtest.", "hint", True))
+        layout.addWidget(label("Supporting cast need their own portrait and sprite sheets. Imported maps keep custom tilesheets with the project; native tilesheets remain game references. All locations and routes still need an in-game playtest.", "hint", True))
         root.addWidget(intro)
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
@@ -181,7 +182,7 @@ class WorldPage(QWidget):
         content.addWidget(button("Create map from a tilesheet…", self.create_map))
         self.edit_map_button = button("Edit painted map…", self.edit_map)
         content.addWidget(self.edit_map_button)
-        self.map_status = label("Import a finite 16×16 tile TMX map with Back, Buildings, and Front layers. Keep its TSX and PNG files in the same folder or subfolders.", "hint", True)
+        self.map_status = label("Import a finite 16×16 tile TMX map with Back, Buildings, and Front layers. Keep custom TSX and PNG files beside it; vanilla tilesheets can reference the game.", "hint", True)
         content.addWidget(self.map_status)
         self.map_identity = label("", "hint", True)
         content.addWidget(self.map_identity)
@@ -431,25 +432,27 @@ class WorldPage(QWidget):
         self.warps_card.setVisible(not record["spouse_room"])
         self.room_card.setVisible(record["spouse_room"])
         self.map_identity.setText("This map section is placed in FarmHouse; it is not a separate location." if record["spouse_room"] else "Use “" + record["internal_name"] + "” for schedules and story locations. Game map: " + exported_location_id(record, self.window.document["character"]))
-        self.map_status.setText(record["map"] or "Import a finite TMX map with local TSX and PNG tilesheets. Layers: Back, Buildings, Front.")
-        key = (str(self.window.project_file), record["map"])
+        self.map_status.setText(record["map"] or "Import a finite TMX map with custom or game tilesheets. Layers: Back, Buildings, Front.")
+        key = (str(self.window.project_file), record["map"], game_source_directory())
         if key != self._preview_key:
             self._preview_key = key
             if record["map"] and self.window.project_file:
                 try:
                     from PIL.ImageQt import ImageQt
-                    preview = render_map_preview(asset_path(record["map"], self.window.project_file.parent), 600)
+                    map_path = asset_path(record["map"], self.window.project_file.parent)
+                    source_root = map_game_content_root() if map_bundle(map_path).get("game_assets") else None
+                    preview = render_map_preview(map_path, 600, game_content_root=source_root)
                     pixmap = QPixmap.fromImage(ImageQt(preview))
                     self.map_preview.setPixmap(pixmap.scaled(400, 230, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.FastTransformation))
-                except WorldError as exc:
-                    self.map_preview.setText("Preview unavailable: " + str(exc))
+                except (ValueError, OSError) as exc:
+                    self.map_preview.setText("Preview unavailable: " + str(exc) + " Choose local game tilesheets in Assign resident → Design this place.")
             else:
                 self.map_preview.setText("Import a map to preview its supplied tiles.")
 
     def import_location(self):
         if self.location_index < 0:
             return
-        path, _ = QFileDialog.getOpenFileName(self, "Import a Tiled map and its local tilesheets", "", "Tiled maps (*.tmx)")
+        path, _ = QFileDialog.getOpenFileName(self, "Import a Tiled map with game or custom tilesheets", "", "Tiled maps (*.tmx)")
         if not path:
             return
         identity = self.world["locations"][self.location_index]["id"]

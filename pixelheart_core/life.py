@@ -16,6 +16,7 @@ import re
 import uuid
 
 from .story import event_game_id, exported_npc_id
+from .animations import ANIMATION_KEY, animation_reference_error, animation_suffix
 
 
 SEASONS = ("spring", "summer", "fall", "winter")
@@ -142,6 +143,10 @@ def life_structure_issues(value):
                     for key, limit in (("location", 80), ("activity", 300), ("id", 100)):
                         if key in stop and not _valid_text(stop[key], limit):
                             add(stop_path + "." + key, f"Enter valid text of at most {limit} characters.")
+                    if "animation" in stop:
+                        animation = stop["animation"]
+                        if not isinstance(animation, str) or (animation and not ANIMATION_KEY.fullmatch(animation)):
+                            add(stop_path + ".animation", "Choose a lowercase animation name of at most 48 letters, numbers, or underscores.")
                     for key in ("x", "y"):
                         if key in stop and (type(stop[key]) is not int or not 0 <= stop[key] <= 1000):
                             add(stop_path + "." + key, "Tile coordinates must be whole numbers from 0 to 1000.")
@@ -235,6 +240,8 @@ def life_issues(character):
                     for axis in ("x", "y"):
                         if type(stop.get(axis)) is not int:
                             add(stop_path + "." + axis, "Choose a tile for each destination.")
+                    if error := animation_reference_error(stop, character.get("animations", {})):
+                        add(stop_path + ".animation", error)
                 if conditions["relationship"] == "married" and row["stops"] and row["stops"][-1].get("location") != "bed":
                     add(path + ".stops", "This married routine does not finish at home. Use Return to farmhouse or verify the last destination in-game.", "warning")
                 add(path, "Routines are chosen each morning. Test paths after sleeping; in co-op, the host's conditions control shared NPC schedules.", "warning")
@@ -262,8 +269,8 @@ def compile_conditions(conditions, character, npc_id):
     return result
 
 
-def compile_route(stops):
-    return "/".join(f"{_time(stop['time'])} {stop['location']} {stop['x']} {stop['y']} {_FACING.get(stop.get('facing', 'down'), stop.get('facing', 2))}" for stop in stops)
+def compile_route(stops, npc_id=None):
+    return "/".join(f"{_time(stop['time'])} {stop['location']} {stop['x']} {stop['y']} {_FACING.get(stop.get('facing', 'down'), stop.get('facing', 2))}{animation_suffix(stop, npc_id)}" for stop in stops)
 
 
 def compile_life(character, npc_id=None):
@@ -285,7 +292,7 @@ def compile_life(character, npc_id=None):
             conditions = row["conditions"]
             when = compile_conditions(conditions, character, npc_id)
             if kind == "routines":
-                route = compile_route(row["stops"])
+                route = compile_route(row["stops"], npc_id)
                 if conditions["relationship"] == "married":
                     # Date-specific marriage keys apply on rainy days too. The
                     # weekday marriage keys are intentionally dry-weather-only.

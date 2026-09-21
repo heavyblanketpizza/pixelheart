@@ -26,6 +26,7 @@ from .world import WorldError, world_character, world_issues, compile_world, exp
 from .validation import GENDERS
 from .dialogue_templates import MAX_DIALOGUES
 from .provenance import source_metadata
+from .animations import animation_entries, animation_issues, animation_reference_error, animation_suffix
 
 
 CONTENT_PATCHER_FORMAT = "2.9.0"
@@ -361,8 +362,10 @@ def validate_character(data, portrait_path=None, sprite_path=None, *, appearance
             _facing(stop.get("facing", "down"))
         except ValueError:
             add("error", field, "Facing must be up, right, down, left, or 0–3.")
+        if error := animation_reference_error(stop, data.get("animations", {})):
+            add("error", field + ".animation", error)
     if any(isinstance(stop, dict) and stop.get("activity") for stop in schedule):
-        add("warning", "schedule", "Activity descriptions are saved as author notes. Exported stops set position and facing, without custom animations.")
+        add("warning", "schedule", "Activity descriptions are author notes. Only explicit named animation fields create custom animations.")
     add("warning", "schedule", "Map names, walkable tiles, and routes require in-game testing. One daily route is used for all seasons and weather.")
 
     gifts = data.get("gifts", {})
@@ -388,7 +391,10 @@ def validate_character(data, portrait_path=None, sprite_path=None, *, appearance
         add("warning", "gifts", "No personal gift tastes are set; the game will use universal tastes.")
 
     portrait_size = _artwork_size(portrait_path, "portrait", romanceable, add)
-    _artwork_size(sprite_path, "sprite", romanceable, add)
+    sprite_size = _artwork_size(sprite_path, "sprite", romanceable, add)
+    definitions = data.get("animations", {})
+    definitions_valid = not animation_issues(definitions)
+    issues.extend(animation_issues(definitions, sprite_size))
     _validate_portrait_indices(dialogues, portrait_size, add)
     _validate_story_portrait_indices(data, portrait_size, add)
     _validate_life_portrait_indices(data, portrait_size, add)
@@ -403,6 +409,8 @@ def validate_character(data, portrait_path=None, sprite_path=None, *, appearance
                 _validate_portrait_indices(dialogues, size, add, variant)
                 _validate_story_portrait_indices(data, size, add, variant)
                 _validate_life_portrait_indices(data, size, add, variant)
+            elif definitions_valid and size:
+                issues.extend(animation_issues(definitions, size, appearance=variant))
     if "beach" in appearance_sheets:
         add("warning", "appearances.beach", "Beach artwork is exported as island attire. Island visits remain disabled; resort participation needs separate setup and in-game testing.")
     if romanceable:
@@ -670,6 +678,8 @@ def build_mod_archive(
         {"Action": "Load", "Target": f"Characters/schedules/{npc_id}", "FromFile": "assets/schedule.json"},
         {"Action": "EditData", "Target": "Data/Characters", "Entries": {npc_id: npc}},
     ]
+    if entries := animation_entries(data, npc_id):
+        changes.append({"Action": "EditData", "Target": "Data/animationDescriptions", "Entries": entries})
     appearance_files = {}
     appearance_backup = {}
     for variant, sheets in _appearance_sheets(appearances, lambda *_: None).items():
@@ -710,7 +720,7 @@ def build_mod_archive(
         if world_content["dependencies"]:
             manifest["Dependencies"] = world_content["dependencies"]
     route = "/".join(
-        f"{_time(stop['time'])} {stop['location'].strip()} {_integer(stop['x'])} {_integer(stop['y'])} {_facing(stop.get('facing', 'down'))}"
+        f"{_time(stop['time'])} {stop['location'].strip()} {_integer(stop['x'])} {_integer(stop['y'])} {_facing(stop.get('facing', 'down'))}{animation_suffix(stop, npc_id)}"
         for stop in data["schedule"]
     )
     files = {
@@ -794,10 +804,17 @@ def build_mod_archive(
                 entrance = place["entrance"]
                 source = next((exported_location_id(item, original_data) for item in compiled_world["locations"]
                                if item["internal_name"] == entrance["map"]), entrance["map"])
-                lines.extend([f"  Enter from {source} tile {entrance['x']}, {entrance['y']}.",
+                entry_action = "Interact to enter" if place.get("entrance_mode") == "interact" else "Enter"
+                lines.extend([f"  {entry_action} from {source} tile {entrance['x']}, {entrance['y']}.",
                               f"  Arrive inside at {place['entry_x']}, {place['entry_y']}.",
                               f"  Exit from {place['exit_x']}, {place['exit_y']} to {source} tile {entrance['arrival_x']}, {entrance['arrival_y']}.",
                               "  Test both warps, collision, tile actions, event staging, and NPC pathfinding."])
+            for interaction in place.get("interactions", []):
+                lines.append(f"  Inspect {interaction['id']} at {interaction['x']}, {interaction['y']}: {interaction['text']}")
+            for seat in place.get("seats", []):
+                lines.append(f"  Sit at {seat['x']}, {seat['y']} facing {seat['direction']} ({seat['id']}); stand up and check the exit path.")
+            if place.get("entrance_patch"):
+                lines.append(f"  Check the visible entrance patch at {place['entrance_patch_x']}, {place['entrance_patch_y']} on the outside map in every season.")
             lines.append("")
         lines.extend(["For enabled daily-life content, test each matching season, weather, weekday,",
                       "relationship, house-upgrade, and completed-event condition. Check routines",
@@ -846,8 +863,10 @@ Romance uses the game's courtship and marriage systems, default kiss frame 28,
 and generic spouse dialogue wherever authored lines do not apply. A supplied
 spouse-room section replaces the default room. Supporting cast and supplied maps
 are included when authored; WORLD_TESTING.txt records their identities and entrances.
-Sleep animations and festival or island participation require further authoring;
-festival and island participation remain disabled. project.json is an authoring
+Explicit named animations are exported to Data/animationDescriptions and checked
+against every supplied sprite sheet. Activity notes do not create animations.
+Sleep requires an authored sleep animation and a reachable final map/tile stop.
+Festival and island participation remain disabled. project.json is an authoring
 backup. Desktop exports can reopen it after extracting the complete pack folder;
 they retain the creator plan, test records, and selected artwork and map references.
 

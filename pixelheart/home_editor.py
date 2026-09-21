@@ -18,6 +18,7 @@ from pixelheart_core.world import (
     WorldError, asset_path, exported_location_id, import_map, map_bundle, normalize_world,
 )
 from .editors import connect_change, line, number, set_value, value
+from .game_import import LocalMapSourceWidget, game_source_directory
 from .location_picker import MapSelector
 from .stage_canvas import StageCanvas
 from .widgets import button, card, label
@@ -189,7 +190,7 @@ class HomeDialog(QDialog):
     def _build_design(self):
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 14, 0, 0)
-        details, content = card("Make this place their own", "Use your own tilesheet to paint an interior, or import a map created in Tiled.")
+        details, content = card("Make this place their own", "Import a Tiled map built from a vanilla interior, or paint with your own tilesheet. Game tilesheet references remain linked to the installed game.")
         self.location_fields = {
             "name": line("A name for their home", 80),
             "internal_name": line("StableHomeID", 40),
@@ -208,6 +209,9 @@ class HomeDialog(QDialog):
         self.map_status = label("", "hint", True)
         self.map_status.setTextFormat(Qt.TextFormat.PlainText)
         content.addWidget(self.map_status)
+        self.game_source = LocalMapSourceWidget(self)
+        self.game_source.changed.connect(self._refresh_game_source)
+        content.addWidget(self.game_source)
         layout.addWidget(details)
         entrances, content = card("Connect their front door", "The player’s arrival and exit are separate from the resident’s home tile. Choose a clear path between them.")
         self.entrance_fields = {
@@ -281,10 +285,14 @@ class HomeDialog(QDialog):
         self._refresh_map()
         self._placement_changed()
 
-    def _refresh_map(self):
+    def _refresh_game_source(self):
+        self._refresh_map(refresh=True)
+        self._placement_changed()
+
+    def _refresh_map(self, *, refresh=False):
         location = self._location()
-        key = (str(self.project_file), location.get("map") if location else None, self.home_map.value())
-        if key != self._map_key:
+        key = (str(self.project_file), location.get("map") if location else None, self.home_map.value(), game_source_directory())
+        if refresh or key != self._map_key:
             self._map_key = key
             self._map_error = ""
             path = None
@@ -293,7 +301,8 @@ class HomeDialog(QDialog):
                     path = asset_path(location["map"], self.project_file.parent)
                 except WorldError as exc:
                     self._map_error = str(exc)
-            self.canvas.set_map(path)
+            self.canvas.set_map(path, refresh=refresh)
+            self.game_source.set_assets(self.canvas.game_assets)
         can_supply = bool(self.project_file or self.ensure_saved)
         self.import_button.setEnabled(bool(location) and can_supply)
         self.paint_button.setEnabled(bool(location) and can_supply)
@@ -304,15 +313,23 @@ class HomeDialog(QDialog):
                 status += " Save the project to keep its map and tilesheet together."
             if self._map_error:
                 status += " " + self._map_error
+            if self.canvas.preview_error:
+                status += " Preview unavailable: " + self.canvas.preview_error
             self.map_status.setText(status)
         if self.canvas.map_size:
             width, height = self.canvas.map_size
             self.canvas.bounds = (0, 0, width, height)
-            self.canvas.preview_note = "Supplied map · click to place the resident"
-            self.preview_hint.setText(f"{width} × {height} tiles · X 0–{width - 1}, Y 0–{height - 1}. Blue: player arrival. Amber: exit. Verify collision and routes in-game.")
+            if self.canvas.preview_error:
+                self.preview_hint.setText(f"{width} × {height} tiles · coordinate grid only. {self.canvas.preview_error}")
+            else:
+                self.canvas.preview_note = "Map artwork · click to place the resident"
+                self.preview_hint.setText(f"{width} × {height} tiles · X 0–{width - 1}, Y 0–{height - 1}. Blue: player arrival. Amber: exit. Verify collision and routes in-game.")
         else:
-            self.canvas.preview_note = "Placement grid · no map artwork loaded"
-            self.preview_hint.setText("This grid shows coordinates only. Vanilla and other mods’ map artwork is not bundled; verify the tile and access in your game.")
+            if self.canvas.preview_error:
+                self.preview_hint.setText("Coordinate grid only. " + self.canvas.preview_error)
+            else:
+                self.canvas.preview_note = "Placement grid · no map artwork loaded"
+                self.preview_hint.setText("This grid shows coordinates only. Vanilla and other mods’ map artwork is not bundled; verify the tile and access in your game.")
 
     def _placement_changed(self):
         if self.loading:
@@ -422,7 +439,7 @@ class HomeDialog(QDialog):
             add("Choose a valid map for the outside entrance.")
         if (location["entry_x"], location["entry_y"]) == (location["exit_x"], location["exit_y"]):
             add("Give the player different arrival and exit tiles inside the home.")
-        if (entrance["x"], entrance["y"]) == (entrance["arrival_x"], entrance["arrival_y"]):
+        if location.get("entrance_mode", "walk") == "walk" and (entrance["x"], entrance["y"]) == (entrance["arrival_x"], entrance["arrival_y"]):
             add("The return outside must use a different tile from the entrance trigger.")
         dimensions = self.canvas.map_size if location is self._location() else None
         if not dimensions and location.get("map") and self.project_file:
@@ -490,7 +507,7 @@ class HomeDialog(QDialog):
     def import_location(self):
         if not (location := self._location()) or not self._saved_project():
             return
-        path, _ = QFileDialog.getOpenFileName(self, "Import a home and its local tilesheets", "", "Tiled maps (*.tmx)")
+        path, _ = QFileDialog.getOpenFileName(self, "Import a home with game or custom tilesheets", "", "Tiled maps (*.tmx)")
         if not path:
             return
         try:
