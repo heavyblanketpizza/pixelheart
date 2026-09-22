@@ -17,6 +17,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import stat
+import sys
 import tempfile
 from threading import RLock
 import warnings
@@ -35,6 +36,8 @@ MAX_IMPORT_TEXTURES = 512
 MAX_IMPORT_BYTES = 128 * 1024 * 1024
 MAX_PREVIEW_CACHE_BYTES = 32 * 1024 * 1024
 MAX_PREVIEW_CACHE_ENTRIES = 64
+MAX_DISCOVERY_ENTRIES = 512
+MAX_DISCOVERY_EXPORTS = 16
 
 _preview_cache = OrderedDict()
 _preview_cache_bytes = 0
@@ -180,6 +183,42 @@ def validate_definition(value):
         "placement": placement,
         "dependency": _text(value.get("dependency", ""), "Mod dependency", empty=True),
         "mod_data": mod_data,
+    }
+
+
+def validate_surface(value):
+    """Normalize one resolved wallpaper strip or complete repeating floor tile.
+
+    Rectangles are observed from the installed game's item registry, rather
+    than guessed from numeric item IDs. PNGs retain the same containment and
+    byte limits as furniture previews.
+    """
+    if not isinstance(value, dict):
+        raise FurnitureValidationError("A wall or floor pattern must be an object.")
+    kind = value.get("kind")
+    if kind not in ("wall", "floor"):
+        raise FurnitureValidationError("Choose a wall or floor pattern.")
+    identity = _text(value.get("id"), "Pattern ID", 260)
+    prefix = "(WP)" if kind == "wall" else "(FL)"
+    if not identity.startswith(prefix) or not identity[len(prefix):].strip():
+        raise FurnitureValidationError("The pattern ID must identify its wallpaper or flooring item.")
+    rect = value.get("rect")
+    if not isinstance(rect, (list, tuple)) or len(rect) != 4:
+        raise FurnitureValidationError("A pattern needs its complete preview rectangle.")
+    rect = [_integer(part, "Pattern rectangle", 0, 65535) for part in rect]
+    if rect[2:] != ([16, 48] if kind == "wall" else [32, 32]):
+        raise FurnitureValidationError("Wallpaper previews are 16 × 48 pixels; flooring previews are 32 × 32 pixels.")
+    preview = _relative(value.get("preview_asset"), "Pattern preview")
+    if PurePosixPath(preview).suffix.lower() != ".png":
+        raise FurnitureValidationError("Pattern previews must be PNG files.")
+    return {
+        "id": identity,
+        "name": _text(value.get("name", identity), "Pattern name"),
+        "kind": kind,
+        "texture": _relative(value.get("texture"), "Pattern game texture"),
+        "preview_asset": preview,
+        "rect": rect,
+        "dependency": _text(value.get("dependency", ""), "Mod dependency", empty=True),
     }
 
 
@@ -378,9 +417,38 @@ def import_furniture_library(path, project_dir):
     entries = data.get("definitions")
     if not isinstance(entries, list) or len(entries) > MAX_CATALOG_ITEMS:
         raise FurnitureValidationError(f"A furniture library needs a list of at most {MAX_CATALOG_ITEMS} definitions.")
-    definitions, seen, textures, messages = [], set(), {}, []
+    surface_entries = data.get("surfaces", [])
+    if not isinstance(surface_entries, list) or len(surface_entries) > MAX_CATALOG_ITEMS:
+        raise FurnitureValidationError(f"A pattern library needs a list of at most {MAX_CATALOG_ITEMS} surfaces.")
+    definitions, surfaces, seen, textures, messages = [], [], set(), {}, []
+    supplied_warnings = data.get("warnings", [])
+    if not isinstance(supplied_warnings, list) or len(supplied_warnings) > 1000:
+        raise FurnitureValidationError("Library notes must be a list with at most 1000 entries.")
+    for note in supplied_warnings:
+        messages.append(_text(note, "Library note", 1024))
     total_bytes = 0
     source_root = Path(path).parent
+
+    def prepare_texture(reference):
+        nonlocal total_bytes
+        if reference not in textures:
+            if len(textures) >= MAX_IMPORT_TEXTURES:
+                raise FurnitureValidationError(f"Import at most {MAX_IMPORT_TEXTURES} unique PNG textures at a time.")
+            payload, image = _read_texture(_contained(source_root, reference))
+            try:
+                size = image.size
+            finally:
+                image.close()
+            total_bytes += len(payload)
+            if total_bytes > MAX_IMPORT_BYTES:
+                raise FurnitureValidationError("The combined PNG textures exceed the 128 MB import limit.")
+            target, destination = _texture_destination(payload, project_dir)
+            for directory in (destination.parent, *destination.parents):
+                if directory.exists() and not directory.is_dir():
+                    raise FurnitureValidationError("A file occupies a required project texture directory.")
+            textures[reference] = (payload, size, target)
+        return textures[reference]
+
     for entry in entries:
         definition = validate_definition(entry)
         if definition["id"] in seen:
@@ -388,35 +456,28 @@ def import_furniture_library(path, project_dir):
         seen.add(definition["id"])
         reference = definition["preview_asset"]
         if reference:
-            if reference not in textures:
-                if len(textures) >= MAX_IMPORT_TEXTURES:
-                    raise FurnitureValidationError(f"Import at most {MAX_IMPORT_TEXTURES} unique PNG textures at a time.")
-                payload, image = _read_texture(_contained(source_root, reference))
-                try:
-                    size = image.size
-                finally:
-                    image.close()
-                total_bytes += len(payload)
-                if total_bytes > MAX_IMPORT_BYTES:
-                    raise FurnitureValidationError("The combined PNG textures exceed the 128 MB import limit.")
-                target, destination = _texture_destination(payload, project_dir)
-                # A file occupying any required directory would prevent copying.
-                # Detect this alongside other preflight failures, before writes.
-                for directory in (destination.parent, *destination.parents):
-                    if directory.exists() and not directory.is_dir():
-                        raise FurnitureValidationError("A file occupies a required project texture directory.")
-                textures[reference] = (payload, size, target)
-            payload, size, target = textures[reference]
+            _payload, size, target = prepare_texture(reference)
             _check_frame_dimensions(definition, size)
             definition["preview_asset"] = target
         else:
             messages.append(f"{definition['id']}: no preview PNG was supplied; the installed furniture reference was preserved.")
         definitions.append(definition)
+    for entry in surface_entries:
+        surface = validate_surface(entry)
+        if surface["id"] in seen:
+            raise FurnitureValidationError("Pattern library IDs must be unique.")
+        seen.add(surface["id"])
+        _payload, size, target = prepare_texture(surface["preview_asset"])
+        x, y, width, height = surface["rect"]
+        if x + width > size[0] or y + height > size[1]:
+            raise FurnitureValidationError("A pattern extends beyond its PNG atlas.")
+        surface["preview_asset"] = target
+        surfaces.append(surface)
     # Copy only the immutable bytes that were validated. A source file changed
     # after preflight cannot replace those bytes or their recorded dimensions.
     for payload, _size, _target in textures.values():
         _store_texture(payload, project_dir)
-    return {"definitions": definitions, "warnings": messages}
+    return {"definitions": definitions, "surfaces": surfaces, "warnings": messages}
 
 
 def attach_texture(definition, source, project_dir):
@@ -560,3 +621,149 @@ def preview_frame(definition, project_dir, rotation=0, elapsed_ms=0):
         _check_frames(definition, image)
         x, y, width, height = frame["rect"]
         return image.crop((x, y, x + width, y + height))
+
+
+def preview_surface(surface, project_dir):
+    """Return a complete wallpaper strip or repeating 2 × 2 flooring pattern."""
+    surface = validate_surface(surface)
+    with _preview_atlas(_contained(project_dir, surface["preview_asset"])) as image:
+        x, y, width, height = surface["rect"]
+        if x + width > image.width or y + height > image.height:
+            raise FurnitureValidationError("A pattern extends beyond its PNG atlas.")
+        return image.crop((x, y, x + width, y + height))
+
+
+def _discovery_children(directory):
+    """Bounded immediate children; never recurse into arbitrary user folders."""
+    try:
+        with os.scandir(directory) as entries:
+            for index, entry in enumerate(entries):
+                if index >= MAX_DISCOVERY_ENTRIES:
+                    break
+                if not entry.name.startswith(".") and entry.is_dir(follow_symlinks=False):
+                    yield Path(entry.path)
+    except (OSError, ValueError):
+        return
+
+
+def _discovery_file(root, relative):
+    try:
+        path = _contained(root, relative)
+        # A regular file inside the known folder is enough for discovery.
+        # Full schema and PNG validation occurs transactionally on import.
+        if path.is_symlink() or not path.is_file():
+            return None
+        details = path.stat()
+        if details.st_size > MAX_CATALOG_BYTES:
+            return None
+        data = _catalog_json(path)
+        if (isinstance(data, dict) and data.get("format") == "pixelheart-interior-library"
+                and type(data.get("version")) is int and data["version"] == 1
+                and isinstance(data.get("definitions"), list)):
+            return path.resolve()
+    except (FurnitureValidationError, OSError, ValueError, RuntimeError):
+        pass
+    return None
+
+
+def _libraries_in_companion(root):
+    for relative in ("cache/library/library.json", "library.json"):
+        found = _discovery_file(root, relative)
+        if found is not None:
+            yield found
+    try:
+        exports = _contained(root, "exports")
+        folders = sorted(_discovery_children(exports), key=lambda path: path.name, reverse=True)
+        for folder in folders[:MAX_DISCOVERY_EXPORTS]:
+            found = _discovery_file(folder, "library.json")
+            if found is not None:
+                yield found
+    except (FurnitureValidationError, OSError, ValueError, RuntimeError):
+        pass
+
+
+def _libraries_at_selected_path(selected):
+    try:
+        root = Path(selected).expanduser().resolve(strict=True)
+        if root.is_file():
+            found = _discovery_file(root.parent, root.name)
+            if found is not None:
+                yield found
+            return
+        if not root.is_dir():
+            return
+        # A remembered Content Patcher export folder is a known sibling of Mods.
+        if root.name == "patch export":
+            root = root.parent
+        yield from _libraries_in_companion(root)
+        if root.name == "exports":
+            for folder in sorted(_discovery_children(root), key=lambda path: path.name, reverse=True)[:MAX_DISCOVERY_EXPORTS]:
+                found = _discovery_file(folder, "library.json")
+                if found is not None:
+                    yield found
+        mods_roots = [root] if root.name.casefold() == "mods" else []
+        for relative in ("Mods", "Contents/MacOS/Mods", "Stardew Valley.app/Contents/MacOS/Mods"):
+            try:
+                mods_roots.append(_contained(root, relative))
+            except FurnitureValidationError:
+                continue
+        for mods_root in mods_roots:
+            # Identify a renamed companion by its own manifest. Only immediate
+            # mod folders are inspected; no game saves, projects or user files.
+            for folder in _discovery_children(mods_root):
+                try:
+                    manifest_path = _contained(folder, "manifest.json")
+                    if manifest_path.is_symlink():
+                        continue
+                    payload = _read_regular(manifest_path, 64 * 1024, "mod manifest")
+                    manifest = json.loads(payload.decode("utf-8-sig"))
+                    if isinstance(manifest, dict) and manifest.get("UniqueID") == "Pixelheart.Interiors":
+                        yield from _libraries_in_companion(folder)
+                except (FurnitureValidationError, OSError, UnicodeError, ValueError, RecursionError):
+                    continue
+    except (OSError, ValueError, RuntimeError, TypeError):
+        return
+
+
+def discover_furniture_libraries(configured_paths=(), *, include_standard_paths=True, home=None, platform=None):
+    """Find local companion libraries in selected or standard game locations.
+
+    This reads only exact known game paths, immediate Mods manifests and the
+    companion's bounded export/cache directories. It neither walks a home
+    directory nor imports anything into a project. Results are newest first;
+    callers can offer connection in one action and use the normal importer.
+
+    ``home`` and ``platform`` are injectable for deterministic offline tests.
+    Installation paths belong in per-machine settings, never project JSON.
+    """
+    if isinstance(configured_paths, (str, Path)):
+        configured_paths = [configured_paths]
+    roots = [path for path in list(configured_paths or ())[:16] if path]
+    if include_standard_paths:
+        user = Path(home) if home is not None else Path.home()
+        system = platform or sys.platform
+        if system == "darwin":
+            roots.extend((user / "Library/Application Support/Steam/steamapps/common/Stardew Valley", Path("/Applications/Stardew Valley.app")))
+        elif system.startswith("linux"):
+            roots.extend((user / ".local/share/Steam/steamapps/common/Stardew Valley", user / ".steam/steam/steamapps/common/Stardew Valley", user / "GOG Games/Stardew Valley"))
+        elif system == "win32":
+            roots.extend((Path("C:/Program Files (x86)/Steam/steamapps/common/Stardew Valley"), Path("C:/Program Files/Steam/steamapps/common/Stardew Valley"), Path("C:/GOG Games/Stardew Valley")))
+    found = {}
+    for root in roots:
+        for path in _libraries_at_selected_path(root):
+            try:
+                found[path] = path.stat().st_mtime_ns
+            except OSError:
+                continue
+    return sorted(found, key=lambda path: (found[path], str(path)), reverse=True)
+
+
+def resolve_furniture_library(path):
+    """Resolve a chosen game, Mods, companion or library folder in one step."""
+    libraries = discover_furniture_libraries([path], include_standard_paths=False)
+    if libraries:
+        return libraries[0]
+    raise FurnitureValidationError(
+        "No ready furniture library was found here. Install Pixelheart Interiors in your game's Mods folder, "
+        "launch Stardew through SMAPI, and load a save once. Then choose the game folder again."
+    )

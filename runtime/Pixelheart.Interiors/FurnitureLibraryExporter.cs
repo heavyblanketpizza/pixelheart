@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -13,26 +14,97 @@ namespace Pixelheart.Interiors;
 /// <summary>Exports installed item observations into Pixelheart's own portable preview format.</summary>
 internal static class FurnitureLibraryExporter
 {
-    private const int MaxItems = 20_000;
+    private const int MaxItems = 10_000;
+    private const int MaxSurfaces = 2048;
     private const int MaxSheets = 512;
     private const long MaxPngBytes = 16 * 1024 * 1024;
     private const long MaxTotalPngBytes = 128 * 1024 * 1024;
     private const int MaxJsonBytes = 8 * 1024 * 1024;
     internal sealed record Result(string Path, int Count, int WarningCount);
     private sealed record Sheet(string Path, int OriginalWidth, int Height);
-
-    internal static Result Export(IModHelper helper)
+    private sealed class CacheOwnership
     {
-        // A separate directory for every invocation keeps existing local exports intact.
-        string output = Path.Combine(helper.DirectoryPath, "exports", DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N"));
+        public int Version { get; set; } = 1;
+        public Dictionary<string, string> Files { get; set; } = new(StringComparer.Ordinal);
+    }
+
+    internal static Result Export(IModHelper helper, bool automatic = false)
+    {
+        // Manual exports are snapshots. The automatically prepared catalogue
+        // uses one managed cache, published only when the whole export succeeds.
+        string output = automatic
+            ? Path.Combine(helper.DirectoryPath, "cache", "library.pending")
+            : Path.Combine(helper.DirectoryPath, "exports", DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N"));
+        string previous = Path.Combine(helper.DirectoryPath, "cache", "library.previous");
+        if (automatic)
+        {
+            // Fixed staging/previous names bound disk use even after a crash or
+            // a locked-file cleanup failure. Existing files are never removed
+            // to make room; the author can recover them before the next refresh.
+            if (Directory.Exists(output) || File.Exists(output) || Directory.Exists(previous) || File.Exists(previous))
+                throw new InvalidDataException("A previous library preparation is still in cache/library.pending or cache/library.previous. Its files were preserved; recover them before refreshing.");
+            Directory.CreateDirectory(output);
+        }
+        try
+        {
+            Result result = ExportInto(helper, output);
+            if (!automatic) return result;
+            string cache = Path.Combine(helper.DirectoryPath, "cache", "library");
+            bool movedPrevious = false;
+            try
+            {
+                if (Directory.Exists(cache))
+                {
+                    // Refuse unexpected contents or linked caches. Never delete
+                    // a folder simply because a user gave it the expected name.
+                    if (!IsUnchangedManagedCache(cache))
+                        throw new InvalidDataException("The library cache contains changed or unrecognized files. They were kept intact; move them out of cache/library before refreshing the game library.");
+                    Directory.Move(cache, previous);
+                    movedPrevious = true;
+                }
+                Directory.Move(output, cache);
+            }
+            catch
+            {
+                if (movedPrevious && !Directory.Exists(cache)) Directory.Move(previous, cache);
+                throw;
+            }
+            if (movedPrevious)
+            {
+                try
+                {
+                    // Verify once more after moving it. User-added or edited
+                    // artwork is preserved even inside this generated folder.
+                    if (IsUnchangedManagedCache(previous)) Directory.Delete(previous, recursive: true);
+                }
+                catch { /* A locked old cache must not invalidate the ready new library. */ }
+            }
+            return result with { Path = cache };
+        }
+        catch
+        {
+            // Only staging created by this invocation is removed. The existence
+            // check above is outside this try block, so old staging is preserved.
+            if (automatic && Directory.Exists(output))
+            {
+                try { Directory.Delete(output, recursive: true); }
+                catch { }
+            }
+            throw;
+        }
+    }
+
+    private static Result ExportInto(IModHelper helper, string output)
+    {
         Directory.CreateDirectory(Path.Combine(output, "textures"));
         var definitions = new List<Dictionary<string, object?>>();
-        var messages = new List<string>
+        var notes = new List<string>
         {
             "These are private previews from the installed game's current Data/Furniture and resolved textures. They do not supply furniture mods.",
             "The library captures each item's default appearance and rotations. Custom drawing, lighting effects, animation, and Alternative Textures variants still run in-game; they are not enumerated as preview animations.",
             "The game's item registry does not identify the mod that owns each item. Set required mod dependencies for custom furniture in Pixelheart before sharing its design."
         };
+        var messages = new List<string>();
         var sheets = new Dictionary<Texture2D, Sheet>();
         var failedSheets = new HashSet<Texture2D>();
         long textureBytes = 0;
@@ -140,12 +212,154 @@ internal static class FurnitureLibraryExporter
             diagnostic.Write(details, 0, details.Length);
             throw new InvalidOperationException($"No compatible furniture previews could be resolved. Check this runtime against the installed game version; diagnostic notes: {notes}");
         }
-        var library = new { format = "pixelheart-interior-library", version = 1, definitions, warnings = messages };
+        var surfaces = ExportSurfaces(helper, output, sheets, failedSheets, messages, ref textureBytes, ref jsonBytes);
+        var library = new { format = "pixelheart-interior-library", version = 1, definitions, surfaces, warnings = messages, notes };
         byte[] payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(library));
         if (payload.Length > MaxJsonBytes) throw new InvalidDataException("The generated library exceeds the editor's JSON size limit.");
         using (var stream = new FileStream(Path.Combine(output, "library.json"), FileMode.CreateNew, FileAccess.Write, FileShare.None))
             stream.Write(payload, 0, payload.Length);
+        WriteCacheOwnership(output);
         return new Result(output, definitions.Count, messages.Count);
+    }
+
+    private static void WriteCacheOwnership(string root)
+    {
+        var ownership = new CacheOwnership();
+        ownership.Files["library.json"] = HashFile(Path.Combine(root, "library.json"));
+        foreach (string texture in Directory.EnumerateFiles(Path.Combine(root, "textures")).Take(MaxSheets))
+            ownership.Files["textures/" + Path.GetFileName(texture)] = HashFile(texture);
+        File.WriteAllText(Path.Combine(root, ".pixelheart-library-cache"), JsonConvert.SerializeObject(ownership));
+    }
+
+    private static string HashFile(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var hash = SHA256.Create();
+        return Convert.ToHexString(hash.ComputeHash(stream));
+    }
+
+    private static bool IsUnchangedManagedCache(string root)
+    {
+        try
+        {
+            if ((File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0) return false;
+            string marker = Path.Combine(root, ".pixelheart-library-cache");
+            if (!File.Exists(marker) || (File.GetAttributes(marker) & FileAttributes.ReparsePoint) != 0
+                || new FileInfo(marker).Length > 256 * 1024) return false;
+            CacheOwnership? ownership = JsonConvert.DeserializeObject<CacheOwnership>(File.ReadAllText(marker));
+            if (ownership == null || ownership.Version != 1 || ownership.Files == null
+                || ownership.Files.Count < 1 || ownership.Files.Count > MaxSheets + 1
+                || !ownership.Files.ContainsKey("library.json")) return false;
+            var actual = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string entry in Directory.EnumerateFileSystemEntries(root).Take(4))
+            {
+                string name = Path.GetFileName(entry);
+                FileAttributes attributes = File.GetAttributes(entry);
+                if ((attributes & FileAttributes.ReparsePoint) != 0) return false;
+                if (name == "textures" && (attributes & FileAttributes.Directory) != 0)
+                {
+                    foreach (string texture in Directory.EnumerateFileSystemEntries(entry).Take(MaxSheets + 1))
+                    {
+                        FileAttributes textureAttributes = File.GetAttributes(texture);
+                        if ((textureAttributes & (FileAttributes.Directory | FileAttributes.ReparsePoint)) != 0) return false;
+                        actual.Add("textures/" + Path.GetFileName(texture));
+                    }
+                }
+                else if (name == "library.json" && (attributes & FileAttributes.Directory) == 0) actual.Add(name);
+                else if (name != ".pixelheart-library-cache") return false;
+            }
+            if (!actual.SetEquals(ownership.Files.Keys)) return false;
+            long bytes = 0;
+            foreach ((string relative, string expectedHash) in ownership.Files)
+            {
+                // The actual-set equality above only allows immediate generated
+                // files. No marker entry can reach a parent or nested folder.
+                string path = Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar));
+                long length = new FileInfo(path).Length;
+                if (length > (relative == "library.json" ? MaxJsonBytes : MaxPngBytes)) return false;
+                bytes += length;
+                if (bytes > MaxTotalPngBytes + MaxJsonBytes || HashFile(path) != expectedHash) return false;
+            }
+            return true;
+        }
+        catch { return false; }
+    }
+
+    private static List<Dictionary<string, object?>> ExportSurfaces(IModHelper helper, string output,
+        Dictionary<Texture2D, Sheet> sheets, HashSet<Texture2D> failedSheets, List<string> messages,
+        ref long textureBytes, ref long jsonBytes)
+    {
+        var result = new List<Dictionary<string, object?>>();
+        foreach ((string prefix, string kind, int width, int height) in new[] { ("(WP)", "wall", 16, 48), ("(FL)", "floor", 32, 32) })
+        {
+            try
+            {
+                // Observe the installed registry's public enumeration and sprite
+                // data. No vanilla ID range, sheet offsets, or mod algorithms
+                // are reconstructed. Unsupported API versions fail visibly.
+                object metadata = ItemRegistry.GetMetadata(prefix + "0");
+                object? definition = metadata.GetType().GetMethod("GetTypeDefinition", BindingFlags.Public | BindingFlags.Instance,
+                    null, Type.EmptyTypes, null)?.Invoke(metadata, null);
+                object? rawIds = definition?.GetType().GetMethod("GetAllIds", BindingFlags.Public | BindingFlags.Instance,
+                    null, Type.EmptyTypes, null)?.Invoke(definition, null);
+                if (rawIds is not IEnumerable<string> ids)
+                    throw new InvalidDataException("The installed game does not expose supported pattern enumeration.");
+                foreach (string localId in ids.Take(MaxItems))
+                {
+                    if (result.Count >= MaxSurfaces)
+                    {
+                        messages.Add($"The pattern library reached its {MaxSurfaces}-pattern limit; remaining patterns were omitted.");
+                        return result;
+                    }
+                    try
+                    {
+                        string qualified = localId.StartsWith(prefix, StringComparison.Ordinal) ? localId : prefix + localId;
+                        if (qualified.Length > 260 || qualified.Any(char.IsControl)) throw new InvalidDataException("Unsupported pattern identifier.");
+                        var data = ItemRegistry.GetData(qualified) ?? throw new InvalidDataException("Pattern metadata is unavailable.");
+                        Texture2D texture = data.GetTexture();
+                        Rectangle rectangle = data.GetSourceRect();
+                        if (rectangle.Width != width || rectangle.Height != height || rectangle.X < 0 || rectangle.Y < 0
+                            || rectangle.Right > texture.Width || rectangle.Bottom > texture.Height)
+                            throw new InvalidDataException("The registry did not expose a complete wallpaper or flooring pattern.");
+                        if (!TryReadPublic(data, "TextureName", out string textureName) || !SafeAssetName(textureName))
+                            throw new InvalidDataException("The pattern's game texture name is unavailable.");
+                        if (failedSheets.Contains(texture)) throw new InvalidDataException("The pattern texture exceeds preview limits.");
+                        if (!sheets.TryGetValue(texture, out Sheet? sheet))
+                        {
+                            try
+                            {
+                                sheet = SaveSheet(texture, output, sheets.Count, textureBytes);
+                                textureBytes += new FileInfo(Path.Combine(output, sheet.Path)).Length;
+                                sheets.Add(texture, sheet);
+                            }
+                            catch { failedSheets.Add(texture); throw; }
+                        }
+                        string displayName = TryReadPublic(data, "DisplayName", out string label) ? label : kind;
+                        var surface = new Dictionary<string, object?>
+                        {
+                            ["id"] = qualified, ["kind"] = kind,
+                            ["name"] = CleanLabel(displayName + " · " + localId, 256, qualified),
+                            ["texture"] = textureName, ["preview_asset"] = sheet.Path,
+                            ["rect"] = new[] { rectangle.X, rectangle.Y, width, height },
+                            ["dependency"] = ""
+                        };
+                        long bytes = Encoding.UTF8.GetByteCount(JsonConvert.SerializeObject(surface));
+                        if (jsonBytes + bytes > MaxJsonBytes - 512 * 1024) break;
+                        result.Add(surface);
+                        jsonBytes += bytes;
+                    }
+                    catch (Exception ex)
+                    {
+                        if (messages.Count < 1000) messages.Add($"{prefix}{CleanLabel(localId, 256, "unknown")}: pattern skipped ({CleanLabel(ex.Message, 400, "unsupported pattern")}).");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (messages.Count < 1000) messages.Add($"{kind} patterns unavailable: {CleanLabel(ex.Message, 400, "unsupported pattern API")}");
+            }
+        }
+        return result;
     }
 
     private static Sheet SaveSheet(Texture2D source, string output, int index, long bytesWritten)

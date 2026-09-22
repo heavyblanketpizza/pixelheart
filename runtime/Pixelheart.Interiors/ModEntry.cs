@@ -15,12 +15,15 @@ public sealed class ModEntry : Mod
     internal const string SpouseMarker = "Pixelheart.Interiors/SpouseRoom";
     private readonly HashSet<string> warnings = new(StringComparer.Ordinal);
     private Dictionary<string, DesignData>? designs;
+    private bool libraryQueued;
+    private bool libraryAttempted;
 
     public override void Entry(IModHelper helper)
     {
         helper.Events.Content.AssetRequested += OnAssetRequested;
         helper.Events.Content.AssetsInvalidated += OnAssetsInvalidated;
-        helper.Events.GameLoop.SaveLoaded += (_, _) => InitializeWorld();
+        helper.Events.GameLoop.SaveLoaded += (_, _) => { InitializeWorld(); libraryQueued = !libraryAttempted; };
+        helper.Events.GameLoop.UpdateTicked += (_, _) => PrepareLibrary();
         helper.Events.GameLoop.DayStarted += (_, _) => InitializeWorld();
         helper.Events.GameLoop.ReturnedToTitle += (_, _) => { designs = null; warnings.Clear(); };
         helper.Events.Player.Warped += (_, e) => { if (e.IsLocalPlayer) InitializeWorld(); };
@@ -35,6 +38,25 @@ public sealed class ModEntry : Mod
     {
         if (e.NameWithoutLocale.IsEquivalentTo(AssetName))
             e.LoadFrom(() => new Dictionary<string, DesignData>(), AssetLoadPriority.Low);
+    }
+
+    private void PrepareLibrary()
+    {
+        // Wait until every SaveLoaded subscriber has run so installed mods can
+        // finish their save-dependent content updates. Work runs at most once
+        // per launch, never once per warp, day, or update tick.
+        if (!libraryQueued || libraryAttempted || !Context.IsWorldReady) return;
+        libraryQueued = false;
+        libraryAttempted = true;
+        try
+        {
+            FurnitureLibraryExporter.Result result = FurnitureLibraryExporter.Export(Helper, automatic: true);
+            Monitor.Log($"Your interior design library is ready for Pixelheart ({result.Count} furniture items). Choose this game's folder in the designer to connect it.", LogLevel.Info);
+        }
+        catch (Exception ex)
+        {
+            Monitor.Log($"Pixelheart could not prepare the interior design library: {ex.Message}. Existing library files were kept. Restart the game to try again, or use pixelheart_export_furniture for diagnostic details.", LogLevel.Warn);
+        }
     }
 
     private void OnAssetsInvalidated(object? sender, AssetsInvalidatedEventArgs e)

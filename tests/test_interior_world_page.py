@@ -15,6 +15,7 @@ from pixelheart.editors import IdentityPage
 from pixelheart.world_page import WorldPage
 from pixelheart_core.interiors import new_interior, floor_cells
 from pixelheart_core.projects import new_project, save_project, load_project
+from pixelheart_core.world import new_location
 
 try:
     from .test_world import make_map
@@ -79,7 +80,8 @@ class InteriorWorldPageTests(unittest.TestCase):
             dialog.exec.return_value = QDialog.DialogCode.Accepted
             dialog.result_design = deepcopy(design)
             self.page.design_interior()
-            constructor.assert_called_once_with(self.window.project_file, None, "residence", self.page)
+            constructor.assert_called_once_with(self.window.project_file, None, "residence", self.page,
+                                                resident_name=self.window.document["character"]["name"], allow_rebase=False)
         self.assertFalse(self.window.errors)
         self.assertEqual(self.page.world["locations"][self.page.location_index]["id"], identity)
         self.assertNotIn("interior", self.page.world["locations"][0])
@@ -127,7 +129,8 @@ class InteriorWorldPageTests(unittest.TestCase):
             constructor.return_value.exec.return_value = QDialog.DialogCode.Accepted
             constructor.return_value.result_design = design
             self.page.design_interior()
-            constructor.assert_called_once_with(self.window.project_file, None, "spouse", self.page)
+            constructor.assert_called_once_with(self.window.project_file, None, "spouse", self.page,
+                                                resident_name=self.window.document["character"]["name"], allow_rebase=False)
         record = self.page.world["locations"][0]
         self.assertEqual(record["interior"]["kind"], "spouse")
         self.assertEqual((record["interior"]["width"], record["interior"]["height"]), (6, 9))
@@ -161,6 +164,119 @@ class InteriorWorldPageTests(unittest.TestCase):
             self.page.design_interior()
         self.assertEqual(self.page.dump(), before)
         self.assertIn("Invalid texture reference", self.window.errors[-1][1])
+
+    def test_empty_places_starts_with_home_actions_and_closed_advanced_tools(self):
+        self.assertEqual(self.page.build_home_button.text(), "Build a home…")
+        self.assertEqual(self.page.design_spouse_button.text(), "Design spouse room…")
+        self.assertTrue(self.page.place_creation_tools.isHidden())
+        self.assertTrue(self.page.location_advanced.isHidden())
+        self.page.place_advanced_toggle.click()
+        self.assertFalse(self.page.place_creation_tools.isHidden())
+        self.assertFalse(self.page.location_advanced.isHidden())
+        self.page.place_advanced_toggle.click()
+        self.assertTrue(self.page.location_advanced.isHidden())
+
+    def test_build_home_opens_designer_and_assigns_accepted_home_without_map_setup(self):
+        self.window.document["character"].update(name="Loki", internal_name="Loki")
+        self.window.identity.load(self.window.document["character"])
+        before_home = self.window.document["character"]["home_map"]
+        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+            dialog = constructor.return_value
+            dialog.result_design = new_interior()
+            def accept():
+                self.assertEqual(self.window.document["character"]["home_map"], before_home)
+                self.assertEqual(len(self.page.world["locations"]), 1)
+                self.assertEqual(load_project(self.window.project_file)["world"]["locations"], [])
+                return QDialog.DialogCode.Accepted
+            dialog.exec.side_effect = accept
+            self.page.build_home_button.click()
+        self.assertFalse(self.window.errors)
+        record = self.page.world["locations"][0]
+        self.assertEqual((record["name"], record["internal_name"]), ("Loki's home", "LokiHome"))
+        self.assertEqual(record["interior"], new_interior())
+        self.assertEqual(self.window.document["character"]["home_map"], "LokiHome")
+        self.assertEqual(self.window.identity.dump()["home_map"], "LokiHome")
+        self.assertTrue(self.page.location_advanced.isHidden())
+
+    def test_cancelled_new_home_leaves_no_pending_record_on_disk_or_in_memory(self):
+        before = self.page.dump()
+        home = self.window.document["character"]["home_map"]
+        spy = QSignalSpy(self.page.changed)
+        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+            constructor.return_value.exec.return_value = QDialog.DialogCode.Rejected
+            self.page.build_home()
+        self.assertEqual(self.page.dump(), before)
+        self.assertEqual(load_project(self.window.project_file)["world"], before)
+        self.assertEqual(self.window.document["character"]["home_map"], home)
+        self.assertEqual(self.page.location_index, -1)
+        self.assertEqual(spy.count(), 0)
+
+    def test_cancel_or_error_creating_another_home_restores_previous_selection(self):
+        identity = self.two_locations()
+        before = self.page.dump()
+        with patch("pixelheart.interior_editor.InteriorEditor", side_effect=ValueError("Missing library")):
+            self.page.build_home()
+        self.assertEqual(self.page.dump(), before)
+        self.assertEqual(self.page.world["locations"][self.page.location_index]["id"], identity)
+        self.assertEqual(load_project(self.window.project_file)["world"], before)
+        self.assertIn("Missing library", self.window.errors[-1][1])
+
+    def test_cancelling_project_save_never_creates_a_place_or_opens_designer(self):
+        with patch.object(self.window, "ensure_saved", return_value=False), patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+            self.page.build_home()
+            constructor.assert_not_called()
+        self.assertEqual(self.page.world["locations"], [])
+
+    def test_spouse_action_creates_once_and_reopens_existing_room(self):
+        self.window.document["character"].update(name="Loki", internal_name="Loki")
+        before_home = self.window.document["character"]["home_map"]
+        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+            constructor.return_value.exec.return_value = QDialog.DialogCode.Accepted
+            constructor.return_value.result_design = new_interior("spouse")
+            self.page.design_spouse_room()
+        record = self.page.world["locations"][0]
+        self.assertEqual(record["name"], "Loki's spouse room")
+        self.assertEqual(record["internal_name"], "LokiSpouseRoom")
+        self.assertTrue(record["spouse_room"])
+        self.assertEqual(self.window.document["character"]["home_map"], before_home)
+        identity = record["id"]
+        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+            constructor.return_value.exec.return_value = QDialog.DialogCode.Rejected
+            self.page.design_spouse_room()
+            self.assertEqual(constructor.call_args.args[1], new_interior("spouse"))
+        self.assertEqual(len(self.page.world["locations"]), 1)
+        self.assertEqual(self.page.world["locations"][0]["id"], identity)
+
+    def test_build_home_creates_unique_safe_identity_and_preserves_existing_place(self):
+        self.window.document["character"].update(name="Loki", internal_name="Loki")
+        self.page.add_location()
+        existing = self.page.world["locations"][0]
+        existing.update(name="Existing home", internal_name="lokihome")
+        before = deepcopy(existing)
+        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+            constructor.return_value.exec.return_value = QDialog.DialogCode.Accepted
+            constructor.return_value.result_design = new_interior()
+            self.page.build_home()
+        self.assertEqual(self.page.world["locations"][0], before)
+        self.assertEqual(self.page.world["locations"][1]["internal_name"], "LokiHome2")
+
+    def test_place_limit_blocks_new_home_but_existing_spouse_room_can_be_edited(self):
+        records = []
+        for index in range(32):
+            record = new_location()
+            record.update(name=f"Place {index}", internal_name=f"Place{index}")
+            records.append(record)
+        records[3].update(spouse_room=True, interior=new_interior("spouse"))
+        self.page.load({**self.page.dump(), "locations": records})
+        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+            self.page.build_home()
+            constructor.assert_not_called()
+            self.assertIn("32 places", self.window.errors[-1][1])
+            constructor.return_value.exec.return_value = QDialog.DialogCode.Rejected
+            self.page.design_spouse_room()
+            constructor.assert_called_once()
+        self.assertEqual(len(self.page.world["locations"]), 32)
+        self.assertEqual(self.page.location_index, 3)
 
 
 if __name__ == "__main__":

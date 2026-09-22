@@ -192,6 +192,46 @@ def normalize_interior(value):
         raise InteriorError("Choose interior floor and wall tiles.")
     for key in ("floor", "wall_top", "wall_middle", "wall_bottom"):
         _integer(style.get(key), 0, max(0, atlas["tile_count"] - 1), "A surface tile is outside the tilesheet.")
+    def pattern(value, kind):
+        if not isinstance(value, dict):
+            raise InteriorError("A room finish needs a complete pattern.")
+        width, height = (2, 2) if kind == "floor" else (1, 3)
+        if type(value.get("width")) is not int or type(value.get("height")) is not int or (value["width"], value["height"]) != (width, height):
+            raise InteriorError("Use a complete wallpaper or flooring pattern.")
+        tiles = value.get("tiles")
+        if not isinstance(tiles, list) or len(tiles) != width * height:
+            raise InteriorError("A room finish has missing pattern tiles.")
+        for tile in tiles:
+            _integer(tile, 0, max(0, atlas["tile_count"] - 1), "A finish tile is outside the tilesheet.")
+        if "surface_id" in value:
+            _text(value["surface_id"], 260, "A room finish needs a short identity.")
+
+    surfaces = data.get("surfaces", [])
+    if not isinstance(surfaces, list) or len(surfaces) > 2048:
+        raise InteriorError("Use a finish library of up to 2048 patterns.")
+    surface_ids = set()
+    for surface in surfaces:
+        if not isinstance(surface, dict) or surface.get("kind") not in ("floor", "wall"):
+            raise InteriorError("Choose wallpaper or flooring for each finish.")
+        identity = _text(surface.get("id"), 260, "Each finish needs a short identity.")
+        if identity in surface_ids:
+            raise InteriorError("Finish library identities must be unique.")
+        surface_ids.add(identity)
+        _text(surface.get("name"), 256, "Each finish needs a name.")
+        _text(surface.get("dependency", ""), 256, "Use a short provider mod identity.", empty=True)
+        pattern(surface, surface["kind"])
+    overrides = data.get("room_styles", {})
+    if not isinstance(overrides, dict) or any(identity not in {r["id"] for r in rooms} for identity in overrides):
+        raise InteriorError("Finishes must belong to an existing room.")
+    for room_style in (style, *overrides.values()):
+        if not isinstance(room_style, dict):
+            raise InteriorError("A room needs valid finish settings.")
+        for kind in ("floor", "wall"):
+            if kind + "_pattern" in room_style:
+                pattern(room_style[kind + "_pattern"], kind)
+        for key in ("floor", "wall_top", "wall_middle", "wall_bottom"):
+            if key in room_style:
+                _integer(room_style[key], 0, max(0, atlas["tile_count"] - 1), "A surface tile is outside the tilesheet.")
     animations = data.get("animations")
     if not isinstance(animations, list) or len(animations) > 128:
         raise InteriorError("Use up to 128 tile animations.")
@@ -325,6 +365,7 @@ class InteriorDraft:
         if any(placement_cells(item, definitions[item["item_id"]]) & occupied for item in data["furniture"]):
             raise InteriorError("Move or remove the room's furniture before removing the room.")
         data["rooms"].remove(room)
+        data.get("room_styles", {}).pop(identity, None)
         self.apply(data)
 
     def place_furniture(self, item_id, x, y, rotation=0):
@@ -383,16 +424,28 @@ def map_layers(data, enabled=None):
     width, height = data["width"], data["height"]
     layers = {name: [0] * (width * height) for name in ("Back", "Buildings", "Front", "Paths")}
     floor = floor_cells(data, enabled)
-    style = data["style"]
+    active_rooms = [r for r in data["rooms"] if (r["enabled"] if enabled is None else r["id"] in enabled)]
+    owners = {cell: room for room in active_rooms for cell in room_cells(room)}
+    def room_style(room):
+        return {**data["style"], **data.get("room_styles", {}).get(room["id"], {})}
     def put(layer, x, y, tile):
         if 0 <= x < width and 0 <= y < height:
             layers[layer][y * width + x] = tile + 1
     for x, y in sorted(floor):
-        put("Back", x, y, style["floor"])
+        room = owners[x, y]
+        style = room_style(room)
+        pattern = style.get("floor_pattern")
+        tile = pattern["tiles"][((y-room["y"]) % pattern["height"]) * pattern["width"] + (x-room["x"]) % pattern["width"]] if pattern else style["floor"]
+        put("Back", x, y, tile)
     for x, y in sorted(floor):
+        room = owners[x, y]
+        style = room_style(room)
         if (x, y - 1) not in floor:
             for distance, tile in ((3, style["wall_top"]), (2, style["wall_middle"]), (1, style["wall_bottom"])):
                 if (x, y-distance) not in floor:
+                    pattern = style.get("wall_pattern")
+                    if pattern:
+                        tile = pattern["tiles"][(3-distance)*pattern["width"] + (x-room["x"]) % pattern["width"]]
                     put("Back", x, y-distance, tile)
                     # A transparent collision tile leaves editable Back-wall
                     # artwork visible when wallpaper changes in the game.
@@ -439,8 +492,17 @@ def render_interior(data, project_root, elapsed_ms=0, grid=False):
                 continue
             x, y = index % width * 16, index // width * 16
             if sheet is None:
-                color = "#747e78" if (index % width, index // width) in floor else "#51595c"
+                is_floor = (index % width, index // width) in floor
+                color = "#b2ad96" if is_floor else "#d2cdbb"
                 draw.rectangle((x, y, x+15, y+15), fill=color)
+                # A deliberately plain room model until the user's game art is
+                # connected. Subtle seams make the space readable without a grid.
+                if is_floor:
+                    draw.line((x, y+15, x+15, y+15), fill="#a8a28b")
+                    if (index // width) % 2 == 0:
+                        draw.line((x+15, y, x+15, y+15), fill="#a8a28b")
+                elif (index % width, index // width + 1) in floor:
+                    draw.rectangle((x, y+12, x+15, y+15), fill="#8f927f")
             else:
                 tile = animation_tile(data, gid - 1, elapsed_ms)
                 sx, sy = tile % data["atlas"]["columns"] * 16, tile // data["atlas"]["columns"] * 16
@@ -521,7 +583,8 @@ def interior_tmx(data, *, enabled=None, design_id=""):
     # preserving the original sheet and animation without changing its pixels.
     if data["kind"] == "spouse" and design_id:
         first_gid = atlas["tile_count"] + 2
-        floor_tile = data["style"]["floor"]
+        x, y = data["spouse_stand"]
+        floor_tile = layers["Back"][y * width + x] - 1
         marker = ET.SubElement(root, "tileset", firstgid=str(first_gid), name="pixelheart_spouse_marker",
                                tilewidth="16", tileheight="16", tilecount=str(atlas["tile_count"]), columns=str(atlas["columns"]))
         ET.SubElement(marker, "image", source="tiles.png", width=str(atlas["columns"]*16), height=str(atlas["tile_count"]//atlas["columns"]*16))
@@ -604,7 +667,9 @@ def compile_interior(data, identity, npc_id, root, prefix):
                "spouse_stand": data["spouse_stand"], "spouse_marker_x": data["spouse_stand"][0],
                "spouse_marker_y": data["spouse_stand"][1], "rooms": deepcopy(data["rooms"]),
                "variants": variants, "default_variant": default, "furniture": deepcopy(data["furniture"])}
-    dependencies = sorted({d["dependency"] for d in data["catalog"] if d.get("dependency") and any(f["item_id"] == d["id"] for f in data["furniture"])})
+    used_surfaces = {style.get(key, {}).get("surface_id") for style in (data["style"], *data.get("room_styles", {}).values()) for key in ("floor_pattern", "wall_pattern")}
+    dependencies = sorted({d["dependency"] for d in data["catalog"] if d.get("dependency") and any(f["item_id"] == d["id"] for f in data["furniture"])} |
+                          {d["dependency"] for d in data.get("surfaces", []) if d.get("dependency") and d["id"] in used_surfaces})
     return {"files": files, "patches": patches, "runtime": runtime,
             "map_asset": next(v["map_asset"] for v in variants if v["id"] == default),
             "dependencies": dependencies}
