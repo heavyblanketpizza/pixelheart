@@ -1,6 +1,6 @@
 """Direct manipulation of an interior, using the same rules as saved designs.
 
-The canvas proposes edits through signals. The owning editor applies them, so a
+The canvas proposes edits to its owning editor, so a
 preview, a cancelled drag, or an invalid placement never enters undo history.
 """
 from __future__ import annotations
@@ -11,10 +11,15 @@ import math
 from PIL.ImageQt import ImageQt
 from PySide6.QtCore import Qt, QRect, Signal
 from PySide6.QtGui import QColor, QPainter, QPen, QPixmap
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QApplication, QWidget
 
-from pixelheart_core.interiors import footprint, normalize_interior, render_interior
-from pixelheart_core.interior_furniture import preview_frame
+from pixelheart_core.interiors import (
+    footprint, normalize_interior, render_interior, validate_furniture_placement,
+)
+from pixelheart_core.interior_furniture import preview_frame, preview_frame_offset, frame_at
+
+
+FURNITURE_MIME = "application/x-pixelheart-interior-furniture"
 
 
 class InteriorCanvas(QWidget):
@@ -39,7 +44,13 @@ class InteriorCanvas(QWidget):
         self.project_root = root
         self.grid = False
         self.elapsed_ms = 0
+        self.time_of_day = "day"
+        self.lights_on = False
         self.drag = None
+        self._pending_move = None
+        self.catalogue_source = None
+        self.place_catalog_drop = None
+        self.catalogue_drag = None
         self.ghost = None
         self.preview_valid = True
         self.preview_message = ""
@@ -52,8 +63,9 @@ class InteriorCanvas(QWidget):
         self._validation_key = None
         self._validation_result = (True, "")
         self.setMouseTracking(True)
+        self.setAcceptDrops(True)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setAccessibleName("Room designer: choose furniture, then click to place; drag to move")
+        self.setAccessibleName("Room designer: drag furniture from the catalogue into the room; drag placed furniture to move it")
         self.refresh_size()
 
     def refresh_size(self):
@@ -82,19 +94,99 @@ class InteriorCanvas(QWidget):
             self.project_root = root
         self.tool = "place"
         self.drag = None
+        self._pending_move = None
         self._drag_image = QPixmap()
         self._room_start = None
         self._room_preview = None
         self._validation_key = None
         self._update_ghost()
+        self._update_cursor()
         self.update()
 
     def clear_placement(self):
         self._placement = None
+        self._pending_move = None
         self.ghost = None
         self._validation_key = None
         self._set_preview(True, "")
+        self._update_cursor()
         self.update()
+
+    def clear_catalogue_drag(self):
+        """Remove a native drag preview, including drops outside the room."""
+        self.catalogue_drag = None
+        self.cursor_tile = None
+        self.ghost = None
+        self._validation_key = None
+        self._set_preview(True, "")
+        self._update_cursor()
+        self.update()
+
+    def _catalogue_definition(self, event):
+        # Assets belong to this editor's staging folder. A payload alone must
+        # never import furniture from another editor or an external program.
+        if (self.catalogue_source is None or event.source() is not self.catalogue_source
+                or not event.possibleActions() & Qt.DropAction.CopyAction
+                or not event.mimeData().hasFormat(FURNITURE_MIME)):
+            return None
+        payload = bytes(event.mimeData().data(FURNITURE_MIME))
+        if len(payload) > 1024:
+            return None
+        try:
+            identity = payload.decode("utf-8")
+        except UnicodeDecodeError:
+            return None
+        return next((item for item in self.draft.data["catalog"]
+                     if item["id"] == identity and item.get("footprint")), None)
+
+    def _preview_catalogue_drag(self, event, definition):
+        self.catalogue_drag = (definition, 0)
+        self.cursor_tile = self._position(event)
+        self._update_ghost()
+        self.update()
+
+    def dragEnterEvent(self, event):
+        definition = self._catalogue_definition(event)
+        if definition is None:
+            event.ignore()
+            return
+        self._preview_catalogue_drag(event, definition)
+        # Accept entry even over a wall so the pointer can reach clear floor.
+        event.setDropAction(Qt.DropAction.CopyAction)
+        event.accept()
+
+    def dragMoveEvent(self, event):
+        definition = self._catalogue_definition(event)
+        if definition is None:
+            self.clear_catalogue_drag()
+            event.ignore()
+            return
+        self._preview_catalogue_drag(event, definition)
+        if self.ghost and self.ghost["valid"]:
+            event.setDropAction(Qt.DropAction.CopyAction)
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragLeaveEvent(self, event):
+        self.clear_catalogue_drag()
+        event.accept()
+
+    def dropEvent(self, event):
+        definition = self._catalogue_definition(event)
+        if definition is not None:
+            self._preview_catalogue_drag(event, definition)
+        valid = definition is not None and self.ghost and self.ghost["valid"]
+        x, y = self._position(event)
+        self.clear_catalogue_drag()
+        # The editor returns success only after the core accepts the edit. No
+        # preview or rejected drop changes the draft or its undo/redo stacks.
+        if valid and self.place_catalog_drop and self.place_catalog_drop(definition["id"], x, y):
+            event.setDropAction(Qt.DropAction.CopyAction)
+            event.accept()
+            self.setFocus()
+        else:
+            event.ignore()
 
     def set_room_preview(self, rectangle=None):
         """Highlight a proposed floor rectangle, in tile coordinates."""
@@ -129,9 +221,14 @@ class InteriorCanvas(QWidget):
             if definition.get("preview_asset") and frames:
                 # Sprites extend up from their floor footprint, just as in the
                 # renderer. Tall cabinets can be grabbed by their visible top.
-                sprite_width, sprite_height = frames[0]["rect"][2:]
-                top = placed["y"] + height - sprite_height / 16
-                if placed["x"] <= x + .5 < placed["x"] + sprite_width / 16 and top <= y + .5 < placed["y"] + height:
+                frame = frame_at(definition, placed.get("rotation", 0), self.elapsed_ms,
+                                 time_of_day=self.time_of_day, lights_on=self.lights_on)
+                sprite_width, sprite_height = frame["rect"][2:]
+                dx, dy = frame.get("offset", (0, 0))
+                left = placed["x"] + dx / 16
+                bottom = placed["y"] + height + dy / 16
+                top = bottom - sprite_height / 16
+                if left <= x + .5 < left + sprite_width / 16 and top <= y + .5 < bottom:
                     return placed
         return None
 
@@ -143,6 +240,16 @@ class InteriorCanvas(QWidget):
     def _position(self, event):
         cell = 16 * self.scale
         return math.floor(event.position().x() / cell), math.floor(event.position().y() / cell)
+
+    def _update_cursor(self):
+        if self.drag:
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+        elif self.tool in ("select", "place") and self.cursor_tile and self._at(*self.cursor_tile):
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
+        elif self.tool == "place":
+            self.setCursor(Qt.CursorShape.CrossCursor)
+        else:
+            self.unsetCursor()
 
     def _set_preview(self, valid, message):
         state = valid, message
@@ -171,9 +278,11 @@ class InteriorCanvas(QWidget):
             else:
                 if not any(item["id"] == definition["id"] for item in data["catalog"]):
                     data["catalog"].append(deepcopy(definition))
-                data["furniture"].append({"id": "__cursor_preview__", "item_id": definition["id"],
-                                          "x": x, "y": y, "rotation": rotation,
-                                          "mod_data": deepcopy(definition.get("mod_data", {}))})
+                placed = {"id": "__cursor_preview__", "item_id": definition["id"],
+                          "x": x, "y": y, "rotation": rotation,
+                          "mod_data": deepcopy(definition.get("mod_data", {}))}
+                data["furniture"].append(placed)
+            validate_furniture_placement(data, placed, definition)
             return data
         return self._validate(("furniture", definition["id"], rotation, x, y, identity), candidate)
 
@@ -214,6 +323,8 @@ class InteriorCanvas(QWidget):
             definition = next(item for item in self.draft.data["catalog"] if item["id"] == placed["item_id"])
             rotation = placed.get("rotation", 0)
             x, y = original_x + x - start_x, original_y + y - start_y
+        elif self.catalogue_drag:
+            definition, rotation = self.catalogue_drag
         elif self.tool == "place" and self._placement:
             definition, rotation = self._placement
         else:
@@ -234,7 +345,8 @@ class InteriorCanvas(QWidget):
             return
         data = self.draft.snapshot()
         data["furniture"] = [item for item in data["furniture"] if item["id"] != self.drag[0]]
-        with render_interior(data, self.project_root, self.elapsed_ms, self.grid) as image:
+        with render_interior(data, self.project_root, self.elapsed_ms, self.grid,
+                             time_of_day=self.time_of_day, lights_on=self.lights_on) as image:
             self._drag_image = QPixmap.fromImage(ImageQt(image))
 
     def _draw_outline(self, painter, rectangle, color, fill_alpha=40, *, dashed=False):
@@ -281,11 +393,14 @@ class InteriorCanvas(QWidget):
             ghost = self.ghost
             if self.project_root is not None:
                 try:
-                    with preview_frame(ghost["definition"], self.project_root, ghost["rotation"], self.elapsed_ms) as sprite:
+                    with preview_frame(ghost["definition"], self.project_root, ghost["rotation"], self.elapsed_ms,
+                                       time_of_day=self.time_of_day, lights_on=self.lights_on) as sprite:
                         pixmap = QPixmap.fromImage(ImageQt(sprite))
+                    dx, dy = preview_frame_offset(ghost["definition"], ghost["rotation"], self.elapsed_ms,
+                                                  time_of_day=self.time_of_day, lights_on=self.lights_on)
                     painter.setOpacity(.78)
-                    painter.drawPixmap(QRect(ghost["x"] * cell,
-                                              (ghost["y"] + ghost["height"]) * cell - pixmap.height() * self.scale,
+                    painter.drawPixmap(QRect(ghost["x"] * cell + dx * self.scale,
+                                              (ghost["y"] + ghost["height"]) * cell + (dy - pixmap.height()) * self.scale,
                                               pixmap.width() * self.scale, pixmap.height() * self.scale), pixmap)
                     painter.setOpacity(1)
                 except (ValueError, OSError):
@@ -300,13 +415,23 @@ class InteriorCanvas(QWidget):
 
     def _cancel(self):
         self.drag = None
+        self._pending_move = None
         self._drag_image = QPixmap()
         self._room_start = None
         self._room_preview = None
+        self.clear_catalogue_drag()
         self.clear_placement()
         self.tool = "select"
         self.canceled.emit()
+        self._update_cursor()
         self.update()
+
+    def _start_move(self, placed, x, y):
+        self.selected_id = placed["id"]
+        self.drag = (placed["id"], x, y, placed["x"], placed["y"])
+        self.selected_room_id = ""
+        self.selected.emit(self.selected_id)
+        self._refresh_drag_image()
 
     def cancel_interaction(self):
         """Stop a held item or unfinished drag without discarding the design."""
@@ -330,24 +455,36 @@ class InteriorCanvas(QWidget):
             self.set_room_preview((x, y, 1, 1))
         elif self.tool in ("select", "room-select"):
             placed = self._at(x, y) if self.tool == "select" else None
-            self.selected_id = placed["id"] if placed else ""
-            self.drag = (placed["id"], x, y, placed["x"], placed["y"]) if placed else None
-            self.selected.emit(self.selected_id)
             if placed:
-                self.selected_room_id = ""
-                self._refresh_drag_image()
+                self._start_move(placed, x, y)
             else:
+                self.selected_id = ""
+                self.drag = None
+                self.selected.emit("")
                 room = self._room_at(x, y)
                 self.selected_room_id = room["id"] if room else ""
                 self.room_selected.emit(self.selected_room_id)
+        elif self.tool == "place" and (placed := self._at(x, y)):
+            # A click still places another piece (including a rug underneath),
+            # while a deliberate drag moves the piece that was grabbed.
+            self._pending_move = (placed["id"], x, y, event.position().toPoint())
         else:
             self.tile_clicked.emit(x, y)
         self._update_ghost()
+        self._update_cursor()
         self.update()
 
     def mouseMoveEvent(self, event):
         self.cursor_tile = x, y = self._position(event)
         self.hovered.emit(x, y)
+        if self._pending_move and event.buttons() & Qt.MouseButton.LeftButton:
+            identity, start_x, start_y, point = self._pending_move
+            if (event.position().toPoint() - point).manhattanLength() >= QApplication.startDragDistance():
+                placed = next((item for item in self.draft.data["furniture"] if item["id"] == identity), None)
+                self._cancel()
+                self.cursor_tile = x, y
+                if placed:
+                    self._start_move(placed, start_x, start_y)
         room = self._room_at(x, y)
         self._hover_room_id = room["id"] if room else ""
         if self._room_start:
@@ -355,6 +492,7 @@ class InteriorCanvas(QWidget):
             self.set_room_preview((min(start_x, x), min(start_y, y), abs(x-start_x)+1, abs(y-start_y)+1))
         else:
             self._update_ghost()
+        self._update_cursor()
         self.update()
 
     def mouseReleaseEvent(self, event):
@@ -362,7 +500,11 @@ class InteriorCanvas(QWidget):
             return
         x, y = self._position(event)
         self.cursor_tile = x, y
-        if self._room_start:
+        if self._pending_move:
+            _, start_x, start_y, _ = self._pending_move
+            self._pending_move = None
+            self.tile_clicked.emit(start_x, start_y)
+        elif self._room_start:
             start_x, start_y = self._room_start
             rectangle = min(start_x, x), min(start_y, y), abs(x-start_x)+1, abs(y-start_y)+1
             self._room_start = None
@@ -375,6 +517,8 @@ class InteriorCanvas(QWidget):
             self.ghost = None
             if (x, y) != (start_x, start_y):
                 self.moved.emit(identity, original_x + x - start_x, original_y + y - start_y)
+            self._set_preview(True, "")
+        self._update_cursor()
         self.update()
 
     def leaveEvent(self, event):

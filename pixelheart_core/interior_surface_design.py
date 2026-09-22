@@ -163,6 +163,76 @@ def stage_surface_library(data, surfaces, root):
             old_image.close()
 
 
+def stage_room_frame(data, frame, root):
+    """Append supplied structural edge art without changing any room finishes.
+
+    Source rectangles come from the selected local library, independently of
+    wallpaper IDs. Existing atlas indexes and applied patterns stay stable.
+    The resulting frame is part of the same portable atlas as the surfaces.
+    """
+    from .interior_furniture import validate_room_frame
+    candidate = normalize_interior(data)
+    old_image = source = None
+    try:
+        frame = validate_room_frame(frame)
+        _, source = _read_texture(asset_path(frame["preview_asset"], root))
+        atlas = candidate["atlas"]
+        columns = atlas["columns"] if atlas["asset"] else 8
+        old_count = atlas["tile_count"] if atlas["asset"] else 0
+        pixels, additions, indexes = {}, [], {}
+        if atlas["asset"]:
+            _, old_image = _read_texture(asset_path(atlas["asset"], root))
+            if (old_image.width != columns * 16 or old_image.height % 16
+                    or old_image.width > MAX_ATLAS_PIXELS or old_image.height > MAX_ATLAS_PIXELS
+                    or old_image.width * old_image.height // 256 != old_count):
+                raise InteriorError("The design's tilesheet dimensions no longer match its tile references.")
+            for index in range(old_count):
+                x, y = index % columns * 16, index // columns * 16
+                with old_image.crop((x, y, x+16, y+16)) as tile:
+                    pixels.setdefault(tile.tobytes(), index)
+        for role, (x, y, width, height) in frame["tiles"].items():
+            if x + width > source.width or y + height > source.height:
+                raise InteriorError("A room frame tile extends beyond its PNG atlas.")
+            with source.crop((x, y, x+width, y+height)) as tile:
+                raw = tile.tobytes()
+            index = pixels.get(raw)
+            if index is None:
+                index = old_count + len(additions)
+                if (index // columns + 1) * 16 > MAX_ATLAS_PIXELS:
+                    raise InteriorError("The room frame would make the tilesheet taller than 4096 pixels.")
+                pixels[raw] = index
+                additions.append(raw)
+            indexes[role] = index
+        candidate["room_frame"] = indexes
+        if not additions:
+            return normalize_interior(candidate)
+        rows = (old_count + len(additions) + columns - 1) // columns
+        with Image.new("RGBA", (columns * 16, rows * 16)) as output:
+            if old_image is not None:
+                output.paste(old_image, (0, 0))
+            for offset, raw in enumerate(additions):
+                index = old_count + offset
+                with Image.frombytes("RGBA", (16, 16), raw) as tile:
+                    output.paste(tile, (index % columns * 16, index // columns * 16))
+            payload = io.BytesIO()
+            output.save(payload, format="PNG")
+        raw = payload.getvalue()
+        reference = "world_assets/interior_surfaces/" + hashlib.sha256(raw).hexdigest() + ".png"
+        candidate["atlas"] = {"asset": reference, "columns": columns, "tile_count": columns * rows}
+        candidate = normalize_interior(candidate)
+        _write_new_file(asset_path(reference, Path(root)), raw)
+        return candidate
+    except (FurnitureValidationError, WorldError, OSError, ValueError) as exc:
+        if isinstance(exc, InteriorError):
+            raise
+        raise InteriorError(str(exc)) from exc
+    finally:
+        if old_image is not None:
+            old_image.close()
+        if source is not None:
+            source.close()
+
+
 def apply_surface(data, surface_id, room_id=None):
     """Apply a stored swatch to one room, or all rooms, without mutating data."""
     candidate = normalize_interior(data)

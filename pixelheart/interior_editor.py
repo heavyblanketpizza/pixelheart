@@ -11,8 +11,8 @@ import tempfile
 import time
 
 from PIL.ImageQt import ImageQt
-from PySide6.QtCore import Qt, QRect, QSize, Signal, QTimer
-from PySide6.QtGui import QColor, QPainter, QPen, QPixmap, QIcon, QShortcut, QKeySequence
+from PySide6.QtCore import Qt, QRect, QSize, QPoint, Signal, QTimer, QMimeData
+from PySide6.QtGui import QColor, QPainter, QPen, QPixmap, QIcon, QShortcut, QKeySequence, QDrag
 from PySide6.QtWidgets import (
     QDialog, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QSplitter,
     QTabWidget, QScrollArea, QComboBox, QSpinBox, QCheckBox, QLineEdit,
@@ -29,7 +29,7 @@ from pixelheart_core.interior_furniture import (
 from pixelheart_core.world import asset_path, _read_asset, _write_new_file
 from .widgets import label, button
 from .game_import import game_import_settings
-from .interior_canvas import InteriorCanvas
+from .interior_canvas import FURNITURE_MIME, InteriorCanvas
 
 
 def _number(minimum=0, maximum=255, initial=0):
@@ -71,6 +71,54 @@ class CatalogueTile(QStyledItemDelegate):
                          Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap,
                          index.data(Qt.ItemDataRole.DisplayRole) or "")
         painter.restore()
+
+
+class FurnitureCatalogue(QListWidget):
+    """Copy catalogue pieces into the room with a native mouse drag."""
+
+    def __init__(self, editor):
+        super().__init__()
+        self.editor = editor
+        self._drag_started = False
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_started = False
+        super().mousePressEvent(event)
+
+    def pick_up(self, item):
+        # A native drag can finish with a catalogue click notification. Only
+        # a fresh mouse press may pick up another copy after that gesture.
+        if not self._drag_started:
+            self.editor.begin_catalog_placement(item)
+
+    def startDrag(self, supported_actions):
+        item = self.currentItem()
+        if item is None:
+            return
+        identity = item.data(Qt.ItemDataRole.UserRole)
+        definition = next((d for d in self.editor.draft.data["catalog"] if d["id"] == identity), None)
+        if not definition or not definition.get("footprint"):
+            return
+        self._drag_started = True
+        # Capture everything before exec: committing a drop may rebuild the
+        # catalogue (Recently used), invalidating the QListWidgetItem.
+        pixmap = item.icon().pixmap(QSize(48, 48))
+        mime = QMimeData()
+        mime.setData(FURNITURE_MIME, identity.encode("utf-8"))
+        self.editor.canvas.cancel_interaction()
+        self.editor.coordinates.setText("Drag into the room · Release to place · Esc to cancel")
+        drag = QDrag(self)
+        drag.setMimeData(mime)
+        drag.setPixmap(pixmap)
+        drag.setHotSpot(QPoint(pixmap.width() // 2, pixmap.height() // 2))
+        try:
+            drag.exec(Qt.DropAction.CopyAction)
+        finally:
+            self.editor.canvas.clear_catalogue_drag()
+            self.editor.canvas.clear_placement()
+            self.editor.set_tool("select")
+            self.editor.preview_feedback(True, "")
 
 
 class InteriorPalette(QWidget):
@@ -169,7 +217,7 @@ class FurnitureDetails(QDialog):
         self.frames.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.frames.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         for frame in self.original.get("frames", []):
-            self.add_frame([frame["rotation"], *frame["rect"], frame["duration_ms"]])
+            self.add_frame([frame["rotation"], *frame["rect"], frame["duration_ms"]], offset=frame.get("offset"))
         root.addWidget(self.frames, 1)
         row = QHBoxLayout()
         row.addWidget(button("Add frame", lambda: self.add_frame()))
@@ -194,12 +242,14 @@ class FurnitureDetails(QDialog):
             for column in (1, 2):
                 if self.rotation_bounds.item(row, column) is None:
                     self.rotation_bounds.setItem(row, column, QTableWidgetItem(""))
-    def add_frame(self, values=None):
+    def add_frame(self, values=None, *, offset=None):
         values = values or [0, 0, 0, 16, 16, 150]
         row = self.frames.rowCount()
         self.frames.insertRow(row)
         for column, value in enumerate(values):
             self.frames.setItem(row, column, QTableWidgetItem(str(value)))
+        if offset is not None:
+            self.frames.item(row, 0).setData(Qt.ItemDataRole.UserRole, list(offset))
 
     def remove_frame(self):
         if self.frames.currentRow() >= 0:
@@ -216,7 +266,11 @@ class FurnitureDetails(QDialog):
             frames = []
             for row in range(self.frames.rowCount()):
                 values = [int(self.frames.item(row, column).text()) for column in range(6)]
-                frames.append({"rotation": values[0], "rect": values[1:5], "duration_ms": values[5]})
+                frame = {"rotation": values[0], "rect": values[1:5], "duration_ms": values[5]}
+                offset = self.frames.item(row, 0).data(Qt.ItemDataRole.UserRole)
+                if offset is not None:
+                    frame["offset"] = list(offset)
+                frames.append(frame)
             rotation_footprints = {}
             for row in range(self.rotation_bounds.rowCount()):
                 width = self.rotation_bounds.item(row, 1).text().strip()
@@ -340,7 +394,29 @@ class InteriorEditor(QDialog):
         right = QWidget()
         right_layout = QVBoxLayout(right)
         right_layout.setContentsMargins(12, 0, 0, 0)
+        preview_controls = QHBoxLayout()
+        preview_controls.addWidget(label("Time", "hint"))
+        self.preview_time = QComboBox()
+        for title, value in (("Day", "day"), ("Evening", "evening"), ("Night", "night")):
+            self.preview_time.addItem(title, value)
+        self.preview_time.setAccessibleName("Preview time of day")
+        self.preview_time.setToolTip("Preview the room at a different time of day")
+        preview_controls.addWidget(self.preview_time)
+        preview_controls.addSpacing(12)
+        preview_controls.addWidget(label("Lights", "hint"))
+        self.preview_lights = QComboBox()
+        for title, value in (("Auto", "auto"), ("On", "on"), ("Off", "off")):
+            self.preview_lights.addItem(title, value)
+        self.preview_lights.setAccessibleName("Preview lights")
+        self.preview_lights.setToolTip("Auto turns lights on in the evening and at night")
+        preview_controls.addWidget(self.preview_lights)
+        preview_controls.addStretch()
+        self.preview_time.currentIndexChanged.connect(lambda *_: self.render())
+        self.preview_lights.currentIndexChanged.connect(lambda *_: self.render())
+        right_layout.addLayout(preview_controls)
         self.canvas = InteriorCanvas(self.draft, root=self.stage_root)
+        self.canvas.catalogue_source = self.catalog_list
+        self.canvas.place_catalog_drop = self.place_catalog_drop
         self.canvas.scale = self.zoom.currentData()
         self.canvas.tile_clicked.connect(self.click_tile)
         self.canvas.selected.connect(self.select_furniture)
@@ -358,7 +434,7 @@ class InteriorEditor(QDialog):
         self.canvas_scroll.setWidget(self.canvas_stage)
         self.canvas_scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
         right_layout.addWidget(self.canvas_scroll, 1)
-        self.coordinates = label("Pick a piece of furniture, then click to place it. Drag anything to move it.", "hint", True)
+        self.coordinates = label("Drag furniture from the catalogue into the room. Drag a placed piece to move it.", "hint", True)
         right_layout.addWidget(self.coordinates)
         self.selection_bar = QFrame()
         self.selection_bar.setObjectName("card")
@@ -404,13 +480,17 @@ class InteriorEditor(QDialog):
         self.shortcuts.append(escape)
         self.finished.connect(self._finish)
         self.refresh()
-        if not self.draft.data["catalog"]:
+        if not self.draft.data["catalog"] or (self.draft.data["kind"] == "residence"
+                and self.draft.data.get("surfaces") and not self.draft.data.get("room_frame")):
             saved_library = self.settings.value("interiors/libraryFolder", "")
             if isinstance(saved_library, str) and saved_library:
                 from pixelheart_core.interior_furniture import discover_furniture_libraries
                 candidates = discover_furniture_libraries([saved_library], include_standard_paths=False)
                 if candidates:
-                    self.load_catalog(candidates[0])
+                    if not self.draft.data["catalog"]:
+                        self.load_catalog(candidates[0])
+                    else:
+                        self.load_room_frame(candidates[0])
         QTimer.singleShot(0, self.fit_room)
 
     def _tab(self, title, *, advanced=False):
@@ -559,17 +639,22 @@ class InteriorEditor(QDialog):
         self.category = QComboBox()
         for name, value in (("All furniture", "all"), ("♥ Favorites", "favorites"), ("Recently used", "recent"),
                             ("Seating", "seating"), ("Tables", "tables"), ("Beds", "beds"), ("Storage", "storage"),
-                            ("Rugs", "rugs"), ("Lights", "lights"), ("Wall decorations", "wall"), ("Other decorations", "decor")):
+                            ("Rugs", "rugs"), ("Lights", "lights"), ("Windows", "windows"),
+                            ("Wall decorations", "wall"), ("Other decorations", "decor")):
             self.category.addItem(name, value)
         self.category.setAccessibleName("Furniture category")
         self.category.currentIndexChanged.connect(self.refresh_catalog)
         layout.addWidget(self.category)
-        self.catalog_list = QListWidget()
-        self._configure_gallery(self.catalog_list, "Furniture catalogue")
+        self.catalog_list = FurnitureCatalogue(self)
+        self._configure_gallery(self.catalog_list, "Furniture catalogue: drag a piece into the room, or click to pick it up")
+        self.catalog_list.setDragEnabled(True)
+        self.catalog_list.setDragDropMode(QAbstractItemView.DragDropMode.DragOnly)
+        self.catalog_list.setDefaultDropAction(Qt.DropAction.CopyAction)
+        self.catalog_list.viewport().setCursor(Qt.CursorShape.OpenHandCursor)
         self.catalog_list.currentItemChanged.connect(self.choose_catalog_item)
-        self.catalog_list.itemClicked.connect(self.begin_catalog_placement)
+        self.catalog_list.itemClicked.connect(self.catalog_list.pick_up)
         layout.addWidget(self.catalog_list, 1)
-        self.catalog_details = label("Choose a piece, then click in the room.", "hint", True)
+        self.catalog_details = label("Drag a piece into the room, or click to pick it up.", "hint", True)
         layout.addWidget(self.catalog_details)
         self.favorite_button = button("♡ Favorite", self.toggle_favorite, "quiet")
         layout.addWidget(self.favorite_button)
@@ -665,10 +750,14 @@ class InteriorEditor(QDialog):
     def preview_feedback(self, valid, message):
         if message:
             self.coordinates.setText(message)
+        elif self.canvas.catalogue_drag:
+            self.coordinates.setText("Release to place · Esc to cancel")
         elif self.tool.currentData() == "place":
             self.coordinates.setText("Click to place · Right-click or R to rotate · Esc to stop")
         elif self.tool.currentData() == "room":
             self.coordinates.setText("Drag out a room beside an existing room. Release to build it.")
+        elif self.tool.currentData() == "select":
+            self.coordinates.setText("Click to select · Drag to move · R to rotate · Delete to put away")
 
     def connect_library(self):
         from pixelheart_core.interior_furniture import discover_furniture_libraries, resolve_furniture_library
@@ -941,11 +1030,29 @@ class InteriorEditor(QDialog):
         self.render()
         self.room_selection_changed()
 
+    def preview_options(self):
+        """Preview-only controls never become room data or undoable edits."""
+        time_of_day = self.preview_time.currentData()
+        lighting = self.preview_lights.currentData()
+        return {"time_of_day": time_of_day,
+                "lights_on": lighting == "on" or (lighting == "auto" and time_of_day != "day")}
+
     def render(self):
+        from pixelheart_core.interiors import interior_background
+        background = interior_background(self.draft.data)
+        if getattr(self, "_stage_background", None) != background:
+            self._stage_background = background
+            self.canvas_scroll.setStyleSheet(
+                f"QScrollArea#interiorStage {{ background: {background}; border: 2px solid #8e8068; border-radius: 4px; }} "
+                f"QScrollArea#interiorStage > QWidget > QWidget {{ background: {background}; }}")
         try:
-            preview = render_interior(self.draft.data, self.stage_root, elapsed_ms=self.elapsed_ms, grid=self.grid.isChecked())
+            options = self.preview_options()
+            preview = render_interior(self.draft.data, self.stage_root, elapsed_ms=self.elapsed_ms,
+                                      grid=self.grid.isChecked(), **options)
             self.canvas.grid = self.grid.isChecked()
             self.canvas.elapsed_ms = self.elapsed_ms
+            self.canvas.time_of_day = options["time_of_day"]
+            self.canvas.lights_on = options["lights_on"]
             self.canvas.set_image(preview)
             preview.close()
         except (ValueError, OSError) as exc:
@@ -986,6 +1093,7 @@ class InteriorEditor(QDialog):
             candidate["atlas"] = atlas
             candidate.pop("surfaces", None)
             candidate.pop("room_styles", None)
+            candidate.pop("room_frame", None)
             candidate["style"] = {key: 0 for key in ("floor", "wall_top", "wall_middle", "wall_bottom")}
             candidate["animations"] = []
             self.selected_surface = ""
@@ -1046,7 +1154,15 @@ class InteriorEditor(QDialog):
             existing = {definition["id"]: definition for definition in candidate["catalog"]}
             for definition in imported["definitions"]:
                 previous = existing.get(definition["id"], {})
-                existing[definition["id"]] = {**definition, **{key: previous[key] for key in ("preview_asset", "frames", "rotation_footprints") if not definition.get(key) and previous.get(key)}}
+                preserved = {key: previous[key] for key in ("preview_asset", "frames", "rotation_footprints")
+                             if not definition.get(key) and previous.get(key)}
+                if not definition.get("preview_asset") and previous.get("preview_asset"):
+                    # Native metadata refreshes keep the existing atlas and
+                    # its observed effects. A new atlas must supply its own
+                    # effect rectangles; explicit empty metadata clears them.
+                    preserved.update({key: previous[key] for key in ("preview_variants", "preview_lights")
+                                      if key not in definition and key in previous})
+                existing[definition["id"]] = {**definition, **preserved}
             candidate["catalog"] = list(existing.values())
             if imported.get("surfaces"):
                 from pixelheart_core.interior_surface_design import stage_surface_library, apply_surface
@@ -1057,12 +1173,24 @@ class InteriorEditor(QDialog):
                         first = next((d for d in candidate["surfaces"] if d["kind"] == kind), None)
                         if first:
                             candidate = apply_surface(candidate, first["id"])
+            if imported.get("room_frame") and candidate["kind"] == "residence":
+                from pixelheart_core.interior_surface_design import stage_room_frame
+                candidate = stage_room_frame(candidate, imported["room_frame"], self.stage_root)
             self.draft.apply(candidate)
             succeeded = True
         self.run_change(change)
-        if warnings:
-            self.notice("Some items need attention: " + "\n".join(warnings[:3]))
+        if succeeded and warnings:
+            self.notice("Library notes: " + "\n".join(warnings[:3]))
         return succeeded
+
+    def load_room_frame(self, path):
+        """Complete an older library-backed room without replacing its edits."""
+        def change():
+            imported = import_furniture_library(path, self.stage_root)
+            if imported.get("room_frame"):
+                from pixelheart_core.interior_surface_design import stage_room_frame
+                self.draft.apply(stage_room_frame(self.draft.data, imported["room_frame"], self.stage_root))
+        self.run_change(change)
 
     def choose_texture_folder(self):
         directory = QFileDialog.getExistingDirectory(self, "Choose exported furniture textures")
@@ -1088,7 +1216,8 @@ class InteriorEditor(QDialog):
         category = self.category.currentData()
         groups = {"seating": {"chair", "bench", "couch", "armchair", "stool"}, "tables": {"table", "long table", "long_table"},
                   "beds": {"bed", "double_bed", "double bed"}, "storage": {"dresser", "bookcase", "fish tank", "fishtank"},
-                  "rugs": {"rug"}, "lights": {"lamp", "sconce", "fireplace", "torch"}, "wall": {"painting", "window", "sconce"}}
+                  "rugs": {"rug"}, "lights": {"lamp", "sconce", "fireplace", "torch"},
+                  "windows": {"window"}, "wall": {"painting", "window", "sconce"}}
         definitions = self.draft.data["catalog"]
         signature = (repr(definitions), query, category, tuple(sorted(self.favorites)), tuple(self.recent))
         if signature == self._catalog_signature:
@@ -1101,11 +1230,14 @@ class InteriorEditor(QDialog):
             definitions = sorted(definitions, key=lambda d: self.recent.index(d["id"]) if d["id"] in self.recent else 99999)
         for definition in definitions:
             identity = definition["id"]
-            if query and query not in (definition["name"] + " " + identity).casefold():
+            if query and query not in (definition["name"] + " " + identity + " " + definition["kind"]).casefold():
                 continue
             if category == "favorites" and identity not in self.favorites or category == "recent" and identity not in self.recent:
                 continue
-            if category in groups and definition["kind"] not in groups[category]:
+            # Boarded Window is classified as a painting by the game. Keep
+            # its placement behavior while making it discoverable as a window.
+            named_window = definition["kind"] == "painting" and "window" in definition["name"].casefold()
+            if category in groups and definition["kind"] not in groups[category] and not (category == "windows" and named_window):
                 continue
             if category == "decor" and definition["kind"] in set().union(*groups.values()):
                 continue
@@ -1136,9 +1268,9 @@ class InteriorEditor(QDialog):
         self.favorite_button.setEnabled(definition is not None)
         self.favorite_button.setText("♥ Favorited" if self.selected_catalog in self.favorites else "♡ Favorite")
         if definition:
-            self.catalog_details.setText(definition["name"] + (" · Click to pick up" if definition.get("footprint") else " · Size unavailable; refresh the game library"))
+            self.catalog_details.setText(definition["name"] + (" · Drag into the room, or click to pick up" if definition.get("footprint") else " · Size unavailable; refresh the game library"))
         else:
-            self.catalog_details.setText("Choose a piece, then click in the room.")
+            self.catalog_details.setText("Drag a piece into the room, or click to pick it up.")
         if hasattr(self, "canvas") and self.tool.currentData() == "place":
             if not definition:
                 self.cancel_tool()
@@ -1168,16 +1300,32 @@ class InteriorEditor(QDialog):
             self.run_change(change)
         dialog.deleteLater()
 
+    def place_catalog_drop(self, identity, x, y):
+        return self.place_furniture_once(identity, x, y, 0)
+
+    def place_furniture_once(self, identity, x, y, rotation):
+        def place():
+            placed_id = self.draft.place_furniture(identity, x, y, rotation)
+            self.recent = [identity] + [i for i in self.recent if i != identity][:23]
+            self.selected_furniture = placed_id
+            return placed_id
+        placed_id = self.run_change(place)
+        if not placed_id:
+            return False
+        self.canvas.clear_placement()
+        self.canvas.clear_catalogue_drag()
+        self.set_tool("select")
+        self.select_furniture(placed_id)
+        self.preview_feedback(True, "")
+        return True
+
     def click_tile(self, x, y):
         tool = self.tool.currentData()
         if tool == "place":
             if not self.selected_catalog:
                 self.notice("Choose furniture in the Furniture tab first.")
                 return
-            def place():
-                self.selected_furniture = self.draft.place_furniture(self.selected_catalog, x, y, self.placement_rotation)
-                self.recent = [self.selected_catalog] + [i for i in self.recent if i != self.selected_catalog][:23]
-            self.run_change(place)
+            self.place_furniture_once(self.selected_catalog, x, y, self.placement_rotation)
         elif tool == "surface" and self.selected_surface:
             from pixelheart_core.interior_surface_design import apply_surface
             room = next((r for r in self.draft.data["rooms"] if r["x"] <= x < r["x"] + r["width"] and r["y"] - 3 <= y < r["y"] + r["height"]), None)
