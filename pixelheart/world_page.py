@@ -1,5 +1,6 @@
 """Editable supporting characters and imported places for a portable NPC pack."""
 from copy import deepcopy
+import re
 import uuid
 
 from PySide6.QtCore import Qt, Signal
@@ -51,7 +52,7 @@ class WorldPage(QWidget):
         self.detail_stacks = {}
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        intro, layout = card("A life with people and places", "Create real supporting characters, bring in your own maps, and connect every place to the valley.")
+        intro, layout = card("A life with people and places", "Create supporting characters, build their homes, and connect each place to the valley.")
         layout.addWidget(label("Supporting cast need their own portrait and sprite sheets. Imported maps keep their tilesheets with the project. All locations and routes still need an in-game playtest.", "hint", True))
         root.addWidget(intro)
         self.tabs = QTabWidget()
@@ -66,10 +67,30 @@ class WorldPage(QWidget):
         root = QVBoxLayout(page)
         root.setContentsMargins(0, 14, 0, 0)
         row = QHBoxLayout()
-        row.addWidget(button("+ " + title, add, "primary"))
+        if title == "Add place":
+            self.build_home_button = button("Build a home…", self.build_home, "primary")
+            self.design_spouse_button = button("Design spouse room…", self.design_spouse_room)
+            row.addWidget(self.build_home_button)
+            row.addWidget(self.design_spouse_button)
+        else:
+            row.addWidget(button("+ " + title, add, "primary"))
         row.addWidget(button("Remove", remove, "quiet"))
         row.addStretch()
         root.addLayout(row)
+        if title == "Add place":
+            self.place_advanced_toggle = button("▸ Advanced / Game connection", lambda: None, "quiet")
+            self.place_advanced_toggle.setAccessibleName("Advanced / Game connection")
+            self.place_advanced_toggle.setCheckable(True)
+            self.place_advanced_toggle.toggled.connect(self.show_place_advanced)
+            root.addWidget(self.place_advanced_toggle)
+            self.place_creation_tools = QWidget()
+            creation = QHBoxLayout(self.place_creation_tools)
+            creation.setContentsMargins(0, 0, 0, 0)
+            creation.addWidget(button("+ Add place", add))
+            creation.addWidget(label("Create an empty place for a supplied map or another use.", "hint", True))
+            creation.addStretch()
+            self.place_creation_tools.hide()
+            root.addWidget(self.place_creation_tools)
         split = QSplitter()
         listing = QListWidget()
         listing.setWordWrap(True)
@@ -93,7 +114,7 @@ class WorldPage(QWidget):
         empty_layout.addStretch()
         heading, hint = {
             "Add companion": ("A place for someone new", "Add a companion to give your story another familiar face."),
-            "Add place": ("Room for your world to grow", "Add a place to bring a workshop, cottage, or hidden corner into the valley."),
+            "Add place": ("Make a place that feels like them", "Choose Build a home to start decorating, or design the room they will bring to the farmhouse."),
             "Add dependency": ("Everything your story needs", "Add a dependency when your mod uses another creator's maps or content."),
         }[title]
         for text, style in ((heading, "sectionTitle"), (hint, "muted")):
@@ -172,39 +193,49 @@ class WorldPage(QWidget):
                                 **{key: number(0, 1000) for key in ("room_x", "room_y", "entry_x", "entry_y", "exit_x", "exit_y")}}
         self.entrance_fields = {"map": MapSelector(compact=True), **{key: number(0, 1000) for key in ("x", "y", "arrival_x", "arrival_y")}}
         details, content = card("A place that belongs to them")
-        form_rows(content, [("Place name", self.location_fields["name"]), ("Stable map ID", self.location_fields["internal_name"])])
+        form_rows(content, [("Place name", self.location_fields["name"])])
         self.interior_button = button("Design interior…", self.design_interior, "primary")
         content.addWidget(self.interior_button)
         self.assign_home_button = button("Set as their residence", self.assign_home)
         content.addWidget(self.assign_home_button)
-        content.addWidget(button("Import Tiled map…", self.import_location, "primary"))
-        content.addWidget(button("Create map from a tilesheet…", self.create_map))
-        self.edit_map_button = button("Edit painted map…", self.edit_map)
-        content.addWidget(self.edit_map_button)
-        self.map_status = label("Import a finite 16×16 tile TMX map with Back, Buildings, and Front layers. Keep its TSX and PNG files in the same folder or subfolders.", "hint", True)
+        self.map_status = label("Open the designer to shape and furnish their home.", "hint", True)
         content.addWidget(self.map_status)
-        self.map_identity = label("", "hint", True)
-        content.addWidget(self.map_identity)
-        self.map_preview = label("Import a map to preview its supplied tiles.", "muted", True)
+        self.map_preview = label("Their interior preview will appear here.", "muted", True)
         self.map_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.map_preview.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self.map_preview.setMinimumHeight(150)
         self.map_preview.setMaximumHeight(250)
         self._preview_key = None
         content.addWidget(self.map_preview)
-        content.addWidget(label("Tile artwork preview · Collision, map actions, and character routes need in-game testing.", "hint", True))
-        content.addWidget(self.location_fields["spouse_room"])
+        self.connection_hint = label("When the interior is ready, choose Advanced / Game connection to connect its entrance to the valley.", "hint", True)
+        content.addWidget(self.connection_hint)
         layout.addWidget(details)
+        self.location_advanced = QWidget()
+        advanced_layout = QVBoxLayout(self.location_advanced)
+        advanced_layout.setContentsMargins(0, 0, 0, 0)
+        map_tools, content = card("Map tools", "For imported maps and the game's location settings. Keep stable IDs unchanged after using a pack in a save.")
+        form_rows(content, [("Stable map ID", self.location_fields["internal_name"])])
+        self.map_identity = label("", "hint", True)
+        content.addWidget(self.map_identity)
+        content.addWidget(button("Import Tiled map…", self.import_location))
+        content.addWidget(button("Create map from a tilesheet…", self.create_map))
+        self.edit_map_button = button("Edit painted map…", self.edit_map)
+        content.addWidget(self.edit_map_button)
+        content.addWidget(label("Imported maps need 16×16 tiles, Back / Buildings / Front layers, and local TSX / PNG files. Collision, actions, and routes need in-game testing.", "hint", True))
+        content.addWidget(self.location_fields["spouse_room"])
+        advanced_layout.addWidget(map_tools)
         self.warps_card, content = card("Give the player a way in and out", "The entrance and return arrival must be different tiles. Check their walkability in-game.")
         form_rows(content, [("Entrance map", self.entrance_fields["map"]), ("Entrance trigger X", self.entrance_fields["x"]),
                             ("Entrance trigger Y", self.entrance_fields["y"]), ("Arrive inside at X", self.location_fields["entry_x"]),
                             ("Arrive inside at Y", self.location_fields["entry_y"]), ("Exit trigger X", self.location_fields["exit_x"]),
                             ("Exit trigger Y", self.location_fields["exit_y"]), ("Return outside at X", self.entrance_fields["arrival_x"]),
                             ("Return outside at Y", self.entrance_fields["arrival_y"])])
-        layout.addWidget(self.warps_card)
+        advanced_layout.addWidget(self.warps_card)
         self.room_card, content = card("Their room in the farmhouse", "Choose the top-left tile of a 6×9 section. The game places it in the farmhouse when the player marries your primary character.")
         form_rows(content, [("Room section X", self.location_fields["room_x"]), ("Room section Y", self.location_fields["room_y"])])
-        layout.addWidget(self.room_card)
+        advanced_layout.addWidget(self.room_card)
+        self.location_advanced.hide()
+        layout.addWidget(self.location_advanced)
         layout.addStretch()
         self.location_list.currentRowChanged.connect(self.select_location)
         for widget in (*self.location_fields.values(), *self.entrance_fields.values()):
@@ -335,6 +366,65 @@ class WorldPage(QWidget):
                 preview.set_image()
                 self.cast_asset_labels[kind].setText(str(exc))
 
+    def show_place_advanced(self, visible):
+        self.place_advanced_toggle.setText(("▾ " if visible else "▸ ") + "Advanced / Game connection")
+        self.place_creation_tools.setVisible(visible)
+        if hasattr(self, "location_advanced"):
+            self.location_advanced.setVisible(visible)
+
+    def build_home(self):
+        self._start_interior_place(spouse=False)
+
+    def design_spouse_room(self):
+        self._start_interior_place(spouse=True)
+
+    def _start_interior_place(self, *, spouse):
+        if spouse:
+            existing = next((index for index, record in enumerate(self.world["locations"])
+                             if record["spouse_room"]), None)
+            if existing is not None:
+                self.location_list.setCurrentRow(existing)
+                self.design_interior()
+                return
+        if len(self.world["locations"]) >= 32:
+            self.window.show_error("Place limit reached", "This project already has 32 places. Edit an existing home or remove a place before adding another.")
+            return
+        # Save the existing project before adding a pending place. Cancelling
+        # either dialog must not leave a new empty record in the saved file.
+        if not self.window.ensure_saved():
+            return
+        previous_id = (self.world["locations"][self.location_index]["id"]
+                       if self.location_index >= 0 else None)
+        character = self.window.document.get("character", {})
+        name = str(character.get("name", "")).strip()
+        base = re.sub(r"[^A-Za-z0-9_]", "", str(character.get("internal_name") or name)) or "NPC"
+        if not re.match(r"[A-Za-z]", base):
+            base = "NPC" + base
+        suffix = "SpouseRoom" if spouse else "Home"
+        base = base[:40 - len(suffix)] + suffix
+        used = {record["internal_name"].casefold() for record in self.world["locations"]}
+        internal, serial = base, 2
+        while internal.casefold() in used:
+            number_text = str(serial)
+            internal = base[:40 - len(number_text)] + number_text
+            serial += 1
+        record = new_location()
+        record.update(name=(name[:60] + "'s " if name else "Their ") + ("spouse room" if spouse else "home"),
+                      internal_name=internal, spouse_room=spouse)
+        self.world["locations"].append(record)
+        self.location_list.addItem(record["name"])
+        self.location_list.setCurrentRow(len(self.world["locations"]) - 1)
+        if self.design_interior(allow_rebase=True):
+            if not spouse:
+                self.assign_home()
+            return
+        # The pending record is private to this interaction; restore the prior
+        # selection and leave existing places and residence assignment intact.
+        self.world["locations"] = [entry for entry in self.world["locations"] if entry["id"] != record["id"]]
+        self.load(self.world)
+        self.location_list.setCurrentRow(next((index for index, entry in enumerate(self.world["locations"])
+                                              if entry["id"] == previous_id), -1))
+
     def add_location(self):
         if len(self.world["locations"]) >= 32:
             return
@@ -386,8 +476,9 @@ class WorldPage(QWidget):
         self.location_fields["spouse_room"].setEnabled(design is None)
         self.warps_card.setVisible(not record["spouse_room"])
         self.room_card.setVisible(record["spouse_room"])
+        self.connection_hint.setText("This room joins the farmhouse after marriage. Keep their marked standing spot clear in the designer." if record["spouse_room"] else "When the interior is ready, choose Advanced / Game connection to connect its entrance to the valley.")
         self.map_identity.setText("This map section is placed in FarmHouse; it is not a separate location." if record["spouse_room"] else "Use “" + record["internal_name"] + "” for schedules and story locations. Game map: " + exported_location_id(record, self.window.document["character"]))
-        self.map_status.setText(f"Interior · {len(design['rooms'])} room(s) · {len(design['furniture'])} furniture item(s) · {len(design['animations'])} tile animation(s)" if design else record["map"] or "Import a finite TMX map with local TSX and PNG tilesheets. Layers: Back, Buildings, Front.")
+        self.map_status.setText(f"{len(design['rooms'])} room(s) · {len(design['furniture'])} furniture item(s)" if design else "Imported map · Open Advanced / Game connection for map tools." if record["map"] else "Open the designer to shape and furnish their home.")
         key = (str(self.window.project_file), record["map"], repr(design))
         if key != self._preview_key:
             self._preview_key = key
@@ -404,7 +495,7 @@ class WorldPage(QWidget):
                 except WorldError as exc:
                     self.map_preview.setText("Preview unavailable: " + str(exc))
             else:
-                self.map_preview.setText("Import a map to preview its supplied tiles.")
+                self.map_preview.setText("Their interior preview will appear here.")
 
     def import_location(self):
         if self.location_index < 0:
@@ -428,20 +519,24 @@ class WorldPage(QWidget):
     def create_map(self):
         self._paint_map()
 
-    def design_interior(self):
+    def design_interior(self, checked=False, *, allow_rebase=False):
         if self.location_index < 0:
-            return
+            return False
         identity = self.world["locations"][self.location_index]["id"]
         if not self.window.ensure_saved():
-            return
+            return False
         self.location_list.setCurrentRow(next(index for index, item in enumerate(self.world["locations"]) if item["id"] == identity))
         from .interior_editor import InteriorEditor
         from PySide6.QtWidgets import QDialog
         from pixelheart_core.interiors import reachable_tiles
         record = self.world["locations"][self.location_index]
+        accepted = False
+        dialog = None
         try:
             dialog = InteriorEditor(self.window.project_file, record.get("interior"),
-                                    "spouse" if record["spouse_room"] else "residence", self)
+                                    "spouse" if record["spouse_room"] else "residence", self,
+                                    resident_name=self.window.document.get("character", {}).get("name", ""),
+                                    allow_rebase=allow_rebase)
             if dialog.exec() == QDialog.DialogCode.Accepted and dialog.result_design:
                 entry = tuple(dialog.result_design["entry"])
                 floors = reachable_tiles(dialog.result_design)
@@ -457,9 +552,13 @@ class WorldPage(QWidget):
                 record["exit_x"], record["exit_y"] = exit_position
                 self.select_location(self.location_index)
                 self.changed.emit()
-            dialog.deleteLater()
+                accepted = True
         except (ValueError, OSError) as exc:
             self.window.show_error("Interior needs attention", str(exc))
+        finally:
+            if dialog is not None:
+                dialog.deleteLater()
+        return accepted
 
     def assign_home(self):
         if self.location_index < 0:

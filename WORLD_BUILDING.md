@@ -28,8 +28,11 @@ not create a private family or friendship simulation between two companions.
 
 ## Create or import a place
 
-In **Places & spouse room**, choose **Add place**, then give it a display name
-and unique **Stable map ID**. That place appears by name in location selectors.
+For an NPC home, start with **Build a home…** in **Places & spouse room**. To
+import a map or create another kind of place, open **Advanced / Game connection**,
+choose **Add place**, and give it a display name and unique **Stable map ID**.
+That place appears by name in location selectors. The advanced section contains
+the map tools:
 
 - **Create map from a tilesheet…** opens the simple painter for a 20×20 location
   or 6×9 spouse room, using your own 16×16 PNG tiles. **Edit painted map…** reopens
@@ -47,29 +50,59 @@ must be edited in Tiled and imported again.
 
 ## Design an interior
 
-Choose a place and **Design interior…** to open the residence designer. For a
-spouse room, select **Use a section as the primary character's spouse room**
-before opening the designer. The spouse canvas stays 6×9 tiles. A residence
-can contain connected floor regions and up to four optional rooms.
+In **Places & spouse room**, choose **Build a home…** to start decorating a new
+home for your character. Pixelheart names the place and creates its game ID for
+you. Saving the design assigns it as their residence; cancelling leaves no
+empty place behind. Choose **Design spouse room…** for their farmhouse room.
+If a spouse room already exists, that action reopens it.
 
-The designer separates the room structure from furniture items:
+Select an existing place and **Design interior…** or **Edit interior…** to work
+on it again. The spouse canvas stays 6×9 tiles. A residence can contain connected
+floor regions and up to four optional rooms.
 
-- **Surfaces:** import a local 16-pixel tilesheet and choose floor and three wall
-  tiles. Without artwork, the canvas shows a neutral layout guide.
-- **Rooms:** add connected rectangular rooms or remove empty ones. Occupied
-  rooms and blocked standing positions are rejected. Room additions are offered
-  by the companion in-game; arbitrary wall drawing is not included.
-- **Furniture:** import the companion's resolved library or unpacked
-  `Data/Furniture` JSON. Select, place, drag, rotate, or remove items. Each
-  placement retains its actual furniture ID and mod metadata. Raw data may
-  need explicit preview rectangles and dimensions; unknown artwork shows a
-  placeholder. Rugs can sit under other furniture. Tabletop arrangements and
-  arbitrary custom furniture behavior are not simulated by the Python preview.
-- **Animate:** preview supplied tile frames. Exported map animations require
-  equal frame durations. Furniture preview frames are separate metadata;
-  furniture behavior and animations in-game come from the installed item/mod.
+The room stays visible beside a picture catalogue. Start with **Connect game
+library…** to bring in furniture, wallpaper, and flooring from your installed
+game and mods. On first use, the setup explains how to install the companion,
+open a save so it can prepare the library, and choose your game folder.
+Pixelheart contains no bundled Stardew artwork: before the library is connected,
+you can plan rooms in a neutral layout guide, but the real decorating catalogue
+is unavailable.
 
-Imports are staged until **Save interior design**. Cancel discards edits and
+- **Furnish:** browse pictures by category, search by name, or revisit favorites
+  and recent choices. Click a piece to pick it up, move its preview around the
+  room, and click to place it. The placement highlight shows whether it fits.
+  Right-click to rotate a held piece; Escape puts it down without placing it.
+  Choose **Move furniture**, then click or drag an existing piece. The selection
+  controls let you rotate, duplicate, or remove it. Rugs can sit under furniture.
+- **Walls & floors:** pick a wallpaper or flooring swatch, then click a room to
+  decorate it. **Apply to every room** gives the whole home the same finish.
+- **Rooms:** choose a room, pick a small, medium, or large addition, and attach it
+  to the left, right, or below. **Draw a room…** lets you drag out a connected
+  rectangular addition instead. Remove empty rooms or move the marked doorway
+  directly on the canvas. Optional additions can also be offered to the player
+  in-game. Spouse rooms keep their fixed size and a marked standing spot for
+  the NPC. Existing homes keep their map coordinates: an addition on the left
+  needs enough free space, so saved routes and doorways stay in place.
+
+Use **Undo** and **Redo** while experimenting. **Grid**, zoom, and **Fit room**
+help with placement, and **Play** previews available animations. The layout
+protects occupied rooms, the doorway, and the spouse's standing spot.
+
+**Advanced…** holds custom tilesheet imports, exact dimensions, furniture item
+details, raw library imports, and tile animation authoring. These are not needed
+for ordinary decorating with a connected library. Each placed piece retains its
+actual game item ID and mod metadata. Tabletop arrangements and arbitrary custom
+drawing effects are not simulated by the Python preview; installed items and
+mods supply their behavior in-game. Exported map animations require equal frame
+durations.
+
+The room-and-catalogue workflow draws on the visible interactions in
+[Happy Home Designer's gallery](https://www.nexusmods.com/stardewvalley/mods/19675?tab=images)
+and [Nintendo's decorating manual](https://www.nintendo.com/eu/media/downloads/games_8/emanuals/nintendo_3ds_2/animal_crossing__happy_home_designer/ElectronicManual_Nintendo3DS_AnimalCrossingHappyHomeDesigner_EN.pdf).
+Spouse rooms use the same finish-and-furniture approach demonstrated by
+[Spouse Room Renovation](https://www.nexusmods.com/stardewvalley/mods/23529).
+
+Imports are staged until **Save home** or **Save room**. Cancel discards edits and
 staged assets. Undo and redo work across room, furniture, and surface edits.
 Save As carries the private tilesheets and preview textures with the project.
 **Set as their residence** updates the character's home; review their authored
@@ -89,12 +122,19 @@ in a separate `Pixelheart Interiors` folder under Mods, alongside the exported
 NPC pack. The Python exporter declares this dependency; it does not install or
 download the companion automatically.
 
-With the companion running, `pixelheart_export_furniture` in the SMAPI console
-creates a private library JSON and PNG textures in the companion's `exports`
-folder. Import its `library.json` in the designer to use the loaded game's
-furniture bounds and rotation previews. The export reflects default appearances;
-it does not enumerate every texture variant or custom drawing effect. Record
-required provider mods in the item's details where needed.
+After a save loads, the companion automatically prepares a private library of
+furniture and finishes in its `cache/library` folder. **Connect game library…**
+finds it from your game folder, Mods folder, or the library folder itself, then
+remembers the connection. After changing installed mods, restart the game, open
+a save, and choose **Refresh game library…** in Pixelheart. The library reflects
+default appearances; it does not enumerate every texture variant or custom
+drawing effect. Record required provider mods in the item's advanced details
+where needed.
+
+For troubleshooting or a separate snapshot, `pixelheart_export_furniture` in
+the SMAPI console writes a library to the companion's `exports` folder. You can
+select its `library.json` using **I already have a library file…** during setup,
+or **Advanced… → Import library file…**.
 
 The companion initializes successful furniture placements once per save and
 keeps those records when players move or collect items. Missing items or blocked
@@ -112,7 +152,8 @@ before treating an exported design as ready for play.
 
 ## Connect the entrance and exit
 
-Complete **Give the player a way in and out** for every standalone place:
+Open **Advanced / Game connection** and complete **Give the player a way in and
+out** for every standalone place:
 
 1. Select the outside **Entrance map** and the X/Y tile that triggers entry.
 2. Set the X/Y tile where the player arrives inside your place.
@@ -134,10 +175,14 @@ change without changing the authored map's identity.
 
 ## Give the spouse a room
 
-Select **Use a section as the primary character's spouse room**, then choose the
-top-left X/Y tile of a 6×9 section. The supplied map must contain the whole section.
-The 6×9 painter preset selects X 0, Y 0 automatically. Only one primary spouse
-room is supported, and the primary character must have romance enabled.
+Choose **Design spouse room…** to decorate the fixed room directly. Only one
+primary spouse room is supported, and the primary character must have romance
+enabled.
+
+For a supplied map, open **Advanced / Game connection**, select **Use a section
+as the primary character's spouse room**, and choose the top-left X/Y tile of a
+6×9 section. The map must contain the whole section. The 6×9 painter preset
+selects X 0, Y 0 automatically.
 
 The game places this section in the farmhouse after marriage. It is not a
 standalone location and should not be selected as a home, schedule, or event
