@@ -1154,8 +1154,12 @@ class InteriorEditor(QDialog):
             existing = {definition["id"]: definition for definition in candidate["catalog"]}
             for definition in imported["definitions"]:
                 previous = existing.get(definition["id"], {})
-                preserved = {key: previous[key] for key in ("preview_asset", "frames", "rotation_footprints")
+                preserved = {key: previous[key] for key in ("preview_asset", "rotation_footprints")
                              if not definition.get(key) and previous.get(key)}
+                if (not definition.get("frames") and previous.get("frames")
+                        and (not definition.get("preview_asset")
+                             or definition["preview_asset"] == previous.get("preview_asset"))):
+                    preserved["frames"] = previous["frames"]
                 if not definition.get("preview_asset") and previous.get("preview_asset"):
                     # Native metadata refreshes keep the existing atlas and
                     # its observed effects. A new atlas must supply its own
