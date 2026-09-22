@@ -83,6 +83,65 @@ def placement_cells(item, definition):
             for x in range(item["x"], item["x"] + width)}
 
 
+def validate_furniture_placement(data, item, definition=None):
+    """Check placement-only rules without making older saved rooms unreadable.
+
+    Windows hang from the upper edge of a wall. Their artwork can extend above
+    the collision footprint, so compare the visible top with the actual wall
+    geometry rather than a fixed canvas row or the footprint's top alone.
+    """
+    if definition is None:
+        definition = next(entry for entry in data["catalog"] if entry["id"] == item["item_id"])
+    window = definition["kind"] == "window" or (
+        definition["kind"] == "painting" and (
+            definition["id"] == "(F)1630" or "window" in definition["name"].casefold()))
+    if not window:
+        return
+    width, height = footprint(definition, item["rotation"])
+    frames = [frame for frame in definition.get("frames", [])
+              if frame["rotation"] == item["rotation"]]
+    if frames:
+        sprite_width, sprite_height = frames[0]["rect"][2:]
+        dx, dy = frames[0].get("offset", (0, 0))
+    else:
+        sprite_width, sprite_height = (part * 16 for part in (definition.get("sprite_size") or (width, height)))
+        dx, dy = 0, 0
+    top_pixels = (item["y"] + height) * 16 - sprite_height + dy
+    top = top_pixels // 16
+    left = min(item["x"], (item["x"] * 16 + dx) // 16)
+    right = max(item["x"] + width, (item["x"] * 16 + dx + sprite_width + 15) // 16)
+    walls = wall_cells(data)
+    if top_pixels % 16 or any((x, top) not in walls or (x, top - 1) in walls
+                              for x in range(left, right)):
+        raise InteriorError("Place windows along the top of the wall, above the lower wall trim.")
+
+
+def _layout_translation(before, after):
+    """Recognize a canvas rebase which preserves all authored relative positions."""
+    rooms = {room["id"]: room for room in after["rooms"]}
+    first = before["rooms"][0]
+    if first["id"] not in rooms:
+        return 0, 0
+    dx, dy = rooms[first["id"]]["x"] - first["x"], rooms[first["id"]]["y"] - first["y"]
+    if not (dx or dy):
+        return 0, 0
+    for room in before["rooms"]:
+        moved = rooms.get(room["id"])
+        if (moved is None or (moved["x"], moved["y"]) != (room["x"] + dx, room["y"] + dy)
+                or any(moved[key] != room[key] for key in ("width", "height", "enabled"))):
+            return 0, 0
+    placements = {item["id"]: item for item in after["furniture"]}
+    for item in before["furniture"]:
+        moved = placements.get(item["id"])
+        if (moved is None or (moved["x"], moved["y"]) != (item["x"] + dx, item["y"] + dy)
+                or any(moved[key] != item[key] for key in ("item_id", "rotation"))):
+            return 0, 0
+    if any(after[key] != [before[key][0] + dx, before[key][1] + dy]
+           for key in ("entry", "spouse_stand")):
+        return 0, 0
+    return dx, dy
+
+
 def _connected(cells):
     if not cells:
         return False
@@ -192,6 +251,14 @@ def normalize_interior(value):
         raise InteriorError("Choose interior floor and wall tiles.")
     for key in ("floor", "wall_top", "wall_middle", "wall_bottom"):
         _integer(style.get(key), 0, max(0, atlas["tile_count"] - 1), "A surface tile is outside the tilesheet.")
+    if "room_frame" in data:
+        from .interior_furniture import ROOM_FRAME_TILES, ROOM_FRAME_JOINS
+        frame = data["room_frame"]
+        if (not isinstance(frame, dict) or not set(ROOM_FRAME_TILES) <= set(frame)
+                or set(frame) - set(ROOM_FRAME_TILES) - set(ROOM_FRAME_JOINS)):
+            raise InteriorError("The room frame needs all of its edge and corner tiles.")
+        for tile in frame.values():
+            _integer(tile, 0, max(0, atlas["tile_count"] - 1), "A room frame tile is outside the tilesheet.")
     def pattern(value, kind):
         if not isinstance(value, dict):
             raise InteriorError("A room finish needs a complete pattern.")
@@ -326,6 +393,16 @@ class InteriorDraft:
         candidate = normalize_interior(data)
         if candidate == self.data:
             return False
+        # Keep pre-existing placements intact when opening, restyling or
+        # refreshing a library. New placements and deliberate moves/rotations
+        # must follow current placement rules; failed edits leave history alone.
+        existing = {item["id"]: item for item in self.data["furniture"]}
+        dx, dy = _layout_translation(self.data, candidate)
+        for item in candidate["furniture"]:
+            previous = existing.get(item["id"])
+            if (previous is None or (item["x"], item["y"]) != (previous["x"] + dx, previous["y"] + dy)
+                    or any(item[key] != previous[key] for key in ("item_id", "rotation"))):
+                validate_furniture_placement(candidate, item)
         self._undo.append(self.snapshot())
         del self._undo[:-50]
         self._redo.clear()
@@ -426,6 +503,7 @@ def map_layers(data, enabled=None):
     floor = floor_cells(data, enabled)
     active_rooms = [r for r in data["rooms"] if (r["enabled"] if enabled is None else r["id"] in enabled)]
     owners = {cell: room for room in active_rooms for cell in room_cells(room)}
+    walls = set()
     def room_style(room):
         return {**data["style"], **data.get("room_styles", {}).get(room["id"], {})}
     def put(layer, x, y, tile):
@@ -447,12 +525,58 @@ def map_layers(data, enabled=None):
                     if pattern:
                         tile = pattern["tiles"][(3-distance)*pattern["width"] + (x-room["x"]) % pattern["width"]]
                     put("Back", x, y-distance, tile)
+                    if y-distance >= 0:
+                        walls.add((x, y-distance))
                     # A transparent collision tile leaves editable Back-wall
                     # artwork visible when wallpaper changes in the game.
                     put("Buildings", x, y-distance, data["atlas"]["tile_count"])
-        for nx, ny in ((x-1, y), (x+1, y), (x, y+1)):
-            if (nx, ny) not in floor:
-                put("Buildings", nx, ny, style["wall_bottom"])
+    envelope = floor | walls
+    # Wallpaper is a three-row north-wall finish, never structural edge art.
+    # Legacy/custom designs without frame artwork still keep their collision
+    # boundary; transparent blockers must not repeat a wallpaper baseboard.
+    for x, y in sorted(envelope):
+        for nx, ny in ((x-1, y), (x+1, y), (x, y-1), (x, y+1)):
+            if (nx, ny) not in envelope:
+                put("Buildings", nx, ny, data["atlas"]["tile_count"])
+
+    frame = data.get("room_frame")
+    if frame and data["kind"] == "residence":
+        def outside(x, y, role):
+            if (x, y) not in envelope:
+                # A stepped ceiling shares a cell with the adjacent vertical
+                # edge. Resolve that junction from occupancy on every write,
+                # so left/right room order cannot overwrite it with a side.
+                if (x, y+1) in envelope:
+                    if (x-1, y) in envelope and "top_join_left" in frame:
+                        role = "top_join_left"
+                    elif (x+1, y) in envelope and "top_join_right" in frame:
+                        role = "top_join_right"
+                put("Front", x, y, frame[role])
+                put("Buildings", x, y, data["atlas"]["tile_count"])
+
+        for x, y in sorted(envelope):
+            bottom = (x, y) in floor and (x, y+1) not in envelope
+            if (x-1, y) not in envelope:
+                outside(x-1, y, "bottom_left_outer" if bottom else "left")
+            if (x+1, y) not in envelope:
+                outside(x+1, y, "bottom_right_outer" if bottom else "right")
+            if (x, y-1) not in envelope:
+                outside(x, y-1, "top")
+                if (x-1, y) not in envelope:
+                    outside(x-1, y-1, "top_left")
+                if (x+1, y) not in envelope:
+                    outside(x+1, y-1, "top_right")
+            if bottom:
+                # The source's lower trim has a transparent floor-facing half.
+                # Keep the floor underneath it and draw it in Front, as the
+                # game does, so furniture and characters can pass behind it.
+                left, right = (x-1, y) not in envelope, (x+1, y) not in envelope
+                role = "bottom_left_inner" if left and not right else "bottom_right_inner" if right and not left else "bottom"
+                if (x+1, y+1) in floor and "bottom_join_right" in frame:
+                    role = "bottom_join_right"
+                elif (x-1, y+1) in floor and "bottom_join_left" in frame:
+                    role = "bottom_join_left"
+                put("Front", x, y, frame[role])
     return layers
 
 
@@ -468,12 +592,17 @@ def animation_tile(data, tile, elapsed_ms):
     return tile
 
 
-def render_interior(data, project_root, elapsed_ms=0, grid=False):
-    """Pixel-exact artwork preview, not a simulation of game item behavior."""
-    from .interior_furniture import preview_frame, FurnitureValidationError
+def interior_background(data):
+    """Match the cutaway backdrop across the rendered map and its viewport."""
+    return "#050304" if data.get("room_frame") and data["kind"] == "residence" else "#292d30"
+
+
+def render_interior(data, project_root, elapsed_ms=0, grid=False, *, time_of_day="day", lights_on=True):
+    """Render supplied artwork, animation states and observed furniture lights."""
+    from .interior_furniture import preview_frame, preview_frame_offset, FurnitureValidationError
     data = normalize_interior(data)
     width, height = data["width"], data["height"]
-    image = Image.new("RGBA", (width * 16, height * 16), "#292d30")
+    image = Image.new("RGBA", (width * 16, height * 16), interior_background(data))
     draw = ImageDraw.Draw(image)
     sheet = None
     if data["atlas"]["asset"]:
@@ -484,7 +613,7 @@ def render_interior(data, project_root, elapsed_ms=0, grid=False):
             pass
     layers = map_layers(data)
     floor = floor_cells(data)
-    for layer in ("Back", "Buildings"):
+    def draw_layer(layer):
         for index, gid in enumerate(layers[layer]):
             if not gid:
                 continue
@@ -507,6 +636,8 @@ def render_interior(data, project_root, elapsed_ms=0, grid=False):
                 tile = animation_tile(data, gid - 1, elapsed_ms)
                 sx, sy = tile % data["atlas"]["columns"] * 16, tile // data["atlas"]["columns"] * 16
                 image.alpha_composite(sheet.crop((sx, sy, sx+16, sy+16)), (x, y))
+    for layer in ("Back", "Buildings"):
+        draw_layer(layer)
     definitions = {item["id"]: item for item in data["catalog"]}
     ordered = sorted(data["furniture"], key=lambda item: (definitions[item["item_id"]]["kind"] != "rug", item["y"] + footprint(definitions[item["item_id"]], item["rotation"])[1]))
     for item in ordered:
@@ -514,11 +645,22 @@ def render_interior(data, project_root, elapsed_ms=0, grid=False):
         fw, fh = footprint(definition, item["rotation"])
         x, y = item["x"] * 16, item["y"] * 16
         try:
-            sprite = preview_frame(definition, project_root, item["rotation"], elapsed_ms)
-            image.alpha_composite(sprite, (x, y + fh * 16 - sprite.height))
+            with preview_frame(definition, project_root, item["rotation"], elapsed_ms,
+                               time_of_day=time_of_day, lights_on=lights_on) as sprite:
+                dx, dy = preview_frame_offset(definition, item["rotation"], elapsed_ms,
+                                              time_of_day=time_of_day, lights_on=lights_on)
+                image.alpha_composite(sprite, (x + dx, y + fh * 16 - sprite.height + dy))
         except (FurnitureValidationError, OSError):
             draw.rectangle((x, y, x+fw*16-1, y+fh*16-1), fill="#76849b", outline="#d9dfeb")
             draw.text((x+2, y+1), "?", fill="#ffffff")
+    draw_layer("Front")
+    if sheet is not None:
+        sheet.close()
+    from .interior_lighting import apply_preview_lighting
+    lit_image = apply_preview_lighting(image, data, project_root, time_of_day=time_of_day, lights_on=lights_on)
+    image.close()
+    image = lit_image
+    draw = ImageDraw.Draw(image)
     if grid:
         for x in range(0, width * 16, 16):
             draw.line((x, 0, x, height*16), fill=(0, 0, 0, 75))

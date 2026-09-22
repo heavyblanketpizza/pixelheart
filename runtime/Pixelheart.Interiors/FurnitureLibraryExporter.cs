@@ -206,11 +206,11 @@ internal static class FurnitureLibraryExporter
         }
         if (definitions.Count == 0)
         {
-            string notes = Path.Combine(output, "warnings.txt");
-            using var diagnostic = new FileStream(notes, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            string diagnosticPath = Path.Combine(output, "warnings.txt");
+            using var diagnostic = new FileStream(diagnosticPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
             byte[] details = Encoding.UTF8.GetBytes(string.Join(Environment.NewLine, messages));
             diagnostic.Write(details, 0, details.Length);
-            throw new InvalidOperationException($"No compatible furniture previews could be resolved. Check this runtime against the installed game version; diagnostic notes: {notes}");
+            throw new InvalidOperationException($"No compatible furniture previews could be resolved. Check this runtime against the installed game version; diagnostic notes: {diagnosticPath}");
         }
         var surfaces = ExportSurfaces(helper, output, sheets, failedSheets, messages, ref textureBytes, ref jsonBytes);
         var library = new { format = "pixelheart-interior-library", version = 1, definitions, surfaces, warnings = messages, notes };

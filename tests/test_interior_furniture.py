@@ -9,10 +9,11 @@ from unittest.mock import patch
 from PIL import Image
 
 from pixelheart_core.interior_furniture import (
-    FurnitureValidationError, _read_texture, attach_texture, clear_preview_cache,
+    ROOM_FRAME_JOINS, ROOM_FRAME_TILES, FurnitureValidationError, _read_texture,
+    attach_texture, clear_preview_cache,
     definition_assets, frame_at,
     import_catalog_textures, import_furniture_library, import_texture, preview_frame,
-    qualified_furniture_id, read_native_catalog, validate_definition,
+    qualified_furniture_id, read_native_catalog, validate_definition, validate_room_frame,
 )
 
 
@@ -76,6 +77,16 @@ class InteriorFurnitureTests(unittest.TestCase):
         self.assertTrue(any("unresolved" in warning for warning in result["warnings"]))
         self.assertEqual(path.read_bytes(), original)
         self.assertEqual(list(self.project.iterdir()), [])
+
+    def test_native_asset_names_normalize_repeated_separators_without_permitting_escape(self):
+        path = self.catalog({
+            "Example.Table": r"Table/table/2 2/2 1/1/100/0/Table/0/TileSheets\\furniture_3",
+            "Bad.Root": r"Bad/table/2 2/2 1/1/100/0/Bad/0/\\outside\\sheet",
+            "Bad.Parent": r"Bad/table/2 2/2 1/1/100/0/Bad/0/TileSheets\\..\\outside",
+        })
+        result = read_native_catalog(path)
+        self.assertEqual([item["id"] for item in result["definitions"]], ["(F)Example.Table"])
+        self.assertEqual(result["definitions"][0]["texture"], "TileSheets/furniture_3")
 
     def test_invalid_native_entries_do_not_discard_valid_records(self):
         result = read_native_catalog(self.catalog({
@@ -253,6 +264,136 @@ class InteriorFurnitureTests(unittest.TestCase):
                 "definitions": definitions}
         data.update(changes)
         return self.catalog(data)
+
+    def room_frame(self, **changes):
+        value = {"preview_asset": "textures/frame.png",
+                 "tiles": {role: [0, 0, 16, 16] for role in ROOM_FRAME_TILES}}
+        value.update(changes)
+        return value
+
+    def test_room_frame_validation_detaches_tiles_and_requires_complete_safe_metadata(self):
+        original = self.room_frame()
+        normalized = validate_room_frame(original)
+        normalized["tiles"]["top"][0] = 16
+        self.assertEqual(original["tiles"]["top"], [0, 0, 16, 16])
+        incomplete = dict(original["tiles"])
+        del incomplete["bottom_right_outer"]
+        invalid = [None, [], {}, self.room_frame(tiles=incomplete),
+                   self.room_frame(tiles=dict(original["tiles"], unknown=[0, 0, 16, 16]))]
+        for reference in ("", "../frame.png", "/frame.png", "C:\\frame.png", "frame.jpg"):
+            invalid.append(self.room_frame(preview_asset=reference))
+        for rect in ([True, 0, 16, 16], [0, -1, 16, 16], [65536, 0, 16, 16],
+                     [0, 0.5, 16, 16], [0, 0, 15, 16], [0, 0, 16, 32], [0, 0, 16]):
+            invalid.append(self.room_frame(tiles=dict(original["tiles"], top=rect)))
+        for value in invalid:
+            with self.subTest(value=value), self.assertRaises(FurnitureValidationError):
+                validate_room_frame(value)
+
+    def test_room_frame_import_preserves_crops_bytes_and_shared_texture_deduplication(self):
+        source = self.texture(self.root / "textures/frame.png")
+        payload = source.read_bytes()
+        room_frame = self.room_frame()
+        room_frame["tiles"]["bottom_right_outer"] = [16, 16, 16, 16]
+        path = self.library([self.definition(preview_asset="textures/frame.png")],
+                            room_frame=room_frame)
+        original_json = path.read_bytes()
+        result = import_furniture_library(path, self.project)
+        self.assertEqual(result["room_frame"]["tiles"], room_frame["tiles"])
+        reference = result["room_frame"]["preview_asset"]
+        self.assertEqual(reference, result["definitions"][0]["preview_asset"])
+        self.assertTrue(reference.startswith("world_assets/interiors/textures/"))
+        self.assertEqual((self.project / reference).read_bytes(), payload)
+        self.assertEqual(path.read_bytes(), original_json)
+        self.assertEqual(len(list((self.project / "world_assets/interiors/textures").glob("*.png"))), 1)
+        source.unlink()
+        with Image.open(self.project / reference) as image:
+            self.assertEqual(image.size, (32, 32))
+        self.assertNotIn("room_frame", import_furniture_library(self.library([]), self.project))
+
+    def test_room_frame_optional_joins_are_detached_and_validate_every_supplied_rectangle(self):
+        for role in ROOM_FRAME_JOINS:
+            with self.subTest(role=role):
+                original = self.room_frame()
+                original["tiles"][role] = [16, 16, 16, 16]
+                normalized = validate_room_frame(original)
+                self.assertEqual(normalized["tiles"][role], [16, 16, 16, 16])
+                self.assertEqual(len(normalized["tiles"]), len(ROOM_FRAME_TILES) + 1)
+                normalized["tiles"][role][0] = 0
+                self.assertEqual(original["tiles"][role][0], 16)
+                for rect in ([65536, 0, 16, 16], [False, 0, 16, 16], [0, 0, 32, 16]):
+                    original["tiles"][role] = rect
+                    with self.assertRaises(FurnitureValidationError):
+                        validate_room_frame(original)
+        complete = self.room_frame()
+        complete["tiles"].update({role: [0, 0, 16, 16] for role in ROOM_FRAME_JOINS})
+        self.assertEqual(validate_room_frame(complete), complete)
+
+    def test_bad_room_frame_preflight_prevents_all_furniture_and_surface_asset_copies(self):
+        self.texture(self.root / "textures/good.png")
+        self.texture(self.root / "textures/frame.png")
+        (self.root / "textures/corrupt.png").write_bytes(b"not a PNG")
+        first = self.definition(preview_asset="textures/good.png")
+        surface = {"id": "(FL)0", "kind": "floor", "texture": "Maps/floor",
+                   "preview_asset": "textures/good.png", "rect": [0, 0, 32, 32]}
+        late_bad_rect = self.room_frame()
+        late_bad_rect["tiles"]["bottom_right_outer"] = [17, 16, 16, 16]
+        invalid = [None, self.room_frame(tiles={}), late_bad_rect,
+                   self.room_frame(preview_asset="textures/missing.png"),
+                   self.room_frame(preview_asset="textures/corrupt.png")]
+        for role in ROOM_FRAME_JOINS:
+            frame = self.room_frame()
+            frame["tiles"][role] = [17, 16, 16, 16]
+            invalid.append(frame)
+        for room_frame in invalid:
+            path = self.library([first], surfaces=[surface], room_frame=room_frame)
+            with self.subTest(room_frame=room_frame), self.assertRaises(FurnitureValidationError):
+                import_furniture_library(path, self.project)
+            self.assertEqual(list(self.project.iterdir()), [])
+
+    def test_room_frame_preflight_rejects_escaping_symlink_before_copying_valid_furniture(self):
+        outside = self.texture(self.root / "outside.png")
+        folder = self.root / "bundle"
+        folder.mkdir()
+        self.texture(folder / "good.png")
+        (folder / "frame.png").symlink_to(outside)
+        path = folder / "library.json"
+        path.write_text(json.dumps({
+            "format": "pixelheart-interior-library", "version": 1,
+            "definitions": [self.definition(preview_asset="good.png")],
+            "room_frame": self.room_frame(preview_asset="frame.png"),
+        }))
+        with self.assertRaisesRegex(FurnitureValidationError, "symlink"):
+            import_furniture_library(path, self.project)
+        self.assertEqual(list(self.project.iterdir()), [])
+
+    def test_room_frame_counts_toward_library_texture_and_byte_budgets_before_copy(self):
+        source = self.texture(self.root / "textures/good.png")
+        frame = self.texture(self.root / "textures/frame.png")
+        path = self.library([self.definition(preview_asset="textures/good.png")],
+                            room_frame=self.room_frame())
+        for setting, limit, message in (
+            ("MAX_IMPORT_TEXTURES", 1, "unique PNG"),
+            ("MAX_IMPORT_BYTES", len(source.read_bytes()) + len(frame.read_bytes()) - 1, "combined"),
+        ):
+            with self.subTest(setting=setting), patch("pixelheart_core.interior_furniture." + setting, limit):
+                with self.assertRaisesRegex(FurnitureValidationError, message):
+                    import_furniture_library(path, self.project)
+            self.assertEqual(list(self.project.iterdir()), [])
+
+    def test_corrupt_stored_room_frame_aborts_import_before_new_assets_are_copied(self):
+        self.texture(self.root / "textures/good.png")
+        source = self.texture(self.root / "textures/frame.png")
+        with Image.new("RGBA", (32, 32), "purple") as image:
+            image.save(source)
+        reference = import_texture(source, self.project)
+        (self.project / reference).write_bytes(b"corrupt")
+        path = self.library([self.definition(preview_asset="textures/good.png")],
+                            room_frame=self.room_frame())
+        with self.assertRaisesRegex(FurnitureValidationError, "unexpected contents"):
+            import_furniture_library(path, self.project)
+        self.assertEqual(list((self.project / "world_assets/interiors/textures").glob("*.png")),
+                         [self.project / reference])
+        self.assertEqual((self.project / reference).read_bytes(), b"corrupt")
 
     def test_resolved_library_copies_explicit_frames_rotations_and_original_png_bytes(self):
         source = self.texture(self.root / "textures/exported.png")

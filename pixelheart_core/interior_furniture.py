@@ -14,7 +14,9 @@ from contextlib import contextmanager
 import hashlib
 import io
 import json
+import math
 import os
+import re
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import stat
 import sys
@@ -30,6 +32,7 @@ MAX_CATALOG_ITEMS = 20_000
 MAX_TEXTURE_BYTES = 16 * 1024 * 1024
 MAX_TEXTURE_PIXELS = 16_777_216
 MAX_FRAMES = 256
+MAX_PREVIEW_LIGHTS = 16
 MAX_DIMENSION_TILES = 128
 MAX_FRAME_PIXELS = 2048
 MAX_IMPORT_TEXTURES = 512
@@ -38,6 +41,14 @@ MAX_PREVIEW_CACHE_BYTES = 32 * 1024 * 1024
 MAX_PREVIEW_CACHE_ENTRIES = 64
 MAX_DISCOVERY_ENTRIES = 512
 MAX_DISCOVERY_EXPORTS = 16
+ROOM_FRAME_TILES = (
+    "top_left", "top", "top_right", "left", "right",
+    "bottom_left_outer", "bottom_left_inner", "bottom",
+    "bottom_right_inner", "bottom_right_outer",
+)
+ROOM_FRAME_JOINS = (
+    "top_join_left", "top_join_right", "bottom_join_right", "bottom_join_left",
+)
 
 _preview_cache = OrderedDict()
 _preview_cache_bytes = 0
@@ -103,17 +114,96 @@ def _contained(root, reference):
         raise FurnitureValidationError(f"Cannot resolve the local asset path: {exc}") from exc
 
 
+def _preview_rectangle(value):
+    if not isinstance(value, (list, tuple)) or len(value) != 4:
+        raise FurnitureValidationError("A frame rectangle must contain x, y, width, and height in pixels.")
+    return [_integer(value[0], "Frame x", 0, 65535),
+            _integer(value[1], "Frame y", 0, 65535),
+            _integer(value[2], "Frame width", 1, MAX_FRAME_PIXELS),
+            _integer(value[3], "Frame height", 1, MAX_FRAME_PIXELS)]
+
+
+def _preview_frames(value, rotations):
+    if not isinstance(value, list) or len(value) > MAX_FRAMES:
+        raise FurnitureValidationError(f"Use a list with at most {MAX_FRAMES} preview frames.")
+    result = []
+    for frame in value:
+        if not isinstance(frame, dict):
+            raise FurnitureValidationError("Each preview frame must be an object.")
+        normalized = {
+            "rotation": _integer(frame.get("rotation", 0), "Frame rotation", 0, rotations - 1),
+            "rect": _preview_rectangle(frame.get("rect")),
+            "duration_ms": _integer(frame.get("duration_ms", 100), "Frame duration", 1, 600_000),
+        }
+        if "offset" in frame:
+            offset = frame["offset"]
+            if not isinstance(offset, (list, tuple)) or len(offset) != 2:
+                raise FurnitureValidationError("A preview frame offset needs x and y in pixels.")
+            normalized["offset"] = [_integer(part, "Frame offset", -MAX_FRAME_PIXELS, MAX_FRAME_PIXELS)
+                                    for part in offset]
+        result.append(normalized)
+    return result
+
+
+def _finite_number(value, label, minimum, maximum):
+    if type(value) not in (int, float) or not minimum <= value <= maximum or not math.isfinite(value):
+        raise FurnitureValidationError(f"{label} must be a finite number from {minimum} to {maximum}.")
+    return value
+
+
+def _preview_lights(value, rotations):
+    if not isinstance(value, list) or len(value) > MAX_PREVIEW_LIGHTS:
+        raise FurnitureValidationError(f"Use a list with at most {MAX_PREVIEW_LIGHTS} preview lights.")
+    result = []
+    for light in value:
+        if not isinstance(light, dict):
+            raise FurnitureValidationError("Each preview light must be an object.")
+        offset = light.get("offset")
+        if not isinstance(offset, (list, tuple)) or len(offset) != 2:
+            raise FurnitureValidationError("A preview light offset needs x and y in tiles.")
+        color = light.get("color")
+        if not isinstance(color, str) or re.fullmatch(r"#[0-9a-fA-F]{6}", color) is None:
+            raise FurnitureValidationError("A preview light color must use #RRGGBB.")
+        when = light.get("when")
+        if when not in ("day", "night", "always"):
+            raise FurnitureValidationError("A preview light must be active during day, night, or always.")
+        normalized = {
+            "rotation": _integer(light.get("rotation"), "Light rotation", 0, rotations - 1),
+            "offset": [_finite_number(part, "Light offset", -MAX_DIMENSION_TILES, MAX_DIMENSION_TILES)
+                       for part in offset],
+            "radius": _finite_number(light.get("radius"), "Light radius", 0.001, MAX_DIMENSION_TILES),
+            "color": color,
+            "intensity": _finite_number(light.get("intensity"), "Light intensity", 0, 1),
+            "when": when,
+        }
+        if "mask_rect" in light:
+            normalized["mask_rect"] = _preview_rectangle(light["mask_rect"])
+        if "mask_channel" in light:
+            channel = light["mask_channel"]
+            if channel not in ("alpha", "luminance"):
+                raise FurnitureValidationError("A light mask channel must be alpha or luminance.")
+            normalized["mask_channel"] = channel
+        result.append(normalized)
+    return result
+
+
 def validate_definition(value):
     """Return a detached JSON-compatible definition with explicit preview data.
 
     ``footprint`` and ``sprite_size`` are tile dimensions or ``None``. Explicit
     ``rotation_footprints`` map rotation indexes (as text) to tile dimensions;
     missing overrides retain the base footprint, with no inferred swapping.
-    Each
-    optional frame has a rotation index, pixel ``rect`` [x, y, width, height],
+    Each optional frame has a rotation index, pixel ``rect`` [x, y, width, height],
     and ``duration_ms``. Frames for each rotation play in supplied list order.
+    An optional pixel ``offset`` shifts the sprite from its normal alignment
+    at the footprint's bottom-left corner.
     ``preview_asset`` is local only; ``texture`` is the installed game's asset
     name. A missing preview does not imply a missing game furniture item.
+    Optional ``preview_variants`` contain day_on/day_off/night_on/night_off
+    frame lists on that same atlas. ``preview_lights`` describe bounded light
+    observations, with optional mask rectangles on the same portable atlas.
+    A mask's optional ``mask_channel`` selects alpha-only intensity or the
+    default luminance multiplied by alpha.
     """
     if not isinstance(value, dict):
         raise FurnitureValidationError("A furniture definition must be an object.")
@@ -146,23 +236,18 @@ def validate_definition(value):
             raise FurnitureValidationError("Preview assets must be PNG files.")
     elif preview_asset != "":
         raise FurnitureValidationError("Preview asset must be a relative PNG path or empty text.")
-    frames = value.get("frames", [])
-    if not isinstance(frames, list) or len(frames) > MAX_FRAMES:
-        raise FurnitureValidationError(f"Use a list with at most {MAX_FRAMES} preview frames.")
-    result_frames = []
-    for frame in frames:
-        if not isinstance(frame, dict):
-            raise FurnitureValidationError("Each preview frame must be an object.")
-        rotation = _integer(frame.get("rotation", 0), "Frame rotation", 0, rotations - 1)
-        rect = frame.get("rect")
-        if not isinstance(rect, (list, tuple)) or len(rect) != 4:
-            raise FurnitureValidationError("A frame rectangle must contain x, y, width, and height in pixels.")
-        rect = [_integer(rect[0], "Frame x", 0, 65535),
-                _integer(rect[1], "Frame y", 0, 65535),
-                _integer(rect[2], "Frame width", 1, MAX_FRAME_PIXELS),
-                _integer(rect[3], "Frame height", 1, MAX_FRAME_PIXELS)]
-        duration = _integer(frame.get("duration_ms", 100), "Frame duration", 1, 600_000)
-        result_frames.append({"rotation": rotation, "rect": rect, "duration_ms": duration})
+    result_frames = _preview_frames(value.get("frames", []), rotations)
+    effects = {}
+    if "preview_variants" in value:
+        variants = value["preview_variants"]
+        if not isinstance(variants, dict) or any(key not in ("day_on", "day_off", "night_on", "night_off") for key in variants):
+            raise FurnitureValidationError("Preview variants must map day_on, day_off, night_on, or night_off to frames.")
+        variants = {key: _preview_frames(frames, rotations) for key, frames in variants.items()}
+        if len(result_frames) + sum(len(frames) for frames in variants.values()) > MAX_FRAMES:
+            raise FurnitureValidationError(f"Use at most {MAX_FRAMES} preview frames across all variants.")
+        effects["preview_variants"] = variants
+    if "preview_lights" in value:
+        effects["preview_lights"] = _preview_lights(value["preview_lights"], rotations)
     mod_data = value.get("mod_data", {})
     if not isinstance(mod_data, dict) or len(mod_data) > 128:
         raise FurnitureValidationError("Furniture mod data must be an object with at most 128 entries.")
@@ -183,6 +268,7 @@ def validate_definition(value):
         "placement": placement,
         "dependency": _text(value.get("dependency", ""), "Mod dependency", empty=True),
         "mod_data": mod_data,
+        **effects,
     }
 
 
@@ -220,6 +306,38 @@ def validate_surface(value):
         "rect": rect,
         "dependency": _text(value.get("dependency", ""), "Mod dependency", empty=True),
     }
+
+
+def validate_room_frame(value):
+    """Normalize explicit 16-pixel room trim crops from a local PNG atlas.
+
+    The supplied tiles describe the room's structural edges and corners, with
+    optional joins for adjoining rooms;
+    neither artwork nor an installed game's tile positions are inferred.
+    Image bounds are checked when the library is imported.
+    """
+    if not isinstance(value, dict):
+        raise FurnitureValidationError("A room frame must be an object.")
+    preview = _relative(value.get("preview_asset"), "Room frame preview")
+    if PurePosixPath(preview).suffix.lower() != ".png":
+        raise FurnitureValidationError("Room frame previews must be PNG files.")
+    tiles = value.get("tiles")
+    allowed = ROOM_FRAME_TILES + ROOM_FRAME_JOINS
+    if (not isinstance(tiles, dict) or not set(ROOM_FRAME_TILES).issubset(tiles)
+            or not set(tiles).issubset(allowed)):
+        raise FurnitureValidationError("A room frame needs the ten named edge and corner tiles, with only recognized optional joins.")
+    normalized = {}
+    for role in allowed:
+        if role not in tiles:
+            continue
+        rect = tiles[role]
+        if not isinstance(rect, (list, tuple)) or len(rect) != 4:
+            raise FurnitureValidationError("Each room frame tile needs x, y, width, and height in pixels.")
+        rect = [_integer(part, "Room frame rectangle", 0, 65535) for part in rect]
+        if rect[2:] != [16, 16]:
+            raise FurnitureValidationError("Room frame tiles must be 16 × 16 pixels.")
+        normalized[role] = rect
+    return {"preview_asset": preview, "tiles": normalized}
 
 
 def _read_regular(path, maximum, label):
@@ -302,7 +420,10 @@ def read_native_catalog(path):
                 "rotations": int(fields[4]),
                 "placement": {-1: "default", 0: "indoors", 1: "outdoors", 2: "both"}[restriction],
                 "sprite_index": int(fields[8]) if len(fields) > 8 and fields[8] else None,
-                "texture": fields[9] if len(fields) > 9 and fields[9] else "TileSheets/furniture",
+                # Native asset names can contain repeated separators (including
+                # vanilla records). Keep leading roots/traversal visible to the
+                # path validator while normalizing those internal separators.
+                "texture": re.sub(r"[\\\\/]+", "/", fields[9]) if len(fields) > 9 and fields[9] else "TileSheets/furniture",
             })
             if definition["id"] in seen:
                 raise FurnitureValidationError("This qualified furniture ID is already present.")
@@ -391,20 +512,32 @@ def _check_frames(definition, image):
 
 def _check_frame_dimensions(definition, dimensions):
     atlas_width, atlas_height = dimensions
-    for frame in definition["frames"]:
-        x, y, width, height = frame["rect"]
+    for x, y, width, height in _preview_rectangles(definition):
         if x + width > atlas_width or y + height > atlas_height:
             raise FurnitureValidationError("A preview frame extends beyond its PNG atlas.")
+
+
+def _preview_rectangles(definition):
+    for frame in definition["frames"]:
+        yield frame["rect"]
+    for frames in definition.get("preview_variants", {}).values():
+        for frame in frames:
+            yield frame["rect"]
+    for light in definition.get("preview_lights", []):
+        if "mask_rect" in light:
+            yield light["mask_rect"]
 
 
 def import_furniture_library(path, project_dir):
     """Import resolved game furniture or a native Data/Furniture dictionary.
 
     Resolved libraries use ``format: pixelheart-interior-library``, ``version:
-    1``, and a ``definitions`` list in this module's schema. Referenced preview
-    PNG paths are relative to the JSON's directory. Every definition and PNG is
-    preflighted before any project texture is copied. Invalid bundle entries
-    fail the import instead of silently losing catalogue items.
+    1``, and a ``definitions`` list in this module's schema. Optional
+    ``surfaces`` and ``room_frame`` provide patterns and structural trim.
+    Referenced preview PNG paths are relative to the JSON's directory. Every
+    definition, crop, and PNG is preflighted before any project texture is
+    copied. Invalid bundle entries fail the import instead of silently losing
+    catalogue items.
 
     Native dictionaries retain ``read_native_catalog`` semantics and do not
     infer missing preview data. Neither format downloads or generates artwork.
@@ -473,11 +606,22 @@ def import_furniture_library(path, project_dir):
             raise FurnitureValidationError("A pattern extends beyond its PNG atlas.")
         surface["preview_asset"] = target
         surfaces.append(surface)
+    room_frame = None
+    if "room_frame" in data:
+        room_frame = validate_room_frame(data["room_frame"])
+        _payload, size, target = prepare_texture(room_frame["preview_asset"])
+        for x, y, width, height in room_frame["tiles"].values():
+            if x + width > size[0] or y + height > size[1]:
+                raise FurnitureValidationError("A room frame tile extends beyond its PNG atlas.")
+        room_frame["preview_asset"] = target
     # Copy only the immutable bytes that were validated. A source file changed
     # after preflight cannot replace those bytes or their recorded dimensions.
     for payload, _size, _target in textures.values():
         _store_texture(payload, project_dir)
-    return {"definitions": definitions, "surfaces": surfaces, "warnings": messages}
+    result = {"definitions": definitions, "surfaces": surfaces, "warnings": messages}
+    if room_frame is not None:
+        result["room_frame"] = room_frame
+    return result
 
 
 def attach_texture(definition, source, project_dir):
@@ -520,7 +664,8 @@ def import_catalog_textures(definitions, texture_dir, project_dir):
                 imported[texture] = import_texture(source, project_dir)
                 total_bytes += len(payload)
             reference = imported[texture]
-            _, atlas = _read_texture(_contained(project_dir, reference)) if definition["frames"] else (None, None)
+            _, atlas = (_read_texture(_contained(project_dir, reference))
+                        if any(_preview_rectangles(definition)) else (None, None))
             if atlas is not None:
                 try:
                     _check_frames(definition, atlas)
@@ -541,12 +686,21 @@ def definition_assets(definition):
     return [definition["preview_asset"]] if definition["preview_asset"] else []
 
 
-def frame_at(definition, rotation=0, elapsed_ms=0):
+def frame_at(definition, rotation=0, elapsed_ms=0, *, time_of_day="day", lights_on=True):
     """Select an explicit frame deterministically, using half-open time spans."""
     definition = validate_definition(definition)
     _integer(rotation, "Preview rotation", 0, definition["rotations"] - 1)
     _integer(elapsed_ms, "Animation time", 0, 9_223_372_036_854_775_807)
-    frames = [frame for frame in definition["frames"] if frame["rotation"] == rotation]
+    if time_of_day not in ("day", "evening", "night"):
+        raise FurnitureValidationError("Preview time must be day, evening, or night.")
+    if type(lights_on) is not bool:
+        raise FurnitureValidationError("Preview lights must be on or off.")
+    phase = "day" if time_of_day == "day" else "night"
+    state = phase + ("_on" if lights_on else "_off")
+    frames = [frame for frame in definition.get("preview_variants", {}).get(state, [])
+              if frame["rotation"] == rotation]
+    if not frames:
+        frames = [frame for frame in definition["frames"] if frame["rotation"] == rotation]
     if not frames:
         raise FurnitureValidationError("No explicit preview frames exist for this rotation.")
     position = elapsed_ms % sum(frame["duration_ms"] for frame in frames)
@@ -555,6 +709,12 @@ def frame_at(definition, rotation=0, elapsed_ms=0):
             return frame
         position -= frame["duration_ms"]
     raise AssertionError("A bounded animation time must select a frame.")
+
+
+def preview_frame_offset(definition, rotation=0, elapsed_ms=0, *, time_of_day="day", lights_on=True):
+    """Return the selected frame's pixel shift from its footprint alignment."""
+    frame = frame_at(definition, rotation, elapsed_ms, time_of_day=time_of_day, lights_on=lights_on)
+    return tuple(frame.get("offset", (0, 0)))
 
 
 def clear_preview_cache():
@@ -610,12 +770,12 @@ def _preview_atlas(path):
         yield image
 
 
-def preview_frame(definition, project_dir, rotation=0, elapsed_ms=0):
+def preview_frame(definition, project_dir, rotation=0, elapsed_ms=0, *, time_of_day="day", lights_on=True):
     """Return the selected RGBA crop; callers own and should close the image."""
     definition = validate_definition(definition)
     if not definition["preview_asset"]:
         raise FurnitureValidationError("Attach a local PNG atlas to preview this furniture.")
-    frame = frame_at(definition, rotation, elapsed_ms)
+    frame = frame_at(definition, rotation, elapsed_ms, time_of_day=time_of_day, lights_on=lights_on)
     # Containment and current file metadata are checked even on cache hits.
     with _preview_atlas(_contained(project_dir, definition["preview_asset"])) as image:
         _check_frames(definition, image)

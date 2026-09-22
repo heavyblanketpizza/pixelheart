@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import patch
 
 from PIL import Image
-from PySide6.QtCore import QPoint, Qt
+from PySide6.QtCore import QPoint, QSettings, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QTableWidgetItem
 
@@ -27,6 +27,8 @@ class InteriorEditorTests(unittest.TestCase):
     def setUp(self):
         self.directory = self.enterContext(tempfile.TemporaryDirectory())
         self.root = Path(self.directory)
+        settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
+        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
         self.project = self.root / "project" / "character.json"
         self.sheet = self.root / "sheet.png"
         image = Image.new("RGBA", (64, 16), "#556677")
