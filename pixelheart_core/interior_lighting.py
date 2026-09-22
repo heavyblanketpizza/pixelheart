@@ -38,6 +38,11 @@ def apply_preview_lighting(image, data, root, *, time_of_day="day", lights_on=Tr
     for x, y in cells:
         draw.rectangle((x * 16, y * 16, x * 16 + 15, y * 16 + 15), fill=255)
     rgb = image.convert("RGB")
+    # Light restores the underlying artwork, rather than painting an opaque
+    # halo over it. A small shared ceiling allows daylight glints without
+    # letting overlapping lights repeatedly bleach the scene.
+    with Image.new("RGB", image.size, (10, 10, 10)) as glint:
+        light_ceiling = ImageChops.screen(rgb, glint)
     if time_of_day != "day":
         # Include structural trim in ambient shading, leaving canvas margins
         # unchanged so the preview blends into its surrounding viewport.
@@ -80,6 +85,8 @@ def apply_preview_lighting(image, data, root, *, time_of_day="day", lights_on=Tr
             bounds = max(0, left), max(0, top), min(image.width, left + size[0]), min(image.height, top + size[1])
             if bounds[0] >= bounds[2] or bounds[1] >= bounds[3]:
                 continue
+            source_box = tuple((coordinate - origin) * extent / target
+                               for coordinate, origin, extent, target in zip(bounds, (left, top, left, top), source_size * 2, size * 2))
             try:
                 if rect:
                     x, y, width, height = rect
@@ -87,6 +94,25 @@ def apply_preview_lighting(image, data, root, *, time_of_day="day", lights_on=Tr
                         if x + width > atlas.width or y + height > atlas.height:
                             raise FurnitureValidationError("A light mask extends beyond its PNG atlas.")
                         crop = atlas.crop((x, y, x + width, y + height))
+                    if light.get("blend") == "overlay":
+                        # Observed sunlight/glow artwork is a translucent
+                        # colored sprite, separate from radial illumination.
+                        local = crop.resize((bounds[2] - bounds[0], bounds[3] - bounds[1]),
+                                            Image.Resampling.BILINEAR, box=source_box)
+                        crop.close()
+                        alpha = local.getchannel("A")
+                        region_mask = mask.crop(bounds)
+                        clipped = ImageChops.multiply(alpha, region_mask)
+                        level = clipped.point([round(value * strength) for value in range(256)])
+                        local_rgb = local.convert("RGB")
+                        tint = Image.new("RGB", local.size, light["color"])
+                        tinted = ImageChops.multiply(local_rgb, tint)
+                        region = rgb.crop(bounds)
+                        lit = Image.composite(tinted, region, level)
+                        rgb.paste(lit, bounds[:2])
+                        for temporary in (local, alpha, region_mask, clipped, level, local_rgb, tint, tinted, region, lit):
+                            temporary.close()
+                        continue
                     alpha = crop.getchannel("A")
                     if light.get("mask_channel") == "alpha":
                         # Some game masks are black RGB; all of their light
@@ -104,8 +130,6 @@ def apply_preview_lighting(image, data, root, *, time_of_day="day", lights_on=Tr
                     shape = Image.frombytes("L", source_size, _radial_bytes(source_size[0]))
                 # Resize only the visible fraction, never a 4096px halo for a
                 # small room (or one entirely beyond the canvas).
-                source_box = tuple((coordinate - origin) * extent / target
-                                   for coordinate, origin, extent, target in zip(bounds, (left, top, left, top), source_size * 2, size * 2))
                 local = shape.resize((bounds[2] - bounds[0], bounds[3] - bounds[1]),
                                      Image.Resampling.BILINEAR, box=source_box)
                 shape.close()
@@ -119,9 +143,12 @@ def apply_preview_lighting(image, data, root, *, time_of_day="day", lights_on=Tr
                 black = Image.new("RGB", level.size)
                 emission = Image.composite(tint, black, level)
                 region = rgb.crop(bounds)
-                lit = ImageChops.screen(region, emission)
+                ceiling = light_ceiling.crop(bounds)
+                headroom = ImageChops.subtract(ceiling, region)
+                contribution = ImageChops.multiply(headroom, emission)
+                lit = ImageChops.add(region, contribution)
                 rgb.paste(lit, bounds[:2])
-                for temporary in (level, tint, black, emission, region, lit):
+                for temporary in (level, tint, black, emission, region, ceiling, headroom, contribution, lit):
                     temporary.close()
             except (OSError, FurnitureValidationError):
                 # Missing preview art must not make a saved room unreadable.
@@ -130,5 +157,6 @@ def apply_preview_lighting(image, data, root, *, time_of_day="day", lights_on=Tr
     with image.getchannel("A") as alpha:
         result.putalpha(alpha)
     rgb.close()
+    light_ceiling.close()
     mask.close()
     return result

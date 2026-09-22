@@ -42,6 +42,8 @@ class InteriorLightingTests(unittest.TestCase):
             # Native game masks can store shape only in alpha, with black RGB.
             image.paste((0, 0, 0, 255), (48, 16, 56, 32))
             image.paste((0, 0, 0, 0), (56, 16, 64, 32))
+            image.paste((200, 100, 50, 128), (0, 16, 8, 32))
+            image.paste((30, 240, 160, 0), (8, 16, 16, 32))
             image.save(self.root / "effects.png")
 
     def design(self, *, kind="lamp", x=6, y=7, lights=None, **changes):
@@ -227,6 +229,63 @@ class InteriorLightingTests(unittest.TestCase):
             self.assertEqual(second.getpixel((114, 125)), (40, 90, 180, 255))
             self.assertNotEqual(second.getpixel((98, 110)), (40, 90, 180, 255))
             self.assertNotEqual(second.getpixel((115, 125)), (40, 90, 180, 255))
+
+    def test_overlapping_lights_preserve_artwork_instead_of_whitening_it(self):
+        data = self.design(lights=[light(mask_rect=[32, 16, 16, 16], color="#FFFFFF", intensity=1)] * 16)
+        samples = {(99, 120): (4, 8, 12, 97), (103, 120): (160, 80, 40, 97),
+                   (107, 120): (0, 0, 0, 97)}
+        with self.input_image(data) as image:
+            for point, color in samples.items():
+                image.putpixel(point, color)
+            for phase in ("day", "night"):
+                with self.subTest(phase=phase):
+                    with apply_preview_lighting(image, data, self.root, time_of_day=phase) as lit:
+                        for point, original in samples.items():
+                            actual = lit.getpixel(point)
+                            for source, rendered in zip(original[:3], actual[:3]):
+                                self.assertLessEqual(rendered, source + (255-source) * .1 + 1)
+                            self.assertEqual(actual[3], original[3])
+                        red, green, blue, _ = lit.getpixel((103, 120))
+                        self.assertGreater(red, green)
+                        self.assertGreater(green, blue)
+
+    def test_rgba_overlay_preserves_source_color_alpha_and_transparency(self):
+        data = self.design(lights=[light(mask_rect=[0, 16, 16, 16], color="#FFFFFF",
+                                         intensity=1, blend="overlay", mask_channel="luminance")])
+        with self.input_image(data) as image:
+            with apply_preview_lighting(image, data, self.root) as result:
+                self.assertEqual(result.getpixel((99, 118)), (164, 114, 89, 97))
+                self.assertEqual(result.getpixel((108, 118)), image.getpixel((108, 118)))
+            data["catalog"][0]["preview_lights"][0]["mask_channel"] = "alpha"
+            with apply_preview_lighting(image, data, self.root) as alpha_mode:
+                self.assertEqual(alpha_mode.getpixel((99, 118)), (164, 114, 89, 97))
+
+    def test_overlay_applies_tint_intensity_and_daylight_window_light_switch_rule(self):
+        data = self.design(kind="window", x=6, y=2,
+                           lights=[light(mask_rect=[0, 16, 16, 16], color="#FF8000",
+                                         intensity=.5, blend="overlay", when="day")])
+        with self.input_image(data) as image:
+            with apply_preview_lighting(image, data, self.root, lights_on=False) as result:
+                # RGB tint produces (200, 50, 0); source alpha128 × .5 gives64.
+                self.assertEqual(result.getpixel((99, 38)), (146, 108, 96, 97))
+                self.assertEqual(result.getpixel((108, 38)), image.getpixel((108, 38)))
+            with apply_preview_lighting(image, data, self.root, time_of_day="night") as night:
+                without_rays = deepcopy(data)
+                without_rays["catalog"][0]["preview_lights"] = []
+                with apply_preview_lighting(image, without_rays, self.root, time_of_day="night") as ambient:
+                    self.assert_same(night, ambient)
+
+    def test_overlay_cannot_paint_into_empty_space_outside_room(self):
+        data = self.design(x=2, y=5, lights=[light(mask_rect=[0, 16, 16, 16], radius=8,
+                                               color="#FFFFFF", intensity=1, blend="overlay")])
+        room = floor_cells(data) | wall_cells(data)
+        with self.input_image(data) as image:
+            with apply_preview_lighting(image, data, self.root) as result:
+                self.assertNotEqual(result.getpixel((40, 88)), image.getpixel((40, 88)))
+                for x, y in ((0, 0), (1, 5), (12, 5), (8, 14)):
+                    self.assertNotIn((x, y), room)
+                    self.assertEqual(result.getpixel((x * 16 + 8, y * 16 + 8)),
+                                     image.getpixel((x * 16 + 8, y * 16 + 8)))
 
 
 if __name__ == "__main__":

@@ -215,6 +215,22 @@ class InteriorPreviewControlsTests(unittest.TestCase):
         self.assertEqual(refreshed["preview_lights"], [])
         self.assertTrue(refreshed["preview_asset"])
 
+    def test_replacement_atlas_without_frames_does_not_inherit_old_crops(self):
+        dialog = self.editor()
+        original = dialog.draft.snapshot()
+        original["catalog"][0]["frames"][0]["rect"] = [48, 0, 16, 16]
+        dialog.draft.apply(original)
+        with Image.new("RGBA", (16, 16), "#663399") as image:
+            image.save(self.root / "smaller.png")
+        definition = {"id": "Test.PreviewLamp", "name": "Replacement", "kind": "lamp",
+                      "footprint": [1, 1], "rotations": 1, "preview_asset": "smaller.png", "frames": []}
+        library = self.root / "library.json"
+        library.write_text(json.dumps({"format": "pixelheart-interior-library", "version": 1,
+                                       "definitions": [definition]}))
+        self.assertTrue(dialog.load_catalog(library))
+        self.assertEqual(dialog.draft.data["catalog"][0]["frames"], [])
+        self.assertNotIn("preview_variants", dialog.draft.data["catalog"][0])
+
     def test_details_preserve_frame_offsets_with_their_rows(self):
         original = {"id": "Test.Cactus", "name": "Cactus", "kind": "decor",
                     "footprint": [1, 1], "rotations": 1, "frames": [

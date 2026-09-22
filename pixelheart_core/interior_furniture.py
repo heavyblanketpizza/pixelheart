@@ -183,6 +183,13 @@ def _preview_lights(value, rotations):
             if channel not in ("alpha", "luminance"):
                 raise FurnitureValidationError("A light mask channel must be alpha or luminance.")
             normalized["mask_channel"] = channel
+        if "blend" in light:
+            blend = light["blend"]
+            if blend not in ("illuminate", "overlay"):
+                raise FurnitureValidationError("A light blend must be illuminate or overlay.")
+            if blend == "overlay" and "mask_rect" not in light:
+                raise FurnitureValidationError("An overlay light needs a mask rectangle for its RGBA artwork.")
+            normalized["blend"] = blend
         result.append(normalized)
     return result
 
@@ -202,8 +209,10 @@ def validate_definition(value):
     Optional ``preview_variants`` contain day_on/day_off/night_on/night_off
     frame lists on that same atlas. ``preview_lights`` describe bounded light
     observations, with optional mask rectangles on the same portable atlas.
-    A mask's optional ``mask_channel`` selects alpha-only intensity or the
-    default luminance multiplied by alpha.
+    For illumination, a mask's optional ``mask_channel`` selects alpha-only
+    intensity or the default luminance multiplied by alpha. Optional ``blend``
+    selects ``illuminate`` (the default) or a literal RGBA ``overlay``; overlays
+    require a mask rectangle and ignore ``mask_channel``.
     """
     if not isinstance(value, dict):
         raise FurnitureValidationError("A furniture definition must be an object.")

@@ -169,6 +169,21 @@ class InteriorPreviewEffectsTests(unittest.TestCase):
             with self.subTest(channel=channel), self.assertRaises(FurnitureValidationError):
                 validate_definition(definition(preview_lights=[light(mask_channel=channel)]))
 
+    def test_light_blend_is_portable_and_overlay_requires_actual_art(self):
+        self.assertNotIn("blend", validate_definition(definition())["preview_lights"][0])
+        for blend in ("illuminate", "overlay"):
+            value = definition(preview_lights=[light(blend=blend, mask_channel="alpha")])
+            result = import_furniture_library(self.library([value]), self.project)["definitions"][0]
+            self.assertEqual(result["preview_lights"], value["preview_lights"])
+            self.assertEqual(validate_definition(result), result)
+        for blend in (None, True, 1, [], {}, "screen", "Overlay"):
+            with self.subTest(blend=blend), self.assertRaises(FurnitureValidationError):
+                validate_definition(definition(preview_lights=[light(blend=blend)]))
+        missing_art = light(blend="overlay")
+        del missing_art["mask_rect"]
+        with self.assertRaises(FurnitureValidationError):
+            validate_definition(definition(preview_lights=[missing_art]))
+
     def test_library_import_preserves_states_masks_and_one_portable_asset(self):
         original = definition()
         path = self.library([original])
