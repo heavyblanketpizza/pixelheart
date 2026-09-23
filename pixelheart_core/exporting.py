@@ -1,6 +1,6 @@
 """Standalone validation and Content Patcher export for authored NPCs.
 
-The archive is a starter content pack. Structural checks cannot verify map
+The archive is a single-NPC content pack. Structural checks cannot verify map
 pathfinding, visual frame content, or behavior inside Stardew Valley.
 """
 
@@ -421,7 +421,7 @@ def validate_character(data, portrait_path=None, sprite_path=None, *, appearance
     issues.extend(story_issues(data))
     issues.extend(life_issues(data))
     if not any(issue["level"] == "error" for issue in issues):
-        add("success", "export", "Structural checks passed. This starter pack still needs to be tested in Stardew Valley.")
+        add("success", "export", "Structural checks passed. This NPC pack still needs to be tested in Stardew Valley.")
     return issues
 
 
@@ -795,7 +795,7 @@ def build_mod_archive(
                       "after sleeping and compare overlapping rules in their displayed order.",
                       "Inspect SMAPI logs. Keep project, NPC, and map identities stable after release.", ""])
         world_guide = "\n".join(lines)
-    readme = f"""{data['name']} — Pixelheart starter NPC
+    readme = f"""{data['name']} — Pixelheart NPC pack
 
 Target: Stardew Valley 1.6, SMAPI 4+, Content Patcher {CONTENT_PATCHER_FORMAT}+.
 NPC internal name: {npc_id}

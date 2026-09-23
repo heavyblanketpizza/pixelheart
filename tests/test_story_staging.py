@@ -13,7 +13,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 from pixelheart.app import MainWindow
 from pixelheart_core.projects import load_project
-from pixelheart_core.story import new_event, new_beat
+from pixelheart_core.story import new_event, new_beat, new_actor, new_relationship
 from pixelheart_core.world import new_companion, new_location, cast_actor_id
 
 
@@ -95,7 +95,7 @@ class StagingTests(unittest.TestCase):
         document = deepcopy(self.window.document)
         location = new_location()
         location.update(name="The quiet refuge", internal_name="Refuge")
-        document["world"]["locations"] = [location]
+        document.setdefault("world", {})["locations"] = [location]
         self.window.load_document(document)
         picker = self.window.events.fields["location"]
         index = picker.combo.findData("Refuge")
@@ -107,7 +107,7 @@ class StagingTests(unittest.TestCase):
     def test_supporting_character_picker_stores_stable_identity(self):
         document = deepcopy(self.window.document)
         companion = new_companion("Pip")
-        document["world"]["characters"] = [companion]
+        document.setdefault("world", {})["characters"] = [companion]
         self.window.load_document(document)
         page = self.window.events
         page.actors.add()
@@ -118,3 +118,57 @@ class StagingTests(unittest.TestCase):
         self.assertIn("Pip", picker.combo.itemText(index))
         picker.combo.setCurrentIndex(index)
         self.assertEqual(page.actors.records[row]["name"], cast_actor_id(companion))
+
+    def test_beat_character_choices_follow_cast_and_preserve_missing_references(self):
+        page = self.window.events
+        picker = page.beats.fields["actor"]
+        self.assertEqual([picker.combo.itemData(index) for index in range(picker.combo.count())], ["$npc", "farmer"])
+        page.actors.add()
+        row = len(page.actors.records) - 1
+        page.actors.table.cellWidget(row, 0).setText("Leah")
+        picker.combo.setCurrentIndex(picker.combo.findData("Leah"))
+        authored = deepcopy(page.beats.records[0])
+        self.assertEqual(authored["actor"], "Leah")
+
+        page.actors.table.setCurrentCell(row, 0)
+        page.actors.remove()
+        self.assertEqual(page.beats.records[0], authored)
+        self.assertEqual(picker.value(), "Leah")
+        self.assertIn("missing from cast", picker.combo.currentText())
+        self.assertTrue(picker.custom.isHidden())
+        page.actors.restore_removed()
+        self.assertEqual(page.beats.records[0], authored)
+        self.assertEqual(picker.combo.currentText(), "Leah")
+
+    def test_switching_events_updates_beat_cast_without_editing_story(self):
+        document = deepcopy(self.window.document)
+        second = new_event(document["character"], "first_meeting")
+        second["story"]["actors"].append(new_actor("Robin"))
+        document["character"]["events"].append(second)
+        self.window.load_document(document)
+        page = self.window.events
+        before = page.dump()
+        picker = page.beats.fields["actor"]
+        self.assertEqual(picker.combo.findData("Robin"), -1)
+        page.list.setCurrentRow(1)
+        self.assertGreaterEqual(picker.combo.findData("Robin"), 0)
+        page.list.setCurrentRow(0)
+        self.assertEqual(picker.combo.findData("Robin"), -1)
+        self.assertEqual(page.dump(), before)
+        self.assertFalse(self.window.dirty)
+
+    def test_relationship_picker_names_the_other_person_and_keeps_custom_targets(self):
+        document = deepcopy(self.window.document)
+        relationship = new_relationship()
+        relationship["story"]["target"] = "AnotherMod_QuietNeighbor"
+        document["character"]["relationships"] = [relationship]
+        self.window.load_document(document)
+        page = self.window.relationships
+        picker = page.story_fields["target"]
+        self.assertEqual(picker.value(), "AnotherMod_QuietNeighbor")
+        self.assertEqual(picker.combo.findData("$npc"), -1)
+        page.fields["description"].setPlainText("They met by the river.")
+        self.assertEqual(page.dump()[0]["story"]["target"], "AnotherMod_QuietNeighbor")
+        picker.combo.setCurrentIndex(picker.combo.findData("Leah"))
+        self.assertEqual(page.dump()[0]["story"]["target"], "Leah")
+        self.assertEqual(picker.combo.currentText(), "Leah")

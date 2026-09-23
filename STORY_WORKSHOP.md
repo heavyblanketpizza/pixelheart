@@ -5,7 +5,7 @@ together. You can save unfinished work at any point. Only scenes marked **Ready*
 are included as event scripts in an exported Content Patcher pack; all stages
 remain in the project backup.
 
-Open **Story notes → Heart events** to work through **Idea → Outline → Scene
+Open **Story & events → Heart events** to work through **Idea → Outline → Scene
 → Rehearse**. The button above the steps moves to the next part of the flow.
 Use **Relationship arcs** for a connection that develops over several events.
 
@@ -50,9 +50,9 @@ missing prerequisites must be fixed before exporting a ready scene.
 Choose a location, minimum friendship, time window, season, weather, relationship
 status, and optional farmhouse upgrade. Use the map's tile coordinates for the cast; the initial
 camera centers on the authored NPC. The authored NPC (`$npc`) and player (`farmer`)
-have dedicated actor references. Actor selectors show human-readable names for
-vanilla and supporting characters. Supporting-cast references retain their
-identity while their names are edited. Advanced external NPCs need their exact
+have dedicated actor references. Choose cast members by name; beat controls offer the characters already in that
+scene. Relationship arcs also choose the other person by name. Legacy bundled
+characters retain their stable references. External NPCs need their exact
 internal names and the mod that supplies them. Imported places appear in location
 selectors; known map dimensions are checked at export.
 
@@ -133,9 +133,9 @@ has been tested in-game. Test external NPCs and custom maps with the mods that
 provide them installed.
 
 The workshop supports structured scenes, final two-answer choices, and relationship
-arcs through linked scenes and player friendship effects. [Life & reactions](LIFE_AND_BRANCHING.md)
+arcs through linked scenes and player friendship effects. [Dialogue and conditional routines](LIFE_AND_BRANCHING.md)
 connects progress to everyday conversations and routines, including married life.
-[Cast & locations](WORLD_BUILDING.md) adds supporting characters and supplied maps.
+[Home & places](WORLD_BUILDING.md) supplies their residence, spouse room, and story locations.
 Arbitrary nested event scripting and private family or relationship simulations
 between NPCs remain outside this structured workflow. See [EXPORT_FORMAT.md](EXPORT_FORMAT.md)
 for the complete supported scope.

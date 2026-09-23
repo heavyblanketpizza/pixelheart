@@ -214,6 +214,7 @@ class BeatsEditor(QWidget):
         self.current = -1
         self.loading = False
         self.removed = None
+        self.actor_names = {}
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         actions = QHBoxLayout()
@@ -248,7 +249,7 @@ class BeatsEditor(QWidget):
         self.details, layout = card()
         self.fields = {
             "kind": choices([(caption, kind) for kind, caption in KINDS.items()]),
-            "actor": ActorSelector(),
+            "actor": ActorSelector(cast_only=True),
             "text": prose("What do they say? Use @ for the farmer’s name and $h for a happy portrait.", 100),
             "x": number(-100, 100), "y": number(-100, 100),
             "facing": choices([("Up", 0), ("Right", 1), ("Down", 2), ("Left", 3)]),
@@ -296,8 +297,15 @@ class BeatsEditor(QWidget):
 
     def title(self, record, index):
         kind = record.get("kind", "dialogue")
-        detail = record.get("text", "").replace("\n", " ")[:46] if kind in {"dialogue", "choice"} else record.get("actor", "")
+        actor = record.get("actor", "")
+        detail = record.get("text", "").replace("\n", " ")[:46] if kind in {"dialogue", "choice"} else self.actor_names.get(actor, actor)
         return f"{index + 1:02d}  {KINDS.get(kind, kind)}\n{detail or 'Write this moment…'}"
+
+    def set_actor_options(self, options):
+        self.actor_names = {identity: caption for caption, identity in options}
+        self.fields["actor"].set_options(options)
+        for index, record in enumerate(self.records):
+            self.list.item(index).setText(self.title(record, index))
 
     def load(self, records):
         self.records = deepcopy(records)
@@ -787,12 +795,18 @@ class EventsPage(StoryRecords):
         self.actors.load(record["story"]["actors"])
         self.actors.canvas.load(self.actors.records, {"$npc": self.workshop.character().get("name", "Your character"), "farmer": "Farmer"})
         self.beats.load(record["story"]["beats"])
+        self.refresh_actor_choices()
         self.rehearsal_position = 0
         self.phases.setCurrentIndex({"idea": 0, "outline": 1, "scene": 2, "ready": 3}.get(record["story"]["stage"], 0))
 
     def capture_detail(self, record):
         record["story"]["actors"] = deepcopy(self.actors.records)
         record["story"]["beats"] = deepcopy(self.beats.records)
+
+    def refresh_actor_choices(self):
+        names = {identity: caption for caption, identity in self.actors.options}
+        options = [(names.get(actor["name"], actor["name"]), actor["name"]) for actor in self.actors.records if actor.get("name")]
+        self.beats.set_actor_options(options)
 
     def phase_changed(self):
         if hasattr(self, "next_button"):
@@ -805,7 +819,7 @@ class EventsPage(StoryRecords):
         if index == 3:
             if self.records[self.current]["story"]["stage"] != "ready" and not self.mark_ready():
                 return
-            self.workshop.window.navigation.setCurrentRow(6)
+            self.workshop.window.open_section("export")
             return
         stage = ["outline", "scene", "scene"][index]
         if index == 1:
@@ -1009,12 +1023,13 @@ class RelationshipsPage(StoryRecords):
     def __init__(self, workshop):
         super().__init__(workshop, "relationships")
         self.fields = {"name": line("Who matters to them?", 80), "relation": line("Friend, neighbor, rival, love interest…", 80), "description": prose("How did they meet? What do they mean to one another?", 110)}
-        self.story_fields = {"target": line("farmer or an NPC’s internal name", 192), "desire": prose("What do they want from this connection?", 70), "tension": prose("What keeps them apart?", 70), "progression": prose("How do they begin to see each other differently?", 70), "resolution": prose("What does trust look like at the end?", 70)}
+        self.story_fields = {"target": ActorSelector("farmer"), "desire": prose("What do they want from this connection?", 70), "tension": prose("What keeps them apart?", 70), "progression": prose("How do they begin to see each other differently?", 70), "resolution": prose("What does trust look like at the end?", 70)}
+        self.story_fields["target"].combo.setAccessibleName("Other person in this character's relationship")
         self.stage_label = label("IDEA", "badge")
         self.content.addWidget(self.stage_label, 0, Qt.AlignmentFlag.AlignLeft)
         basics, layout = card("Someone who changes them", "Build a friendship, a rivalry, or a romance through moments the player can experience.")
         add_form(layout, [("Connection name", self.fields["name"]), ("Their relationship", self.fields["relation"]), ("Other character", self.story_fields["target"]), ("The backstory", self.fields["description"])])
-        layout.addWidget(label("Use farmer for the player, or a game NPC name such as Leah. NPC-to-NPC bonds are told through scenes; friendship points always affect the farmer’s relationship with an NPC.", "hint", True))
+        layout.addWidget(label("Every arc follows your character's connection with this person. Bonds with villagers are told through scenes; friendship points affect the farmer’s relationship with a character.", "hint", True))
         self.content.addWidget(basics)
         arc, layout = card("Make room for change")
         add_form(layout, [("A beginning", self.story_fields["desire"]), ("A complication", self.story_fields["tension"]), ("A turning point", self.story_fields["progression"]), ("A new connection", self.story_fields["resolution"])])
@@ -1123,21 +1138,11 @@ class StoryPage(QWidget):
         self.loading = False
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(18)
-        overview, layout = card()
-        heading = QHBoxLayout()
-        heading.addWidget(label("FROM A SPARK TO A SHARED STORY", "eyebrow"))
-        heading.addStretch()
-        self.summary = label("0 ideas · 0 in development · 0 ready", "badge")
-        heading.addWidget(self.summary)
-        layout.addLayout(heading)
-        self.intro_title = label("Give every moment somewhere to go.", "profileName", True)
-        self.intro_text = label("Catch an idea, find its turning point, then build and rehearse a scene. Link those moments into relationships that grow with the player.", "muted", True)
-        layout.addWidget(self.intro_title)
-        layout.addWidget(self.intro_text)
-        root.addWidget(overview)
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
+        self.summary = label("0 ideas · 0 in development · 0 ready", "badge")
+        self.summary.setAccessibleName("Event progress")
+        self.tabs.setCornerWidget(self.summary, Qt.Corner.TopRightCorner)
         self.events = EventsPage(self)
         self.relationships = RelationshipsPage(self)
         self.tabs.addTab(self.events, "Heart events")
@@ -1179,8 +1184,6 @@ class StoryPage(QWidget):
     def refresh_context(self):
         events = self.events.records
         counts = {stage: sum(event["story"]["stage"] == stage for event in events) for stage in STAGES}
-        self.intro_title.setVisible(not events and not self.relationships.records)
-        self.intro_text.setVisible(not events and not self.relationships.records)
         self.summary.setText(f"{counts['idea']} ideas · {counts['outline'] + counts['scene']} in development · {counts['ready']} ready")
         self.tabs.setTabText(0, f"Heart events  ({len(events)})")
         self.tabs.setTabText(1, f"Relationship arcs  ({len(self.relationships.records)})")
@@ -1199,7 +1202,8 @@ class StoryPage(QWidget):
                     options.append((caption, identity))
         options.extend((name, name) for name in vanilla_actors())
         self.events.actors.set_options(options)
-        self.events.beats.fields["actor"].set_options(options)
+        self.events.refresh_actor_choices()
+        self.relationships.story_fields["target"].set_options([(caption, identity) for caption, identity in options if identity != "$npc"])
         self.events.update_preview()
         self.relationships.update_preview()
 

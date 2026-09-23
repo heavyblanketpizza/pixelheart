@@ -226,13 +226,12 @@ class IdentityPage(QWidget):
                 "season": self.birthday.selected_season, "day": self.birthday.selected_day}
 
 
-class RecordsPage(QWidget):
+class DialoguePage(QWidget):
     """List/detail editor keeps entry identities stable while reordering or editing."""
     changed = Signal()
 
-    def __init__(self, kind):
+    def __init__(self):
         super().__init__()
-        self.kind = kind
         self.records = []
         self.loading = False
         self.current = -1
@@ -240,16 +239,12 @@ class RecordsPage(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(16)
-        if kind != "dialogues":
-            root.addWidget(label("Story notes are saved with your project. They do not become playable events or in-game relationships.", "notice", True))
-        else:
-            self.example_prompt = label("Load Abigail’s or Elliott’s full dialogue from your game, then edit the conversations in your character’s voice.", "notice", True)
-            root.addWidget(self.example_prompt)
+        self.example_prompt = label("Load Abigail’s or Elliott’s full dialogue from your game, then edit the conversations in your character’s voice.", "notice", True)
+        root.addWidget(self.example_prompt)
         row = QHBoxLayout()
-        row.addWidget(button("+ Add " + {"dialogues": "dialogue", "events": "event idea", "relationships": "relationship"}[kind], self.add, "primary"))
-        if kind == "dialogues":
-            self.examples_button = button("Load character dialogue…", self.open_examples)
-            row.addWidget(self.examples_button)
+        row.addWidget(button("+ Add dialogue", self.add, "primary"))
+        self.examples_button = button("Load dialogue template…", self.open_examples)
+        row.addWidget(self.examples_button)
         self.duplicate_button = button("Duplicate", self.duplicate)
         row.addWidget(self.duplicate_button)
         row.addStretch()
@@ -259,41 +254,25 @@ class RecordsPage(QWidget):
         splitter = QSplitter()
         self.list = QListWidget()
         self.list.setMinimumWidth(190)
-        self.list.setAccessibleName(kind.capitalize())
+        self.list.setAccessibleName("Everyday dialogue")
         splitter.addWidget(self.list)
-        self.editor, content = card("Write their voice" if kind == "dialogues" else "A story worth remembering")
+        self.editor, content = card("Write their voice")
         form = QFormLayout()
         form.setSpacing(12)
-        if kind == "dialogues":
-            self.fields = {"trigger": line("Introduction, Mon, spring_Mon2…", 120), "text": QPlainTextEdit()}
-            form.addRow("When they say it", self.fields["trigger"])
-            content.addLayout(form)
-            content.addWidget(label("Dialogue", "muted"))
-            self.fields["text"].setPlaceholderText("Hey, @. I was hoping I'd run into you today.$h")
-            self.fields["text"].setMinimumHeight(190)
-            content.addWidget(self.fields["text"])
-            content.addWidget(label("@ = farmer's name    $h = happy    $s = sad    $l = love    #$b# = next dialogue box", "hint", True))
-            preview, preview_layout = card("A first listen")
-            self.preview = label("Your dialogue preview will appear here.", "profileName", True)
-            self.preview.setStyleSheet("font-size: 20px;")
-            preview_layout.addWidget(self.preview)
-            preview_layout.addWidget(label("Text preview · Game commands and portrait changes need in-game review.", "hint", True))
-            content.addWidget(preview)
-        else:
-            self.fields = {"name": line("Give this idea a name", 100 if kind == "events" else 80)}
-            form.addRow("Name", self.fields["name"])
-            if kind == "events":
-                self.fields.update({"hearts": number(0, 14), "location": line("Town", 80)})
-                form.addRow("At heart level", self.fields["hearts"])
-                form.addRow("Location", self.fields["location"])
-            else:
-                self.fields["relation"] = line("Friend, neighbor, rival…", 80)
-                form.addRow("Their connection", self.fields["relation"])
-            content.addLayout(form)
-            self.fields["description"] = QPlainTextEdit()
-            self.fields["description"].setPlaceholderText("What brings these characters together? What changes between them?")
-            self.fields["description"].setMinimumHeight(280)
-            content.addWidget(self.fields["description"])
+        self.fields = {"trigger": line("Introduction, Mon, spring_Mon2…", 120), "text": QPlainTextEdit()}
+        form.addRow("When they say it", self.fields["trigger"])
+        content.addLayout(form)
+        content.addWidget(label("Dialogue", "muted"))
+        self.fields["text"].setPlaceholderText("Hey, @. I was hoping I'd run into you today.$h")
+        self.fields["text"].setMinimumHeight(190)
+        content.addWidget(self.fields["text"])
+        content.addWidget(label("@ = farmer's name    $h = happy    $s = sad    $l = love    #$b# = next dialogue box", "hint", True))
+        preview, preview_layout = card("A first listen")
+        self.preview = label("Your dialogue preview will appear here.", "profileName", True)
+        self.preview.setStyleSheet("font-size: 20px;")
+        preview_layout.addWidget(self.preview)
+        preview_layout.addWidget(label("Text preview · Game commands and portrait changes need in-game review.", "hint", True))
+        content.addWidget(preview)
         content.addStretch()
         splitter.addWidget(self.editor)
         splitter.setStretchFactor(0, 1)
@@ -306,7 +285,7 @@ class RecordsPage(QWidget):
             connect_change(widget, self.edit)
 
     def title(self, record):
-        return record.get("trigger" if self.kind == "dialogues" else "name") or "Untitled"
+        return record.get("trigger") or "Untitled"
 
     def load(self, records):
         self.records = deepcopy(records)
@@ -314,8 +293,7 @@ class RecordsPage(QWidget):
 
     def refresh(self, selected):
         self.loading = True
-        if self.kind == "dialogues":
-            self.example_prompt.setVisible(len(self.records) <= 1)
+        self.example_prompt.setVisible(len(self.records) <= 1)
         self.list.clear()
         self.list.addItems([self.title(record) for record in self.records])
         self.current = -1
@@ -336,7 +314,7 @@ class RecordsPage(QWidget):
         self.remove_button.setEnabled(enabled)
         if enabled:
             for key, widget in self.fields.items():
-                set_value(widget, self.records[index].get(key, 2 if key == "hearts" else ""))
+                set_value(widget, self.records[index].get(key, ""))
         else:
             for widget in self.fields.values():
                 if isinstance(widget, (QLineEdit, QPlainTextEdit)):
@@ -353,9 +331,8 @@ class RecordsPage(QWidget):
         self.changed.emit()
 
     def update_preview(self):
-        if self.kind == "dialogues":
-            text = dialogue_preview(value(self.fields["text"]))
-            self.preview.setText(text or "Your dialogue preview will appear here.")
+        text = dialogue_preview(value(self.fields["text"]))
+        self.preview.setText(text or "Your dialogue preview will appear here.")
 
     def open_examples(self):
         dialog = DialogueTemplateDialog(self.records, self)
@@ -374,31 +351,22 @@ class RecordsPage(QWidget):
             dialog.deleteLater()
 
     def add(self):
-        if len(self.records) >= (MAX_DIALOGUES if self.kind == "dialogues" else 100):
+        if len(self.records) >= MAX_DIALOGUES:
             return
         record = {"id": str(uuid.uuid4())}
-        if self.kind == "dialogues":
-            used = {record.get("trigger") for record in self.records}
-            trigger = next((key for key in ("Introduction", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun") if key not in used), "")
-            record.update(trigger=trigger, text="")
-        elif self.kind == "events":
-            record.update(name="New event idea", hearts=2, location="Town", description="")
-        else:
-            record.update(name="New relationship", relation="Friend", description="")
+        used = {record.get("trigger") for record in self.records}
+        trigger = next((key for key in ("Introduction", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun") if key not in used), "")
+        record.update(trigger=trigger, text="")
         self.records.append(record)
         self.refresh(len(self.records) - 1)
         self.changed.emit()
 
     def duplicate(self):
-        if self.current < 0 or len(self.records) >= (MAX_DIALOGUES if self.kind == "dialogues" else 100):
+        if self.current < 0 or len(self.records) >= MAX_DIALOGUES:
             return
         record = deepcopy(self.records[self.current])
         record["id"] = str(uuid.uuid4())
-        if self.kind == "dialogues":
-            record["trigger"] = ""
-        else:
-            maximum = 100 if self.kind == "events" else 80
-            record["name"] = record["name"][:maximum - 7] + " (copy)"
+        record["trigger"] = ""
         self.records.append(record)
         self.refresh(len(self.records) - 1)
         self.changed.emit()
@@ -424,7 +392,7 @@ class SchedulePage(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(18)
-        root.addWidget(label("One daily routine is used in every season and weather. Times must increase in ten-minute steps from 06:00 to 26:00.", "notice", True))
+        root.addWidget(label("One daily routine is the default before marriage. Add alternatives in Conditional routines. Times must increase in ten-minute steps from 06:00 to 26:00.", "notice", True))
         row = QHBoxLayout()
         if compact:
             row.setSpacing(6)

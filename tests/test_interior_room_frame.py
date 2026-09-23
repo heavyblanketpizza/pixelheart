@@ -217,14 +217,15 @@ class InteriorRoomFrameTests(unittest.TestCase):
     def test_loading_a_custom_atlas_removes_stale_frame_and_undo_restores_it(self):
         original = self.design()
         dialog = self.editor(original)
+        staged = dialog.draft.snapshot()
         with Image.new("RGBA", (16, 16), "purple") as image:
             image.save(self.root / "custom.png")
         dialog.load_atlas(self.root / "custom.png")
         self.assertFalse(dialog.draft.data.get("room_frame"))
         self.assertFalse(any(map_layers(dialog.draft.data)["Front"]))
         dialog.undo()
-        self.assertEqual(dialog.draft.data["room_frame"], original["room_frame"])
-        self.assertEqual(dialog.draft.data["atlas"], original["atlas"])
+        self.assertEqual(dialog.draft.data["room_frame"], staged["room_frame"])
+        self.assertEqual(dialog.draft.data["atlas"], staged["atlas"])
 
 
 if __name__ == "__main__":

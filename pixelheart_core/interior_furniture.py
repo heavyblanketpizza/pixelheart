@@ -49,6 +49,8 @@ ROOM_FRAME_TILES = (
 ROOM_FRAME_JOINS = (
     "top_join_left", "top_join_right", "bottom_join_right", "bottom_join_left",
 )
+ROOM_FRAME_DOORWAY = ("door_left", "door_right")
+ROOM_FRAME_PARTITIONS = ("partition_vertical", "partition_cap")
 
 _preview_cache = OrderedDict()
 _preview_cache_bytes = 0
@@ -321,7 +323,7 @@ def validate_room_frame(value):
     """Normalize explicit 16-pixel room trim crops from a local PNG atlas.
 
     The supplied tiles describe the room's structural edges and corners, with
-    optional joins for adjoining rooms;
+    optional joins for adjoining rooms and corners for the entrance passage;
     neither artwork nor an installed game's tile positions are inferred.
     Image bounds are checked when the library is imported.
     """
@@ -331,10 +333,10 @@ def validate_room_frame(value):
     if PurePosixPath(preview).suffix.lower() != ".png":
         raise FurnitureValidationError("Room frame previews must be PNG files.")
     tiles = value.get("tiles")
-    allowed = ROOM_FRAME_TILES + ROOM_FRAME_JOINS
+    allowed = ROOM_FRAME_TILES + ROOM_FRAME_JOINS + ROOM_FRAME_DOORWAY + ROOM_FRAME_PARTITIONS
     if (not isinstance(tiles, dict) or not set(ROOM_FRAME_TILES).issubset(tiles)
             or not set(tiles).issubset(allowed)):
-        raise FurnitureValidationError("A room frame needs the ten named edge and corner tiles, with only recognized optional joins.")
+        raise FurnitureValidationError("A room frame needs the ten named edge and corner tiles, with only recognized optional joins and doorway corners.")
     normalized = {}
     for role in allowed:
         if role not in tiles:

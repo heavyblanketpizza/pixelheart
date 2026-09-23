@@ -1,36 +1,19 @@
-# Build the people and places around the story
+# Give your character a home and places for their story
 
-Open **Cast & locations** to add supporting characters, places, a spouse room,
-and required external mods. These become real content in the primary character's
-pack. Save the project before importing files so all assets can travel together.
+Open **Home & places** to design the loaded NPC's residence and spouse room.
+Save the project before importing files so the assets travel together. Additional
+story locations and external mod dependencies are available under **Advanced / Game connection**.
 
-## Supporting cast
-
-Choose **Add companion** in **Supporting cast**. Give the character a name and
-unique Character ID, choose their age, birthday, and home, and import complete
-portrait and sprite sheets. Write their dialogue, route, and gift preferences in
-the same detail pane. Each companion needs their own selected artwork; a story
-description alone does not supply it.
-
-The main character stays adult. Supporting characters can be Adult, Teen, or
-Child; teens and children are always nonromanceable. Supporting adult romance
-is optional and requires the complete romance sprite layout.
-
-Select the companion by name in a scene's cast and beat controls. The stored
-reference uses a stable companion identity, so a name edit does not detach the
-scene. Removing a referenced companion produces an export error; revise the
-cast and beats that referred to them. Keep Character IDs stable after publishing
-or using the pack in a save, since an ID change changes the game's NPC identity.
-
-A relationship arc records how the connection develops through scenes. Its
-friendship effects change the player's friendship with the chosen NPC; they do
-not create a private family or friendship simulation between two companions.
+Each project authors one custom NPC. Scene casts can include townspeople and
+other installed characters. Older projects retain any previously bundled
+supporting characters and their assets; this page no longer creates or edits
+separate NPC projects inside the current one. For older projects only, **Advanced / Game connection → Legacy bundled characters…** can repair missing artwork or remove an old bundled character after confirmation. Review scenes that referenced a removed character before exporting.
 
 ## Create or import a place
 
-For an NPC home, start with **Build a home…** in **Places & spouse room**. To
+For an NPC home, start with **Build residence…**. To
 import a map or create another kind of place, open **Advanced / Game connection**,
-choose **Add place**, and give it a display name and unique **Stable map ID**.
+choose **Add story location**, and give it a display name and unique **Stable map ID**.
 That place appears by name in location selectors. The advanced section contains
 the map tools:
 
@@ -50,11 +33,11 @@ must be edited in Tiled and imported again.
 
 ## Design an interior
 
-In **Places & spouse room**, choose **Build a home…** to start decorating a new
+In **Home & places**, choose **Build residence…** to start decorating a new
 home for your character. Pixelheart names the place and creates its game ID for
 you. Saving the design assigns it as their residence; cancelling leaves no
 empty place behind. Choose **Design spouse room…** for their farmhouse room.
-If a spouse room already exists, that action reopens it.
+The residence and spouse-room actions reopen existing assigned designs instead of creating duplicates.
 
 Select an existing place and **Design interior…** or **Edit interior…** to work
 on it again. The spouse canvas stays 6×9 tiles. A residence can contain connected
@@ -76,13 +59,44 @@ is unavailable.
   controls let you rotate, duplicate, or remove it. Rugs can sit under furniture.
 - **Walls & floors:** pick a wallpaper or flooring swatch, then click a room to
   decorate it. **Apply to every room** gives the whole home the same finish.
-- **Rooms:** choose a room, pick a small, medium, or large addition, and attach it
-  to the left, right, or below. **Draw a room…** lets you drag out a connected
-  rectangular addition instead. Remove empty rooms or move the marked doorway
-  directly on the canvas. Optional additions can also be offered to the player
-  in-game. Spouse rooms keep their fixed size and a marked standing spot for
-  the NPC. Existing homes keep their map coordinates: an addition on the left
-  needs enough free space, so saved routes and doorways stay in place.
+- **Rooms:** choose a small, medium, or large size and drag the room preview onto
+  the layout. Drop beside another room when the outline turns green. Grab an
+  existing room on the canvas to move it with its furniture and doorway;
+  nearby edges snap together. Select a room to reveal its eight resize handles.
+  Drag an edge or corner to resize while its contents stay in place. Escape
+  cancels a gesture, and Undo restores the previous layout.
+
+Under **Rooms & hallways**, **Draw a room…** creates a connected rectangular
+addition, and **Draw hallway** creates a narrow connecting floor region. Draw
+from an existing room edge, then add another room at the end. Hallways are
+permanent parts of the home. New rooms are permanent by default; **Offer the
+new room as an optional expansion** makes one available for player-controlled
+addition/removal in-game.
+
+Choose **Walls & openings**, then **Draw wall** and drag horizontally or
+vertically inside a room. An interior wall can also divide adjoining rooms
+along their shared edge. Select a wall on the canvas or in the list to choose
+a solid wall, a one-tile doorway, or a wider passage. **Place opening** previews
+the opening at the pointer; click the wall to position it. **Remove selected
+wall**, or Delete while it is selected, removes it. Openings are permanent
+passages; they do not add animated or locked doors.
+
+Red previews explain rejected layouts: disconnected rooms, walls blocking
+passages, cropped furniture, or unreachable authored NPC destinations. Resizing
+keeps existing furniture, home positions, route stops and scene starts fixed;
+moving a room carries its contents and authored destinations. An entrance on a
+resized lower wall follows that edge. Review scene walking paths after moving
+rooms, since authored movement beats are preserved.
+
+The outside doorway is an opening in the lower wall. Drag the passage to move
+it, or choose **Move the doorway** and click a clear bottom edge. The arrival
+moves just inside it; the passage leads back outside. Spouse rooms keep their
+fixed size and marked standing spot. Existing homes keep their map coordinates:
+an addition on the left needs enough free space.
+
+Partitions use the room's authored wallpaper and structural trim. Their finishes
+are exported as fixed map artwork; changing wallpaper inside the game does not
+redecorate partition faces.
 
 Use **Undo** and **Redo** while experimenting. **Grid**, zoom, and **Fit room**
 help with placement, and **Play** previews available animations. The layout
@@ -157,7 +171,8 @@ out** for every standalone place:
 
 1. Select the outside **Entrance map** and the X/Y tile that triggers entry.
 2. Set the X/Y tile where the player arrives inside your place.
-3. Set a different inside tile that triggers the exit.
+3. For a designed residence, its doorway supplies the exit automatically. For
+   an imported or painted map, set a different inside tile that triggers the exit.
 4. Set the outside return tile, different from the entry trigger.
 
 The export creates the location and both game warps. Other project locations can
@@ -192,7 +207,7 @@ See [LIFE_AND_BRANCHING.md](LIFE_AND_BRANCHING.md) for conversations and routine
 
 ## Declare other mods
 
-In **Mod dependencies**, use the UniqueID from another mod's `manifest.json`,
+Open **Advanced / Game connection**, then **Mod dependencies**. Use the UniqueID from another mod's `manifest.json`,
 optionally require a minimum version, and specify whether the dependency is
 required. Include mods that provide external maps, NPC actors, or modded items
 your content needs. Declaring a dependency does not download or bundle that mod.
@@ -204,7 +219,7 @@ frameworks separately and check SMAPI's log before playtesting.
 
 ## Export, test, and revise
 
-Resolve the export review's errors, then export a ZIP or use the creator journey
+Resolve the export review's errors, then export a ZIP or use **Review & export → Install & playtest**
 to install in a selected Mods folder. Pixelheart updates only folders it owns
 with a matching pack identity. The previous version is backed up under
 `Pixelheart backups` beside Mods, outside the active mod directory. A manually
@@ -215,11 +230,11 @@ map IDs, warp coordinates, and spouse-room information. `STORY_TESTING.txt`
 covers ready primary and supporting scenes, their triggers, answer outcomes,
 and repeat rules. Test on a backed-up save: meet each character, sleep and follow
 routes, use both directions of every entrance, play every scene and answer, and
-check the farmhouse after marriage. Record results in the creator journey,
+check the farmhouse after marriage. Record results in **Review & export → Install & playtest**,
 revise the same records, and export/install again.
 
-Desktop exports contain a portable `project.json` with the creator brief,
-chapter plan, test records, catalog, all drafts, and references to the included
+Desktop exports contain a portable `project.json` with test records, catalog,
+all drafts, preserved legacy planning, and references to the included
 selected artwork and map bundles. Extract the entire pack before reopening it.
 Keep the working project too: it retains original/prepared artwork versions
 that were not selected for the export.

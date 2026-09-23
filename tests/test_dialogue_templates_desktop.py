@@ -19,7 +19,7 @@ from shiboken6 import isValid
 
 from pixelheart.app import MainWindow
 from pixelheart.dialogue_templates import DialogueTemplateDialog
-from pixelheart.editors import RecordsPage
+from pixelheart.editors import DialoguePage
 from pixelheart_core.projects import load_project
 from pixelheart_core.local_templates import load_local_dialogue
 
@@ -370,7 +370,7 @@ class DialogueTemplateDesktopTests(unittest.TestCase):
         self.assertEqual(dialog.imported_records[0]["text"], example_payload()["examples"][0]["text"])
 
     def test_records_page_only_emits_changed_when_an_import_changes_records(self):
-        page = self.keep(RecordsPage("dialogues"))
+        page = self.keep(DialoguePage())
         page.load(self.records)
         changed = QSignalSpy(page.changed)
         self.visit_page_dialog(page, lambda dialog: dialog.reject())

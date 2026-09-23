@@ -489,7 +489,7 @@ class MapWorkshop(QDialog):
         right_layout.addWidget(canvas_scroll, 1)
         self.position = label("Hover over a map tile to see its coordinates.", "hint", True)
         right_layout.addWidget(self.position)
-        right_layout.addWidget(label("The preview shows your painted layers. Doors, entry points, routes, and walkability still need a game test. Configure the entrance after saving in Cast & locations.", "muted", True))
+        right_layout.addWidget(label("The preview shows your painted layers. Doors, entry points, routes, and walkability still need a game test. Configure the entrance after saving in Home & places.", "muted", True))
         split.addWidget(right)
         split.setStretchFactor(1, 1)
         root.addWidget(split, 1)

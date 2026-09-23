@@ -1,33 +1,23 @@
-"""Editable supporting characters and imported places for a portable NPC pack."""
+"""The loaded NPC’s residence, spouse room, and optional story locations."""
 from copy import deepcopy
 import re
-import uuid
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QTabWidget, QListWidget,
-    QSplitter, QComboBox, QCheckBox, QFileDialog, QPlainTextEdit, QScrollArea, QSizePolicy,
+    QSplitter, QCheckBox, QFileDialog, QScrollArea, QSizePolicy,
     QStackedWidget,
 )
 
 from pixelheart_core.world import (
-    WorldError, new_world, new_companion, new_location, normalize_world,
-    import_map, map_bundle, asset_path, exported_location_id, cast_actor_id, render_map_preview,
+    WorldError, new_world, new_location, normalize_world,
+    import_map, asset_path, exported_location_id, render_map_preview,
 )
-from pixelheart_core.projects import import_artwork, ProjectError
-from pixelheart_core.artwork import inspect_artwork, ArtworkValidationError
-from pixelheart_core.story import exported_npc_id
-from .editors import line, number, value, set_value, connect_change, RecordsPage, SchedulePage
-from .widgets import label, button, card, ArtworkPreview
+from pixelheart_core.projects import new_project
+from .editors import line, number, value, set_value, connect_change
+from .widgets import label, button, card
 from .location_picker import MapSelector
-
-
-def combo(options):
-    result = QComboBox()
-    for text, data in options:
-        result.addItem(text, data)
-    return result
 
 
 def form_rows(layout, rows):
@@ -40,6 +30,93 @@ def form_rows(layout, rows):
     return form
 
 
+def _room_translations(before, after, offsets=None):
+    """Identify room moves without treating a resize as a coordinate transform."""
+    if isinstance(offsets, dict):
+        return [(room, *offsets[room["id"]]) for room in before.get("rooms", [])
+                if room["id"] in offsets and any(offsets[room["id"]])]
+    following = {room["id"]: room for room in after["rooms"]}
+    result = []
+    for room in before.get("rooms", []):
+        moved = following.get(room["id"])
+        if moved and all(moved[key] == room[key] for key in ("width", "height")):
+            dx, dy = moved["x"] - room["x"], moved["y"] - room["y"]
+            if dx or dy:
+                result.append((room, dx, dy))
+    return result
+
+
+def _translate_room_point(x, y, translations):
+    px, py = _tile_coordinate(x), _tile_coordinate(y)
+    if px is not None and py is not None:
+        for room, dx, dy in translations:
+            if room["x"] <= px < room["x"] + room["width"] and room["y"] <= py < room["y"] + room["height"]:
+                return px + dx, py + dy
+    return x, y
+
+
+def _tile_coordinate(value):
+    if type(value) is int:
+        return value
+    if isinstance(value, str) and re.fullmatch(r"-?\d{1,6}", value):
+        return int(value)
+    return None
+
+
+def _character_room_points(character, maps):
+    """Describe authored destinations without changing live editor models."""
+    name = character.get("name") or "NPC"
+    if character.get("home_map") in maps:
+        yield {"x": character.get("home_x"), "y": character.get("home_y"),
+               "label": f"{name}'s home position", "home": True}
+    for index, stop in enumerate(character.get("schedule", []), 1):
+        if isinstance(stop, dict) and stop.get("location") in maps:
+            yield {"x": stop.get("x"), "y": stop.get("y"),
+                   "label": f"{name}'s daily schedule at {stop.get('time') or 'stop ' + str(index)}"}
+    for routine in character.get("life", {}).get("routines", []):
+        if not isinstance(routine, dict):
+            continue
+        for index, stop in enumerate(routine.get("stops", []), 1):
+            if isinstance(stop, dict) and stop.get("location") in maps:
+                yield {"x": stop.get("x"), "y": stop.get("y"),
+                       "label": f"{name}'s routine “{routine.get('name') or 'Untitled'}”, stop {index}"}
+    for event in character.get("events", []):
+        if isinstance(event, dict) and event.get("location") in maps:
+            for actor in event.get("story", {}).get("actors", []):
+                if isinstance(actor, dict):
+                    yield {"x": actor.get("x"), "y": actor.get("y"),
+                           "label": f"{actor.get('name') or name}'s starting position in “{event.get('name') or 'Untitled scene'}”"}
+
+
+def _translate_character_rooms(character, maps, translations):
+    """Keep authored destinations with their rooms, preserving scene move offsets."""
+    def move(point, x="x", y="y"):
+        before = point.get(x), point.get(y)
+        after = _translate_room_point(*before, translations)
+        if after != before:
+            point[x], point[y] = after
+            return True
+        return False
+
+    if character.get("home_map") in maps:
+        move(character, "home_x", "home_y")
+    for stop in character.get("schedule", []):
+        if isinstance(stop, dict) and stop.get("location") in maps:
+            move(stop)
+    for routine in character.get("life", {}).get("routines", []):
+        if isinstance(routine, dict):
+            for stop in routine.get("stops", []):
+                if isinstance(stop, dict) and stop.get("location") in maps:
+                    move(stop)
+    scenes_moved = False
+    for event in character.get("events", []):
+        if isinstance(event, dict) and event.get("location") in maps:
+            for actor in event.get("story", {}).get("actors", []):
+                if isinstance(actor, dict):
+                    scenes_moved = move(actor) or scenes_moved
+    return scenes_moved
+
+
 class WorldPage(QWidget):
     changed = Signal()
 
@@ -48,19 +125,18 @@ class WorldPage(QWidget):
         self.window = window
         self.world = new_world()
         self.loading = False
-        self.cast_index = self.location_index = self.dependency_index = -1
+        self.location_index = self.dependency_index = -1
         self.detail_stacks = {}
+        self.remove_buttons = {}
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        intro, layout = card("A life with people and places", "Create supporting characters, build their homes, and connect each place to the valley.")
-        layout.addWidget(label("Supporting cast need their own portrait and sprite sheets. Imported maps keep their tilesheets with the project. All locations and routes still need an in-game playtest.", "hint", True))
-        root.addWidget(intro)
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
         root.addWidget(self.tabs, 1)
-        self._build_cast()
         self._build_places()
         self._build_dependencies()
+        self.tabs.setTabVisible(1, False)
+        self.tabs.tabBar().hide()
 
     def _split_page(self, title, add, remove):
         page = QWidget()
@@ -68,13 +144,15 @@ class WorldPage(QWidget):
         root.setContentsMargins(0, 14, 0, 0)
         row = QHBoxLayout()
         if title == "Add place":
-            self.build_home_button = button("Build a home…", self.build_home, "primary")
+            self.build_home_button = button("Build residence…", self.build_home, "primary")
             self.design_spouse_button = button("Design spouse room…", self.design_spouse_room)
             row.addWidget(self.build_home_button)
             row.addWidget(self.design_spouse_button)
         else:
             row.addWidget(button("+ " + title, add, "primary"))
-        row.addWidget(button("Remove", remove, "quiet"))
+        remove_button = button("Remove", remove, "quiet")
+        remove_button.setEnabled(False)
+        row.addWidget(remove_button)
         row.addStretch()
         root.addLayout(row)
         if title == "Add place":
@@ -86,11 +164,14 @@ class WorldPage(QWidget):
             self.place_creation_tools = QWidget()
             creation = QHBoxLayout(self.place_creation_tools)
             creation.setContentsMargins(0, 0, 0, 0)
-            creation.addWidget(button("+ Add place", add))
-            creation.addWidget(label("Create an empty place for a supplied map or another use.", "hint", True))
+            creation.addWidget(button("+ Add story location", add))
+            creation.addWidget(label("Optional locations for this NPC’s story, plus map connections and mod dependencies.", "hint", True))
             creation.addStretch()
             self.place_creation_tools.hide()
             root.addWidget(self.place_creation_tools)
+            self.legacy_characters_button = button("Legacy bundled characters…", self.edit_legacy_characters, "quiet")
+            self.legacy_characters_button.hide()
+            root.addWidget(self.legacy_characters_button)
         split = QSplitter()
         listing = QListWidget()
         listing.setWordWrap(True)
@@ -113,8 +194,7 @@ class WorldPage(QWidget):
         empty_layout.setContentsMargins(30, 24, 30, 24)
         empty_layout.addStretch()
         heading, hint = {
-            "Add companion": ("A place for someone new", "Add a companion to give your story another familiar face."),
-            "Add place": ("Make a place that feels like them", "Choose Build a home to start decorating, or design the room they will bring to the farmhouse."),
+            "Add place": ("Make a place that feels like them", "Build this NPC’s residence, or design the room they will bring to the farmhouse."),
             "Add dependency": ("Everything your story needs", "Add a dependency when your mod uses another creator's maps or content."),
         }[title]
         for text, style in ((heading, "sectionTitle"), (hint, "muted")):
@@ -124,82 +204,29 @@ class WorldPage(QWidget):
         empty_layout.addStretch()
         stack.addWidget(empty)
         self.detail_stacks[panel] = stack
+        self.remove_buttons[panel] = remove_button
         split.addWidget(stack)
         split.setStretchFactor(1, 1)
         root.addWidget(split, 1)
         return page, listing, panel, content
 
-    def _build_cast(self):
-        page, self.cast_list, self.cast_panel, layout = self._split_page("Add companion", self.add_companion, self.remove_companion)
-        self.cast_fields = {
-            "name": line("Who belongs in their world?", 64), "internal_name": line("CompanionID", 64),
-            "age": combo([("Adult", "adult"), ("Teen · supporting role", "teen"), ("Child · supporting role", "child")]),
-            "gender": combo([(text, text) for text in ("Male", "Female", "Undefined")]),
-            "romanceable": QCheckBox("Adult romance is available"),
-            "season": combo([(s.title(), s) for s in ("spring", "summer", "fall", "winter")]),
-            "day": number(1, 28), "home_map": MapSelector(compact=True), "home_x": number(0, 1000), "home_y": number(0, 1000),
-        }
-        profile, content = card("Someone with a place in the story")
-        form_rows(content, [("Name", self.cast_fields["name"]), ("Character ID", self.cast_fields["internal_name"]),
-                            ("Age", self.cast_fields["age"]), ("Game gender", self.cast_fields["gender"]),
-                            ("Romance", self.cast_fields["romanceable"]), ("Birthday season", self.cast_fields["season"]),
-                            ("Birthday day", self.cast_fields["day"]), ("Home map", self.cast_fields["home_map"]),
-                            ("Home tile X", self.cast_fields["home_x"]), ("Home tile Y", self.cast_fields["home_y"])])
-        self.cast_identity = label("", "hint", True)
-        content.addWidget(self.cast_identity)
-        layout.addWidget(profile)
-        artwork, content = card("Give them their own artwork")
-        row = QHBoxLayout()
-        self.cast_previews = {}
-        self.cast_asset_labels = {}
-        for kind in ("portrait", "sprite"):
-            column = QVBoxLayout()
-            preview = ArtworkPreview("Import a complete " + kind + " sheet")
-            preview.setMinimumSize(130, 130)
-            preview.setMaximumHeight(220)
-            column.addWidget(preview)
-            column.addWidget(button("Import " + kind + " sheet…", lambda checked=False, k=kind: self.import_cast_artwork(k)))
-            status = label("No sheet selected", "hint", True)
-            column.addWidget(status)
-            self.cast_previews[kind] = preview
-            self.cast_asset_labels[kind] = status
-            row.addLayout(column)
-        content.addLayout(row)
-        layout.addWidget(artwork)
-        self.cast_content_tabs = QTabWidget()
-        self.cast_dialogue = RecordsPage("dialogues")
-        self.cast_schedule = SchedulePage(compact=True)
-        self.cast_content_tabs.addTab(self.cast_dialogue, "Their dialogue")
-        self.cast_content_tabs.addTab(self.cast_schedule, "Their daily route")
-        self.cast_content_tabs.setMinimumHeight(530)
-        self.cast_content_tabs.setMinimumWidth(0)
-        layout.addWidget(self.cast_content_tabs)
-        gifts, content = card("Their favorite things", "Separate object IDs or known gift names with commas.")
-        self.gift_fields = {kind: line("Sunflower, Coffee, (O)66", 5000) for kind in ("love", "like", "dislike", "hate")}
-        form_rows(content, [(kind.title(), widget) for kind, widget in self.gift_fields.items()])
-        layout.addWidget(gifts)
-        layout.addStretch()
-        self.cast_list.currentRowChanged.connect(self.select_companion)
-        for widget in (*self.cast_fields.values(), *self.gift_fields.values()):
-            connect_change(widget, self.edit_companion)
-        self.cast_dialogue.changed.connect(self.edit_companion)
-        self.cast_schedule.changed.connect(self.edit_companion)
-        self.tabs.addTab(page, "Supporting cast")
-
     def _build_places(self):
         page, self.location_list, self.location_panel, layout = self._split_page("Add place", self.add_location, self.remove_location)
         self.location_fields = {"name": line("Their workshop, a cottage, a hidden garden…", 80),
-                                "internal_name": line("StableMapID", 40), "spouse_room": QCheckBox("Use a section as the primary character’s spouse room"),
+                                "internal_name": line("StableMapID", 40), "spouse_room": QCheckBox("Use this map section as their spouse room"),
                                 **{key: number(0, 1000) for key in ("room_x", "room_y", "entry_x", "entry_y", "exit_x", "exit_y")}}
         self.entrance_fields = {"map": MapSelector(compact=True), **{key: number(0, 1000) for key in ("x", "y", "arrival_x", "arrival_y")}}
         details, content = card("A place that belongs to them")
         form_rows(content, [("Place name", self.location_fields["name"])])
         self.interior_button = button("Design interior…", self.design_interior, "primary")
         content.addWidget(self.interior_button)
-        self.assign_home_button = button("Set as their residence", self.assign_home)
-        content.addWidget(self.assign_home_button)
+        self.place_role = label("", "hint", True)
+        content.addWidget(self.place_role)
         self.map_status = label("Open the designer to shape and furnish their home.", "hint", True)
         content.addWidget(self.map_status)
+        self.interior_notice = label("", "notice", True)
+        self.interior_notice.hide()
+        content.addWidget(self.interior_notice)
         self.map_preview = label("Their interior preview will appear here.", "muted", True)
         self.map_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.map_preview.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
@@ -222,6 +249,8 @@ class WorldPage(QWidget):
         self.edit_map_button = button("Edit painted map…", self.edit_map)
         content.addWidget(self.edit_map_button)
         content.addWidget(label("Imported maps need 16×16 tiles, Back / Buildings / Front layers, and local TSX / PNG files. Collision, actions, and routes need in-game testing.", "hint", True))
+        self.assign_home_button = button("Use this story location as their residence", self.assign_home)
+        content.addWidget(self.assign_home_button)
         content.addWidget(self.location_fields["spouse_room"])
         advanced_layout.addWidget(map_tools)
         self.warps_card, content = card("Give the player a way in and out", "The entrance and return arrival must be different tiles. Check their walkability in-game.")
@@ -231,7 +260,7 @@ class WorldPage(QWidget):
                             ("Exit trigger Y", self.location_fields["exit_y"]), ("Return outside at X", self.entrance_fields["arrival_x"]),
                             ("Return outside at Y", self.entrance_fields["arrival_y"])])
         advanced_layout.addWidget(self.warps_card)
-        self.room_card, content = card("Their room in the farmhouse", "Choose the top-left tile of a 6×9 section. The game places it in the farmhouse when the player marries your primary character.")
+        self.room_card, content = card("Their room in the farmhouse", "Choose the top-left tile of a 6×9 section. The game places it in the farmhouse when the player marries this NPC.")
         form_rows(content, [("Room section X", self.location_fields["room_x"]), ("Room section Y", self.location_fields["room_y"])])
         advanced_layout.addWidget(self.room_card)
         self.location_advanced.hide()
@@ -240,7 +269,7 @@ class WorldPage(QWidget):
         self.location_list.currentRowChanged.connect(self.select_location)
         for widget in (*self.location_fields.values(), *self.entrance_fields.values()):
             connect_change(widget, self.edit_location)
-        self.tabs.addTab(page, "Places && spouse room")
+        self.tabs.addTab(page, "Residence && spouse room")
 
     def _build_dependencies(self):
         page, self.dependency_list, self.dependency_panel, layout = self._split_page("Add dependency", self.add_dependency, self.remove_dependency)
@@ -252,140 +281,87 @@ class WorldPage(QWidget):
         self.dependency_list.currentRowChanged.connect(self.select_dependency)
         for widget in self.dependency_fields.values():
             connect_change(widget, self.edit_dependency)
-        self.tabs.addTab(page, "Mod dependencies")
+        self.tabs.addTab(page, "Advanced: mod dependencies")
 
     def load(self, world=None):
         selected_ids = {}
-        for collection, index in (("characters", self.cast_index), ("locations", self.location_index), ("dependencies", self.dependency_index)):
+        for collection, index in (("locations", self.location_index), ("dependencies", self.dependency_index)):
             if 0 <= index < len(self.world[collection]):
                 selected_ids[collection] = self.world[collection][index]["id"]
         self.loading = True
         self.world = normalize_world(world)
         self._refresh_lists()
-        for collection, listing in (("characters", self.cast_list), ("locations", self.location_list), ("dependencies", self.dependency_list)):
+        for collection, listing in (("locations", self.location_list), ("dependencies", self.dependency_list)):
             index = next((index for index, entry in enumerate(self.world[collection]) if entry["id"] == selected_ids.get(collection)),
                          0 if self.world[collection] else -1)
             listing.setCurrentRow(index)
         self.loading = False
-        self.select_companion(self.cast_list.currentRow())
         self.select_location(self.location_list.currentRow())
         self.select_dependency(self.dependency_list.currentRow())
+        self.refresh_home_actions()
+        self.legacy_characters_button.setVisible(self.place_advanced_toggle.isChecked() and bool(self.world["characters"]))
 
     def dump(self):
         return deepcopy(self.world)
 
     def _refresh_lists(self):
-        for listing, collection, text in ((self.cast_list, "characters", lambda item: item["character"].get("name") or "Unnamed companion"),
-                                           (self.location_list, "locations", lambda item: item.get("name") or "Unnamed place"),
+        for listing, collection, text in ((self.location_list, "locations", lambda item: item.get("name") or "Unnamed place"),
                                            (self.dependency_list, "dependencies", lambda item: item.get("id") or "Unnamed dependency")):
             listing.clear()
             listing.addItems([text(item) for item in self.world[collection]])
 
-    def add_companion(self):
-        if len(self.world["characters"]) >= 32:
-            return
-        self.world["characters"].append(new_companion())
-        self.cast_list.addItem("New companion")
-        self.cast_list.setCurrentRow(len(self.world["characters"]) - 1)
-        self.changed.emit()
-
-    def remove_companion(self):
-        if self.cast_index >= 0:
-            del self.world["characters"][self.cast_index]
-            self.load(self.world)
-            self.changed.emit()
-
-    def select_companion(self, index):
-        if self.loading:
-            return
-        self.cast_index = index
-        self.cast_panel.setEnabled(index >= 0)
-        self.detail_stacks[self.cast_panel].setCurrentIndex(0 if index >= 0 else 1)
-        if index < 0:
-            return
-        self.loading = True
-        entry = self.world["characters"][index]
-        character = entry["character"]
-        for key, widget in self.cast_fields.items():
-            set_value(widget, character.get(key, False if key == "romanceable" else ""))
-        for key, widget in self.gift_fields.items():
-            set_value(widget, ", ".join(map(str, character.get("gifts", {}).get(key, []))))
-        self.cast_dialogue.load(character.get("dialogues", []))
-        self.cast_schedule.load(character.get("schedule", []))
-        self.loading = False
-        self.refresh_cast_artwork()
-        self.cast_identity.setText("Stable story actor: " + cast_actor_id(entry) + "\nYou can also use “" + character.get("internal_name", "") + "”. Keep IDs stable after publishing.")
-        self.cast_fields["romanceable"].setEnabled(character.get("age", "adult") == "adult")
-
-    def edit_companion(self):
-        if self.loading or self.cast_index < 0:
-            return
-        entry = self.world["characters"][self.cast_index]
-        character = entry["character"]
-        character.update({key: value(widget) for key, widget in self.cast_fields.items()})
-        if character["age"] != "adult":
-            character["romanceable"] = False
-            self.cast_fields["romanceable"].blockSignals(True)
-            self.cast_fields["romanceable"].setChecked(False)
-            self.cast_fields["romanceable"].blockSignals(False)
-        self.cast_fields["romanceable"].setEnabled(character["age"] == "adult")
-        character["dialogues"] = self.cast_dialogue.dump()
-        character["schedule"] = self.cast_schedule.dump()
-        character["gifts"] = {key: [part.strip() for part in widget.text().split(",") if part.strip()] for key, widget in self.gift_fields.items()}
-        self.cast_list.item(self.cast_index).setText(character["name"] or "Unnamed companion")
-        self.cast_identity.setText("Stable story actor: " + cast_actor_id(entry) + "\nYou can also use “" + character.get("internal_name", "") + "”. Keep IDs stable after publishing.")
-        self.changed.emit()
-
-    def import_cast_artwork(self, kind):
-        if self.cast_index < 0:
-            return
-        path, _ = QFileDialog.getOpenFileName(self, "Import companion " + kind, "", "PNG artwork (*.png)")
-        if not path:
-            return
-        identity = self.world["characters"][self.cast_index]["id"]
-        try:
-            inspect_artwork(path)
-            if not self.window.ensure_saved():
-                return
-            self.cast_list.setCurrentRow(next(index for index, entry in enumerate(self.world["characters"]) if entry["id"] == identity))
-            self.world["characters"][self.cast_index]["artwork"][kind] = import_artwork(path, self.window.project_file, kind)
-            self.refresh_cast_artwork()
-            self.changed.emit()
-        except (ArtworkValidationError, ProjectError, WorldError) as exc:
-            self.window.show_error("Companion artwork needs attention", str(exc))
-
-    def refresh_cast_artwork(self):
-        entry = self.world["characters"][self.cast_index]
-        for kind, preview in self.cast_previews.items():
-            reference = entry.get("artwork", {}).get(kind)
-            try:
-                path = asset_path(reference, self.window.project_file.parent) if reference and self.window.project_file else None
-                preview.set_image(path, portrait=kind == "portrait")
-                self.cast_asset_labels[kind].setText(reference or "No sheet selected")
-            except (WorldError, OSError) as exc:
-                preview.set_image()
-                self.cast_asset_labels[kind].setText(str(exc))
-
     def show_place_advanced(self, visible):
         self.place_advanced_toggle.setText(("▾ " if visible else "▸ ") + "Advanced / Game connection")
         self.place_creation_tools.setVisible(visible)
+        self.tabs.setTabVisible(1, visible)
+        self.tabs.tabBar().setVisible(visible)
+        self.legacy_characters_button.setVisible(visible and bool(self.world["characters"]))
         if hasattr(self, "location_advanced"):
             self.location_advanced.setVisible(visible)
 
+    def _character(self):
+        character = deepcopy(self.window.document["character"])
+        if hasattr(self.window, "identity"):
+            character.update(self.window.identity.dump())
+        return character
+
+    def _is_residence(self, record):
+        character = self._character()
+        return (not record["spouse_room"] and character.get("home_map") in
+                (record["internal_name"], exported_location_id(record, character)))
+
+    def _spouse_index(self, *, excluding=None):
+        return next((index for index, record in enumerate(self.world["locations"])
+                     if record["spouse_room"] and record["id"] != excluding), None)
+
+    def refresh_home_actions(self):
+        self.build_home_button.setText("Edit residence…" if any(self._is_residence(record)
+                                       for record in self.world["locations"]) else "Build residence…")
+        self.design_spouse_button.setText("Edit spouse room…" if self._spouse_index() is not None
+                                         else "Design spouse room…")
+
     def build_home(self):
         self._start_interior_place(spouse=False)
+
+    def edit_legacy_characters(self, checked=False, *, index=0):
+        if not self.world["characters"]:
+            return
+        from .legacy_characters import LegacyCharactersDialog
+        dialog = LegacyCharactersDialog(self, index=index)
+        dialog.exec()
+        dialog.deleteLater()
 
     def design_spouse_room(self):
         self._start_interior_place(spouse=True)
 
     def _start_interior_place(self, *, spouse):
-        if spouse:
-            existing = next((index for index, record in enumerate(self.world["locations"])
-                             if record["spouse_room"]), None)
-            if existing is not None:
-                self.location_list.setCurrentRow(existing)
-                self.design_interior()
-                return
+        existing = (self._spouse_index() if spouse else
+                    next((index for index, record in enumerate(self.world["locations"])
+                          if self._is_residence(record)), None))
+        if existing is not None:
+            self.location_list.setCurrentRow(existing)
+            self.design_interior()
+            return
         if len(self.world["locations"]) >= 32:
             self.window.show_error("Place limit reached", "This project already has 32 places. Edit an existing home or remove a place before adding another.")
             return
@@ -395,7 +371,7 @@ class WorldPage(QWidget):
             return
         previous_id = (self.world["locations"][self.location_index]["id"]
                        if self.location_index >= 0 else None)
-        character = self.window.document.get("character", {})
+        character = self._character()
         name = str(character.get("name", "")).strip()
         base = re.sub(r"[^A-Za-z0-9_]", "", str(character.get("internal_name") or name)) or "NPC"
         if not re.match(r"[A-Za-z]", base):
@@ -435,6 +411,8 @@ class WorldPage(QWidget):
 
     def remove_location(self):
         if self.location_index >= 0:
+            if self._is_residence(self.world["locations"][self.location_index]):
+                self._reset_home()
             del self.world["locations"][self.location_index]
             self.load(self.world)
             self.changed.emit()
@@ -443,7 +421,10 @@ class WorldPage(QWidget):
         if self.loading:
             return
         self.location_index = index
+        self.interior_notice.hide()
         self.location_panel.setEnabled(index >= 0)
+        self.location_list.setVisible(bool(self.world["locations"]))
+        self.remove_buttons[self.location_panel].setEnabled(index >= 0)
         self.detail_stacks[self.location_panel].setCurrentIndex(0 if index >= 0 else 1)
         if index < 0:
             return
@@ -460,8 +441,19 @@ class WorldPage(QWidget):
         if self.loading or self.location_index < 0:
             return
         record = self.world["locations"][self.location_index]
+        residence = self._is_residence(record)
+        previous_entry = (record["entry_x"], record["entry_y"])
+        if self.location_fields["spouse_room"].isChecked() and self._spouse_index(excluding=record["id"]) is not None:
+            self.location_fields["spouse_room"].blockSignals(True)
+            self.location_fields["spouse_room"].setChecked(False)
+            self.location_fields["spouse_room"].blockSignals(False)
         record.update({key: value(widget) for key, widget in self.location_fields.items()})
         record["entrance"].update({key: value(widget) for key, widget in self.entrance_fields.items()})
+        if residence:
+            if record["spouse_room"]:
+                self._reset_home()
+            else:
+                self._sync_home(record, previous_entry)
         self.location_list.item(self.location_index).setText(record["name"] or "Unnamed place")
         self.refresh_location()
         self.changed.emit()
@@ -471,9 +463,14 @@ class WorldPage(QWidget):
         design = record.get("interior")
         self.edit_map_button.setEnabled(bool(record["map"]) and design is None)
         self.interior_button.setText("Edit interior…" if design else "Design interior…")
-        self.assign_home_button.setVisible(not record["spouse_room"])
+        residence = self._is_residence(record)
+        self.place_role.setText("Their spouse room in the farmhouse." if record["spouse_room"] else
+                                "Their residence. Changes here apply to the NPC in this project." if residence else
+                                "An optional location for their story.")
+        self.assign_home_button.setVisible(not record["spouse_room"] and not residence)
         self.assign_home_button.setEnabled(bool(design or record["map"]))
-        self.location_fields["spouse_room"].setEnabled(design is None)
+        self.location_fields["spouse_room"].setEnabled(design is None and self._spouse_index(excluding=record["id"]) is None)
+        self.refresh_home_actions()
         self.warps_card.setVisible(not record["spouse_room"])
         self.room_card.setVisible(record["spouse_room"])
         self.connection_hint.setText("This room joins the farmhouse after marriage. Keep their marked standing spot clear in the designer." if record["spouse_room"] else "When the interior is ready, choose Advanced / Game connection to connect its entrance to the valley.")
@@ -528,29 +525,49 @@ class WorldPage(QWidget):
         self.location_list.setCurrentRow(next(index for index, item in enumerate(self.world["locations"]) if item["id"] == identity))
         from .interior_editor import InteriorEditor
         from PySide6.QtWidgets import QDialog
-        from pixelheart_core.interiors import reachable_tiles
+        from pixelheart_core.interiors import doorway_exit, reachable_tiles
         record = self.world["locations"][self.location_index]
         accepted = False
         dialog = None
         try:
+            initial_design = deepcopy(record.get("interior", {}))
+            protected_points = self._protected_room_points(record)
+            layout_options = {}
+            if protected_points:
+                layout_options["validate_layout"] = lambda candidate, offsets: self._validate_room_points(
+                    candidate, protected_points, _room_translations(initial_design, candidate, offsets))
             dialog = InteriorEditor(self.window.project_file, record.get("interior"),
                                     "spouse" if record["spouse_room"] else "residence", self,
-                                    resident_name=self.window.document.get("character", {}).get("name", ""),
-                                    allow_rebase=allow_rebase)
+                                    resident_name=self._character().get("name", ""),
+                                    allow_rebase=allow_rebase, **layout_options)
             if dialog.exec() == QDialog.DialogCode.Accepted and dialog.result_design:
+                previous_entry = (record["entry_x"], record["entry_y"])
                 entry = tuple(dialog.result_design["entry"])
                 floors = reachable_tiles(dialog.result_design)
                 if len(floors) < 2 and not record["spouse_room"]:
                     raise WorldError("Leave a free exit tile reachable from the interior entry.")
                 exit_position = (record["exit_x"], record["exit_y"])
+                translations = _room_translations(initial_design, dialog.result_design,
+                                                  getattr(dialog, "result_room_translations", None))
+                self._validate_room_points(dialog.result_design, protected_points, translations)
+                if "doorway" in dialog.result_design:
+                    exit_position = doorway_exit(dialog.result_design)
+                elif not record["spouse_room"]:
+                    exit_position = _translate_room_point(*exit_position, translations)
                 if not record["spouse_room"] and (exit_position not in floors or exit_position == entry):
                     exit_position = min(floors - {entry}, key=lambda p: (abs(p[0]-entry[0])+abs(p[1]-entry[1]), p[1], p[0]))
+                scenes_moved = self._move_authored_room_positions(record, translations) if translations and not record["spouse_room"] else False
                 record["interior"] = dialog.result_design
                 record["map"] = None
                 record["room_x"] = record["room_y"] = 0
                 record["entry_x"], record["entry_y"] = dialog.result_design["entry"]
                 record["exit_x"], record["exit_y"] = exit_position
+                if self._is_residence(record):
+                    self._sync_home(record, _translate_room_point(*previous_entry, translations))
                 self.select_location(self.location_index)
+                if scenes_moved:
+                    self.interior_notice.setText("Room moved. Review scene blocking and walking routes.")
+                    self.interior_notice.show()
                 self.changed.emit()
                 accepted = True
         except (ValueError, OSError) as exc:
@@ -560,18 +577,102 @@ class WorldPage(QWidget):
                 dialog.deleteLater()
         return accepted
 
+    def _move_authored_room_positions(self, record, translations):
+        character = self._live_character()
+        before = deepcopy(character)
+        maps = {record["internal_name"], exported_location_id(record, character)}
+        scenes_moved = _translate_character_rooms(character, maps, translations)
+        self.window.document["character"].update(character)
+        if (character.get("home_x"), character.get("home_y")) != (before.get("home_x"), before.get("home_y")) and hasattr(self.window, "identity"):
+            self.window.identity.load(character)
+        for key in ("schedule", "events", "life"):
+            if character.get(key) != before.get(key) and hasattr(self.window, key):
+                getattr(self.window, key).load(character if key == "life" else character[key])
+        for bundled in self.world["characters"]:
+            scenes_moved = _translate_character_rooms(bundled["character"], maps, translations) or scenes_moved
+        for location in self.world["locations"]:
+            entrance = location["entrance"]
+            if location is not record and entrance["map"] in maps:
+                for x, y in (("x", "y"), ("arrival_x", "arrival_y")):
+                    entrance[x], entrance[y] = _translate_room_point(entrance[x], entrance[y], translations)
+        return scenes_moved
+
+    def _live_character(self):
+        # Read live editors without collecting the world while a new place is
+        # pending. Their unsaved content is the next collect()'s source of truth.
+        character = self._character()
+        for key in ("schedule", "events", "life"):
+            if hasattr(self.window, key):
+                character[key] = getattr(self.window, key).dump()
+        return character
+
+    def _protected_room_points(self, record):
+        """Only protect existing reachable points, leaving old drafts repairable."""
+        from pixelheart_core.interiors import reachable_tiles
+        previous = record.get("interior")
+        if previous is None or record["spouse_room"]:
+            return []
+        reachable = reachable_tiles(previous)
+        character = self._live_character()
+        maps = {record["internal_name"], exported_location_id(record, character)}
+        points = list(_character_room_points(character, maps))
+        for point in points:
+            if point.pop("home", False) and (point["x"], point["y"]) == (record["entry_x"], record["entry_y"]):
+                point["follows_entry"] = True
+        for bundled in self.world["characters"]:
+            points.extend(_character_room_points(bundled["character"], maps))
+        for location in self.world["locations"]:
+            entrance = location["entrance"]
+            if location is not record and entrance["map"] in maps:
+                for x, y, purpose in (("x", "y", "entrance"), ("arrival_x", "arrival_y", "return arrival")):
+                    points.append({"x": entrance[x], "y": entrance[y],
+                                   "label": f"{location['name'] or 'Another place'}'s {purpose}"})
+        protected = []
+        for point in points:
+            point["x"], point["y"] = _tile_coordinate(point["x"]), _tile_coordinate(point["y"])
+            point.pop("home", None)
+            if (point["x"], point["y"]) in reachable:
+                protected.append(point)
+        return protected
+
+    @staticmethod
+    def _validate_room_points(design, points, translations):
+        from pixelheart_core.interiors import reachable_tiles
+        reachable = reachable_tiles(design)
+        for point in points:
+            position = tuple(design["entry"]) if point.get("follows_entry") else _translate_room_point(point["x"], point["y"], translations)
+            if position not in reachable:
+                raise WorldError(f"Keep {point['label']} at tile {position[0]}, {position[1]} reachable from the entrance. "
+                                 "Move that destination first, or leave a passage to it.")
+
     def assign_home(self):
         if self.location_index < 0:
             return
         record = self.world["locations"][self.location_index]
         if record["spouse_room"]:
             return
-        # Update the identity form too: collect() reads it as the source of truth.
-        character = deepcopy(self.window.document["character"])
-        character.update(home_map=record["internal_name"], home_x=record["entry_x"], home_y=record["entry_y"])
-        self.window.document["character"].update(character)
-        self.window.identity.load(character)
+        self._update_home(record["internal_name"], record["entry_x"], record["entry_y"])
+        self.refresh_location()
         self.changed.emit()
+
+    def _update_home(self, home_map, home_x, home_y):
+        # Update the identity form too: collect() reads it as the source of truth.
+        character = self._character()
+        character.update(home_map=home_map, home_x=home_x, home_y=home_y)
+        self.window.document["character"].update(character)
+        if hasattr(self.window, "identity"):
+            self.window.identity.load(character)
+
+    def _sync_home(self, record, previous_entry):
+        character = self._character()
+        standing_tile = (character["home_x"], character["home_y"])
+        if standing_tile == previous_entry:
+            standing_tile = (record["entry_x"], record["entry_y"])
+        self._update_home(record["internal_name"], *standing_tile)
+
+    def _reset_home(self):
+        defaults = new_project()["character"]
+        self._update_home(defaults["home_map"], defaults["home_x"], defaults["home_y"])
 
     def edit_map(self):
         self._paint_map(edit=True)
@@ -598,12 +699,20 @@ class WorldPage(QWidget):
             return
         if dialog.exec() == QDialog.DialogCode.Accepted and dialog.result_reference:
             record = self.world["locations"][self.location_index]
+            if dialog.result_is_spouse_room and self._spouse_index(excluding=record["id"]) is not None:
+                self.window.show_error("Spouse room already exists", "Use Edit spouse room to work on this NPC’s existing room.")
+                dialog.deleteLater()
+                return
+            residence = self._is_residence(record)
             record["map"] = dialog.result_reference
             record.pop("interior", None)
             if dialog.result_is_spouse_room:
                 record.update(spouse_room=True, room_x=0, room_y=0)
+                if residence:
+                    self._reset_home()
             self.select_location(self.location_index)
             self.changed.emit()
+        dialog.deleteLater()
 
     def add_dependency(self):
         if len(self.world["dependencies"]) >= 64:
@@ -624,6 +733,8 @@ class WorldPage(QWidget):
             return
         self.dependency_index = index
         self.dependency_panel.setEnabled(index >= 0)
+        self.dependency_list.setVisible(bool(self.world["dependencies"]))
+        self.remove_buttons[self.dependency_panel].setEnabled(index >= 0)
         self.detail_stacks[self.dependency_panel].setCurrentIndex(0 if index >= 0 else 1)
         if index < 0:
             return
@@ -647,11 +758,16 @@ class WorldPage(QWidget):
             parts = parts[1:]
         if not parts:
             return
-        controls = {"characters": (0, self.cast_list, self.cast_fields),
-                    "locations": (1, self.location_list, {**self.location_fields, **self.entrance_fields}),
-                    "dependencies": (2, self.dependency_list, self.dependency_fields)}
+        if parts[0] == "characters":
+            self.place_advanced_toggle.setChecked(True)
+            self.edit_legacy_characters(index=int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0)
+            return
+        controls = {"locations": (0, self.location_list, {**self.location_fields, **self.entrance_fields}),
+                    "dependencies": (1, self.dependency_list, self.dependency_fields)}
         if parts[0] in controls:
             tab, listing, fields = controls[parts[0]]
+            if parts[0] == "dependencies" or parts[-1] != "name":
+                self.place_advanced_toggle.setChecked(True)
             self.tabs.setCurrentIndex(tab)
             if len(parts) > 1 and parts[1].isdigit():
                 listing.setCurrentRow(int(parts[1]))

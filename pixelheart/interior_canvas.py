@@ -20,6 +20,7 @@ from pixelheart_core.interior_furniture import preview_frame, preview_frame_offs
 
 
 FURNITURE_MIME = "application/x-pixelheart-interior-furniture"
+ROOM_MIME = "application/x-pixelheart-interior-room"
 
 
 class InteriorCanvas(QWidget):
@@ -31,6 +32,12 @@ class InteriorCanvas(QWidget):
     rotate_requested = Signal()
     room_drawn = Signal(int, int, int, int)
     room_selected = Signal(str)
+    room_moved = Signal(str, int, int)
+    room_resized = Signal(str, int, int, int, int)
+    corridor_drawn = Signal(int, int, int, int)
+    partition_drawn = Signal(str, int, int, int)
+    partition_selected = Signal(str)
+    doorway_moved = Signal(int, int)
     preview_changed = Signal(bool, str)
 
     def __init__(self, draft, parent=None, *, root=None):
@@ -41,6 +48,7 @@ class InteriorCanvas(QWidget):
         self.tool = "select"
         self.selected_id = ""
         self.selected_room_id = ""
+        self.selected_partition_id = ""
         self.project_root = root
         self.grid = False
         self.elapsed_ms = 0
@@ -55,9 +63,33 @@ class InteriorCanvas(QWidget):
         self.preview_valid = True
         self.preview_message = ""
         self.cursor_tile = None
+        self.cursor_position = None
         self._placement = None
         self._room_start = None
         self._room_preview = None
+        self._pending_room_move = None
+        self._room_drag = None
+        self._pending_room_resize = None
+        self._room_resize = None
+        self._structure_start = None
+        self._structure_kind = None
+        self.room_catalogue_source = None
+        self.room_dimensions = None
+        self.room_candidate = None
+        self.room_resize_candidate = None
+        self.corridor_candidate = None
+        self.partition_candidate = None
+        self.opening_candidate = None
+        self.place_room_drop = None
+        self.room_catalogue_drag = None
+        self._room_drop_origin = None
+        self._room_candidate_data = None
+        self._room_candidate_image = QPixmap()
+        self._room_edit_key = None
+        self.doorway_candidate = None
+        self._pending_doorway_move = None
+        self._doorway_drag = None
+        self._doorway_preview = None
         self._hover_room_id = ""
         self._drag_image = QPixmap()
         self._validation_key = None
@@ -65,7 +97,7 @@ class InteriorCanvas(QWidget):
         self.setMouseTracking(True)
         self.setAcceptDrops(True)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setAccessibleName("Room designer: drag furniture from the catalogue into the room; drag placed furniture to move it")
+        self.setAccessibleName("Room designer: drag furniture into the room; in Rooms, drag a new room onto the layout or drag an existing room to move it")
         self.refresh_size()
 
     def refresh_size(self):
@@ -98,6 +130,17 @@ class InteriorCanvas(QWidget):
         self._drag_image = QPixmap()
         self._room_start = None
         self._room_preview = None
+        self._pending_room_move = None
+        self._room_drag = None
+        self._pending_room_resize = None
+        self._room_resize = None
+        self._structure_start = None
+        self._structure_kind = None
+        self.room_catalogue_drag = None
+        self._room_drop_origin = None
+        self._room_candidate_data = None
+        self._room_candidate_image = QPixmap()
+        self._room_edit_key = None
         self._validation_key = None
         self._update_ghost()
         self._update_cursor()
@@ -121,6 +164,190 @@ class InteriorCanvas(QWidget):
         self._set_preview(True, "")
         self._update_cursor()
         self.update()
+
+    def clear_room_catalogue_drag(self):
+        """Discard a new-room drag preview without making an edit."""
+        self.room_catalogue_drag = None
+        self._room_drop_origin = None
+        self.cursor_tile = None
+        self.set_room_preview(None)
+        self._update_cursor()
+
+    def clear_room_interaction(self):
+        """Cancel room gestures when the editor changes mode or history."""
+        self._pending_room_move = None
+        self._room_drag = None
+        self._pending_room_resize = None
+        self._room_resize = None
+        self._structure_start = None
+        self._structure_kind = None
+        self._room_start = None
+        self._pending_doorway_move = None
+        self._doorway_drag = None
+        self._doorway_preview = None
+        self.clear_room_catalogue_drag()
+
+    def _doorway_at(self, x, y):
+        point = self.draft.data.get("doorway")
+        return point is not None and x == point[0] and y in (point[1], point[1] + 1)
+
+    def _preview_doorway_edit(self, x, y, *, force=False):
+        key = (id(self.draft.data), "doorway", x, y)
+        if not force and key == self._room_edit_key:
+            return self.preview_valid
+        self._room_edit_key = key
+        self._doorway_preview = (x, y)
+        self._room_candidate_data = None
+        self._room_candidate_image = QPixmap()
+        try:
+            if self.doorway_candidate is not None:
+                candidate = self.doorway_candidate(x, y)
+            else:
+                from pixelheart_core.interiors import place_doorway
+                candidate = place_doorway(self._collision_candidate(), x, y)
+            self._room_candidate_data = candidate
+            self._set_preview(True, "Release to place the doorway" if self._doorway_drag
+                              else "Click to place the doorway")
+            if self.project_root is not None:
+                with render_interior(candidate, self.project_root, self.elapsed_ms, self.grid,
+                                     time_of_day=self.time_of_day, lights_on=self.lights_on) as image:
+                    self._room_candidate_image = QPixmap.fromImage(ImageQt(image))
+        except (ValueError, OSError) as exc:
+            self._set_preview(False, str(exc))
+        self.update()
+        return self.preview_valid
+
+    def _room_drop_dimensions(self, event):
+        if (self.tool != "room-select" or self.room_catalogue_source is None
+                or event.source() is not self.room_catalogue_source
+                or not event.possibleActions() & Qt.DropAction.CopyAction
+                or not event.mimeData().hasFormat(ROOM_MIME)
+                or bytes(event.mimeData().data(ROOM_MIME)) != b"new-room"
+                or self.room_dimensions is None):
+            return None
+        return self.room_dimensions()
+
+    def _preview_room_edit(self, identity, x, y, width, height, *, force=False, resize=False):
+        """Show the core's snapped rectangle, keeping the draft untouched."""
+        key = (id(self.draft.data), "resize" if resize else "move", identity, x, y, width, height)
+        if not force and key == self._room_edit_key:
+            return self.preview_valid
+        self._room_edit_key = key
+        self._room_preview = (x, y, width, height)
+        self._room_candidate_data = None
+        self._room_candidate_image = QPixmap()
+        try:
+            if resize:
+                if self.room_resize_candidate is None:
+                    raise ValueError("Room resizing is unavailable.")
+                candidate = self.room_resize_candidate(identity, x, y, width, height)
+            elif self.room_candidate is not None:
+                candidate = self.room_candidate(identity, x, y, width, height)
+            else:
+                from pixelheart_core.interiors import room_edit_candidate
+                candidate = room_edit_candidate(self.draft.data, room_id=identity,
+                                                x=x, y=y, width=width, height=height)
+            room = (next(room for room in candidate["rooms"] if room["id"] == identity)
+                    if identity else candidate["rooms"][-1])
+            if resize and tuple(room[key] for key in ("x", "y", "width", "height")) != (x, y, width, height):
+                raise ValueError("Resize the room without shifting its opposite edge.")
+            self._room_preview = tuple(room[key] for key in ("x", "y", "width", "height"))
+            self._room_candidate_data = candidate
+            self._set_preview(True, "")
+        except ValueError as exc:
+            self._set_preview(False, str(exc))
+        if self._room_candidate_data is not None and self.project_root is not None:
+            try:
+                with render_interior(self._room_candidate_data, self.project_root, self.elapsed_ms, self.grid,
+                                     time_of_day=self.time_of_day, lights_on=self.lights_on) as image:
+                    self._room_candidate_image = QPixmap.fromImage(ImageQt(image))
+            except (ValueError, OSError):
+                pass
+        self.update()
+        return self.preview_valid
+
+    def _preview_room_catalogue_drag(self, event, dimensions, *, force=False):
+        self.room_catalogue_drag = dimensions
+        self.cursor_tile = pointer_x, pointer_y = self._position(event)
+        # Hold the new room at its center so the pointer can reach both the
+        # left and right side of an existing room without leaving the canvas.
+        width, height = dimensions
+        x, y = pointer_x - width // 2, pointer_y - height // 2
+        self._room_drop_origin = x, y
+        valid = self._preview_room_edit(None, x, y, width, height, force=force)
+        if valid or pointer_x > 1 or pointer_x < 0:
+            return valid
+        # A wide room's center can fall beyond the canvas when adding space
+        # on the left. At the outermost tile, let an exterior edge catch the
+        # room, while ordinary overlap and disconnected drops stay invalid.
+        exterior = min((room["x"] for room in self.draft.data["rooms"] if room["enabled"]), default=0)
+        for room in self.draft.data["rooms"]:
+            if (room["enabled"] and room["x"] == exterior and pointer_x < room["x"]
+                    and x < room["x"] < x + width
+                    and min(y + height, room["y"] + room["height"]) > max(y, room["y"])):
+                x = room["x"] - width
+                self._room_drop_origin = x, y
+                return self._preview_room_edit(None, x, y, width, height, force=force)
+        return False
+
+    def _preview_structure_edit(self, kind, *proposal, force=False):
+        key = (id(self.draft.data), kind, self.selected_partition_id, *proposal)
+        if not force and key == self._room_edit_key:
+            return self.preview_valid
+        self._room_edit_key = key
+        self._structure_kind = kind
+        if kind == "partition":
+            axis, x, y, length = proposal
+            self._room_preview = (x, y-2, length, 3) if axis == "horizontal" else (x, y, 1, length)
+        elif kind == "opening":
+            self._room_preview = (*proposal, 1, 1)
+        else:
+            self._room_preview = proposal
+        self._room_candidate_data = None
+        self._room_candidate_image = QPixmap()
+        try:
+            callback = getattr(self, kind + "_candidate")
+            if callback is None:
+                raise ValueError("This floorplan tool is unavailable.")
+            candidate = callback(*proposal)
+            self._room_candidate_data = candidate
+            if kind == "corridor":
+                room = candidate["rooms"][-1]
+                self._room_preview = tuple(room[key] for key in ("x", "y", "width", "height"))
+            elif kind == "opening":
+                source = self._partition_at(*proposal)
+                wall = next((wall for wall in candidate.get("partitions", [])
+                             if wall["id"] == (source["id"] if source else self.selected_partition_id)), None)
+                if wall:
+                    for opening in wall["openings"]:
+                        x, y = wall["x"], wall["y"]
+                        if wall["axis"] == "horizontal":
+                            x += opening["offset"]
+                            y -= 2
+                            rectangle = x, y, opening["width"], 3
+                        else:
+                            y += opening["offset"]
+                            rectangle = x, y, 1, opening["width"]
+                        if x <= proposal[0] < x + rectangle[2] and y <= proposal[1] < y + rectangle[3]:
+                            self._room_preview = rectangle
+                            break
+            self._set_preview(True, "")
+            if self.project_root is not None:
+                with render_interior(candidate, self.project_root, self.elapsed_ms, self.grid,
+                                     time_of_day=self.time_of_day, lights_on=self.lights_on) as image:
+                    self._room_candidate_image = QPixmap.fromImage(ImageQt(image))
+        except (ValueError, OSError) as exc:
+            self._set_preview(False, str(exc))
+        self.update()
+        return self.preview_valid
+
+    @staticmethod
+    def _structure_proposal(kind, start_x, start_y, x, y):
+        if kind == "corridor":
+            return min(start_x, x), min(start_y, y), abs(x - start_x) + 1, abs(y - start_y) + 1
+        if abs(x - start_x) >= abs(y - start_y):
+            return "horizontal", min(start_x, x), start_y, abs(x - start_x) + 1
+        return "vertical", start_x, min(start_y, y), abs(y - start_y) + 1
 
     def _catalogue_definition(self, event):
         # Assets belong to this editor's staging folder. A payload alone must
@@ -146,6 +373,12 @@ class InteriorCanvas(QWidget):
         self.update()
 
     def dragEnterEvent(self, event):
+        dimensions = self._room_drop_dimensions(event)
+        if dimensions is not None:
+            self._preview_room_catalogue_drag(event, dimensions)
+            event.setDropAction(Qt.DropAction.CopyAction)
+            event.accept()
+            return
         definition = self._catalogue_definition(event)
         if definition is None:
             event.ignore()
@@ -156,6 +389,16 @@ class InteriorCanvas(QWidget):
         event.accept()
 
     def dragMoveEvent(self, event):
+        dimensions = self._room_drop_dimensions(event)
+        if dimensions is not None:
+            if self._preview_room_catalogue_drag(event, dimensions):
+                event.setDropAction(Qt.DropAction.CopyAction)
+                event.accept()
+            else:
+                event.ignore()
+            return
+        if self.room_catalogue_drag is not None:
+            self.clear_room_catalogue_drag()
         definition = self._catalogue_definition(event)
         if definition is None:
             self.clear_catalogue_drag()
@@ -170,9 +413,24 @@ class InteriorCanvas(QWidget):
 
     def dragLeaveEvent(self, event):
         self.clear_catalogue_drag()
+        self.clear_room_catalogue_drag()
         event.accept()
 
     def dropEvent(self, event):
+        dimensions = self._room_drop_dimensions(event)
+        if dimensions is not None:
+            valid = self._preview_room_catalogue_drag(event, dimensions, force=True)
+            x, y = self._room_drop_origin
+            self.clear_room_catalogue_drag()
+            if valid and self.place_room_drop and self.place_room_drop(x, y, *dimensions):
+                event.setDropAction(Qt.DropAction.CopyAction)
+                event.accept()
+                self.setFocus()
+            else:
+                event.ignore()
+            return
+        if self.room_catalogue_drag is not None:
+            self.clear_room_catalogue_drag()
         definition = self._catalogue_definition(event)
         if definition is not None:
             self._preview_catalogue_drag(event, definition)
@@ -192,11 +450,18 @@ class InteriorCanvas(QWidget):
         """Highlight a proposed floor rectangle, in tile coordinates."""
         if isinstance(rectangle, dict):
             rectangle = tuple(rectangle[key] for key in ("x", "y", "width", "height"))
+        if rectangle is not None and self.room_candidate is not None:
+            self._preview_room_edit(None, *rectangle)
+            return
         self._room_preview = tuple(rectangle) if rectangle is not None else None
         self._validation_key = None
         if self._room_preview is not None:
             self._set_preview(*self._validate_room(self._room_preview))
         else:
+            self._room_candidate_data = None
+            self._room_candidate_image = QPixmap()
+            self._room_edit_key = None
+            self._structure_kind = None
             self._set_preview(True, "")
         self.update()
 
@@ -237,16 +502,80 @@ class InteriorCanvas(QWidget):
                      if room["enabled"] and room["x"] <= x < room["x"] + room["width"]
                      and room["y"] <= y < room["y"] + room["height"]), None)
 
+    def _partition_at(self, x, y):
+        active = {room["id"] for room in self.draft.data["rooms"] if room["enabled"]}
+        walls = sorted(self.draft.data.get("partitions", []), key=lambda wall: wall["axis"] == "vertical")
+        return next((wall for wall in reversed(walls) if wall["room_id"] in active
+                     and ((wall["axis"] == "horizontal" and wall["y"]-2 <= y <= wall["y"] and wall["x"] <= x < wall["x"] + wall["length"])
+                         or (wall["axis"] == "vertical" and x == wall["x"] and wall["y"] <= y < wall["y"] + wall["length"]))), None)
+
     def _position(self, event):
         cell = 16 * self.scale
         return math.floor(event.position().x() / cell), math.floor(event.position().y() / cell)
 
+    def _resize_handles(self, data=None):
+        data = self.draft.data if data is None else data
+        if self.tool != "room-select" or data["kind"] == "spouse":
+            return {}
+        room = next((room for room in data["rooms"]
+                     if room["id"] == self.selected_room_id and room["enabled"]), None)
+        if room is None:
+            return {}
+        cell = self.scale * 16
+        left, top = room["x"] * cell, room["y"] * cell
+        right, bottom = left + room["width"] * cell, top + room["height"] * cell
+        middle_x, middle_y = (left + right) // 2, (top + bottom) // 2
+        return {"nw": (left, top), "n": (middle_x, top), "ne": (right, top),
+                "e": (right, middle_y), "se": (right, bottom), "s": (middle_x, bottom),
+                "sw": (left, bottom), "w": (left, middle_y)}
+
+    def _resize_handle_at(self, point):
+        if point is not None:
+            for handle, (x, y) in self._resize_handles().items():
+                if QRect(x - 7, y - 7, 15, 15).contains(point.toPoint() if hasattr(point, "toPoint") else point):
+                    return handle
+        return None
+
+    @staticmethod
+    def _resize_cursor(handle):
+        if handle in ("n", "s"):
+            return Qt.CursorShape.SizeVerCursor
+        if handle in ("e", "w"):
+            return Qt.CursorShape.SizeHorCursor
+        return Qt.CursorShape.SizeFDiagCursor if handle in ("nw", "se") else Qt.CursorShape.SizeBDiagCursor
+
+    def _resized_rectangle(self, point):
+        _, handle, x, y, width, height, origin = self._room_resize
+        cell = 16 * self.scale
+        def tiles(distance):
+            return math.floor(abs(distance) / cell + .5) * (1 if distance >= 0 else -1)
+        dx, dy = tiles(point.x() - origin.x()), tiles(point.y() - origin.y())
+        if "w" in handle:
+            x, width = x + dx, width - dx
+        elif "e" in handle:
+            width += dx
+        if "n" in handle:
+            y, height = y + dy, height - dy
+        elif "s" in handle:
+            height += dy
+        return x, y, width, height
+
     def _update_cursor(self):
-        if self.drag:
+        if self._room_resize or self._pending_room_resize:
+            self.setCursor(self._resize_cursor((self._room_resize or self._pending_room_resize)[1]))
+        elif self.drag or self._room_drag or self._doorway_drag:
             self.setCursor(Qt.CursorShape.ClosedHandCursor)
+        elif self.tool == "room-select" and self.cursor_tile and self._doorway_at(*self.cursor_tile):
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
+        elif (handle := self._resize_handle_at(self.cursor_position)) is not None:
+            self.setCursor(self._resize_cursor(handle))
+        elif self.tool == "room-select" and self.cursor_tile and self._partition_at(*self.cursor_tile):
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
+        elif self.tool == "room-select" and self.cursor_tile and self._room_at(*self.cursor_tile):
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
         elif self.tool in ("select", "place") and self.cursor_tile and self._at(*self.cursor_tile):
             self.setCursor(Qt.CursorShape.OpenHandCursor)
-        elif self.tool == "place":
+        elif self.tool in ("place", "entry", "corridor", "partition", "opening", "room"):
             self.setCursor(Qt.CursorShape.CrossCursor)
         else:
             self.unsetCursor()
@@ -368,24 +697,39 @@ class InteriorCanvas(QWidget):
         painter.fillRect(event.rect(), QColor("#292d30"))
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
         base = self._drag_image if self.drag and not self._drag_image.isNull() else self.image
-        if not base.isNull():
+        shown = self._room_candidate_data or self.draft.data
+        if not self._room_candidate_image.isNull():
+            painter.drawPixmap(QRect(0, 0, shown["width"] * 16 * self.scale,
+                                     shown["height"] * 16 * self.scale), self._room_candidate_image)
+        elif not base.isNull():
             painter.drawPixmap(self.rect(), base)
         cell = 16 * self.scale
-        for room in self.draft.data["rooms"]:
+        for room in shown["rooms"]:
             if room["id"] == self.selected_room_id or (self.tool in ("room", "room-select") and room["id"] == self._hover_room_id):
                 rect = self._draw_outline(painter, tuple(room[key] for key in ("x", "y", "width", "height")),
                                           "#d6bb7d", 12)
                 painter.drawText(rect.adjusted(7, 4, -7, -4), Qt.AlignmentFlag.AlignTop, room["name"])
-        for key, caption, color in (("entry", "IN", "#78ab90"), ("spouse_stand", "♥", "#dba392")):
-            if (key == "spouse_stand") != (self.draft.data["kind"] == "spouse"):
-                continue
-            x, y = self.draft.data[key]
+        if self.tool in ("room-select", "corridor", "partition", "opening", "room"):
+            wall = next((wall for wall in shown.get("partitions", []) if wall["id"] == self.selected_partition_id), None)
+            if wall:
+                rectangle = (wall["x"], wall["y"]-2, wall["length"], 3) if wall["axis"] == "horizontal" else (wall["x"], wall["y"], 1, wall["length"])
+                self._draw_outline(painter, rectangle, "#d6bb7d", 16)
+        # Arrival is map metadata, not a doorway graphic. The residence's
+        # actual opening is already part of the same map image we export.
+        if shown["kind"] == "spouse":
+            x, y = shown["spouse_stand"]
             rect = QRect(x * cell, y * cell, cell, cell)
-            tint = QColor(color)
-            tint.setAlpha(145 if self.tool == key else 75)
+            tint = QColor("#dba392")
+            tint.setAlpha(145 if self.tool == "spouse_stand" else 75)
             painter.fillRect(rect, tint)
             painter.setPen(QColor("#fffdf5"))
-            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, caption)
+            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "♥")
+        if self._doorway_preview:
+            color = "#81d2a1" if self.preview_valid else "#f38a87"
+            self._draw_outline(painter, (*self._doorway_preview, 1, 2), color, 16, dashed=True)
+        elif (self.tool == "room-select" and self.cursor_tile
+              and self._doorway_at(*self.cursor_tile)):
+            self._draw_outline(painter, (*shown["doorway"], 1, 2), "#d6bb7d", 10)
         placed = next((item for item in self.draft.data["furniture"] if item["id"] == self.selected_id), None)
         if placed and not self.drag:
             self._draw_outline(painter, (placed["x"], placed["y"], *self.footprint(placed)), "#edc784", 18)
@@ -410,7 +754,13 @@ class InteriorCanvas(QWidget):
         if self._room_preview:
             color = "#81d2a1" if self.preview_valid else "#f38a87"
             rect = self._draw_outline(painter, self._room_preview, color, 55, dashed=True)
-            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, f"{self._room_preview[2]} × {self._room_preview[3]}")
+            caption = ("Wall" if self._structure_kind == "partition" else "Opening" if self._structure_kind == "opening"
+                       else f"{self._room_preview[2]} × {self._room_preview[3]}")
+            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, caption)
+        painter.setPen(QPen(QColor("#6b8051"), 1))
+        painter.setBrush(QColor("#fffdf5"))
+        for x, y in self._resize_handles(shown).values():
+            painter.drawRect(QRect(x - 4, y - 4, 8, 8))
         painter.end()
 
     def _cancel(self):
@@ -419,7 +769,17 @@ class InteriorCanvas(QWidget):
         self._drag_image = QPixmap()
         self._room_start = None
         self._room_preview = None
+        self._pending_room_move = None
+        self._room_drag = None
+        self._pending_room_resize = None
+        self._room_resize = None
+        self._structure_start = None
+        self._structure_kind = None
+        self._pending_doorway_move = None
+        self._doorway_drag = None
+        self._doorway_preview = None
         self.clear_catalogue_drag()
+        self.clear_room_catalogue_drag()
         self.clear_placement()
         self.tool = "select"
         self.canceled.emit()
@@ -450,20 +810,39 @@ class InteriorCanvas(QWidget):
         self.setFocus()
         x, y = self._position(event)
         self.cursor_tile = x, y
+        self.cursor_position = event.position().toPoint()
         if self.tool == "room":
             self._room_start = x, y
             self.set_room_preview((x, y, 1, 1))
+        elif self.tool in ("corridor", "partition"):
+            self._structure_start = self.tool, x, y
+            self._preview_structure_edit(self.tool, *self._structure_proposal(self.tool, x, y, x, y))
+        elif self.tool == "room-select" and self._doorway_at(x, y):
+            self.selected_room_id = ""
+            self._pending_doorway_move = (x, y, *self.draft.data["doorway"], event.position().toPoint())
+        elif (handle := self._resize_handle_at(event.position())) is not None:
+            room = next(room for room in self.draft.data["rooms"] if room["id"] == self.selected_room_id)
+            self._pending_room_resize = (room["id"], handle, room["x"], room["y"],
+                                         room["width"], room["height"], event.position().toPoint())
+        elif self.tool == "room-select" and (wall := self._partition_at(x, y)) is not None:
+            self.selected_partition_id = wall["id"]
+            self.partition_selected.emit(wall["id"])
         elif self.tool in ("select", "room-select"):
             placed = self._at(x, y) if self.tool == "select" else None
             if placed:
                 self._start_move(placed, x, y)
             else:
                 self.selected_id = ""
+                self.selected_partition_id = ""
+                self.partition_selected.emit("")
                 self.drag = None
                 self.selected.emit("")
                 room = self._room_at(x, y)
                 self.selected_room_id = room["id"] if room else ""
                 self.room_selected.emit(self.selected_room_id)
+                if room and self.tool == "room-select":
+                    self._pending_room_move = (room["id"], x, y, room["x"], room["y"],
+                                               room["width"], room["height"], event.position().toPoint())
         elif self.tool == "place" and (placed := self._at(x, y)):
             # A click still places another piece (including a rug underneath),
             # while a deliberate drag moves the piece that was grabbed.
@@ -476,6 +855,7 @@ class InteriorCanvas(QWidget):
 
     def mouseMoveEvent(self, event):
         self.cursor_tile = x, y = self._position(event)
+        self.cursor_position = event.position().toPoint()
         self.hovered.emit(x, y)
         if self._pending_move and event.buttons() & Qt.MouseButton.LeftButton:
             identity, start_x, start_y, point = self._pending_move
@@ -487,7 +867,34 @@ class InteriorCanvas(QWidget):
                     self._start_move(placed, start_x, start_y)
         room = self._room_at(x, y)
         self._hover_room_id = room["id"] if room else ""
-        if self._room_start:
+        if self._pending_doorway_move and event.buttons() & Qt.MouseButton.LeftButton:
+            if (event.position().toPoint() - self._pending_doorway_move[-1]).manhattanLength() >= QApplication.startDragDistance():
+                self._doorway_drag = self._pending_doorway_move[:-1]
+                self._pending_doorway_move = None
+        if self._pending_room_move and event.buttons() & Qt.MouseButton.LeftButton:
+            if (event.position().toPoint() - self._pending_room_move[-1]).manhattanLength() >= QApplication.startDragDistance():
+                self._room_drag = self._pending_room_move[:-1]
+                self._pending_room_move = None
+        if self._pending_room_resize and event.buttons() & Qt.MouseButton.LeftButton:
+            if (event.position().toPoint() - self._pending_room_resize[-1]).manhattanLength() >= QApplication.startDragDistance():
+                self._room_resize = self._pending_room_resize
+                self._pending_room_resize = None
+        if self._doorway_drag:
+            start_x, start_y, original_x, original_y = self._doorway_drag
+            self._preview_doorway_edit(original_x + x - start_x, original_y + y - start_y)
+        elif self.tool == "entry":
+            self._preview_doorway_edit(x, y)
+        elif self.tool == "opening":
+            self._preview_structure_edit("opening", x, y, force=True)
+        elif self._structure_start:
+            kind, start_x, start_y = self._structure_start
+            self._preview_structure_edit(kind, *self._structure_proposal(kind, start_x, start_y, x, y))
+        elif self._room_resize:
+            self._preview_room_edit(self._room_resize[0], *self._resized_rectangle(event.position()), resize=True)
+        elif self._room_drag:
+            identity, start_x, start_y, original_x, original_y, width, height = self._room_drag
+            self._preview_room_edit(identity, original_x + x - start_x, original_y + y - start_y, width, height)
+        elif self._room_start:
             start_x, start_y = self._room_start
             self.set_room_preview((min(start_x, x), min(start_y, y), abs(x-start_x)+1, abs(y-start_y)+1))
         else:
@@ -500,7 +907,44 @@ class InteriorCanvas(QWidget):
             return
         x, y = self._position(event)
         self.cursor_tile = x, y
-        if self._pending_move:
+        self.cursor_position = event.position().toPoint()
+        if self._structure_start:
+            kind, start_x, start_y = self._structure_start
+            proposal = self._structure_proposal(kind, start_x, start_y, x, y)
+            valid = self._preview_structure_edit(kind, *proposal, force=True)
+            self.clear_room_interaction()
+            if valid:
+                (self.corridor_drawn if kind == "corridor" else self.partition_drawn).emit(*proposal)
+        elif self._pending_doorway_move:
+            self._pending_doorway_move = None
+        elif self._doorway_drag:
+            start_x, start_y, original_x, original_y = self._doorway_drag
+            destination = original_x + x - start_x, original_y + y - start_y
+            valid = self._preview_doorway_edit(*destination, force=True)
+            self.clear_room_interaction()
+            if valid and (x, y) != (start_x, start_y):
+                self.doorway_moved.emit(*destination)
+        elif self._pending_room_resize:
+            self._pending_room_resize = None
+        elif self._room_resize:
+            identity = self._room_resize[0]
+            original = self._room_resize[2:6]
+            rectangle = self._resized_rectangle(event.position())
+            valid = self._preview_room_edit(identity, *rectangle, force=True, resize=True)
+            self.clear_room_interaction()
+            if valid and rectangle != original:
+                self.room_resized.emit(identity, *rectangle)
+        elif self._pending_room_move:
+            self._pending_room_move = None
+        elif self._room_drag:
+            identity, start_x, start_y, original_x, original_y, width, height = self._room_drag
+            destination = original_x + x - start_x, original_y + y - start_y
+            valid = self._preview_room_edit(identity, *destination, width, height, force=True)
+            self._room_drag = None
+            self.set_room_preview(None)
+            if valid and (x, y) != (start_x, start_y):
+                self.room_moved.emit(identity, *destination)
+        elif self._pending_move:
             _, start_x, start_y, _ = self._pending_move
             self._pending_move = None
             self.tile_clicked.emit(start_x, start_y)
@@ -522,10 +966,14 @@ class InteriorCanvas(QWidget):
         self.update()
 
     def leaveEvent(self, event):
-        if not self.drag and not self._room_start:
+        if not self.drag and not self._room_start and not self._structure_start and not self._room_drag and not self._room_resize and not self._doorway_drag:
             self.cursor_tile = None
+            self.cursor_position = None
             self.ghost = None
             self._hover_room_id = ""
+            if self.tool in ("entry", "opening"):
+                self._doorway_preview = None
+                self.set_room_preview(None)
             self.update()
         super().leaveEvent(event)
 

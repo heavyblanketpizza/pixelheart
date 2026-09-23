@@ -1,6 +1,6 @@
 # Pixelheart export format
 
-The exporter produces a **starter Content Patcher content pack** for Stardew Valley
+The exporter produces a **Content Patcher NPC pack** for Stardew Valley
 1.6 with Content Patcher 2.9.0 or later. **No exported NPC has been verified in
 the game by this application.**
 
@@ -38,7 +38,7 @@ created projects can use the same display name without overriding each other.
 Changing the internal name changes the NPC identity; keep it stable after use in
 a save. Change the default manifest author before publication. The desktop editor
 can open `project.json` after the complete pack folder is extracted. Desktop
-exports retain the creator brief, chapter plan, test records, item catalog,
+exports retain story drafts, test records, item catalog, legacy creator planning,
 unknown extension metadata, and relative references to exported artwork and maps.
 Local template source notices remain in the project backup; the selected game
 folder is stored only in this computer's application settings.
@@ -49,7 +49,7 @@ the working project.
 
 Identity includes name, birthday, age, manner, social anxiety, optimism, spawn map,
 spawn tile, and romance availability. The primary character must be adult,
-including while romance is disabled. Supporting characters can export as Adult,
+including while romance is disabled. Legacy bundled supporting characters can export as Adult,
 Teen, or Child; only adults can be romanceable. Each companion uses the same
 character, dialogue, gift, schedule, and artwork compiler with separate assets.
 The game supports three `Gender` values. The GUI stores Woman as `Female`,
@@ -57,8 +57,8 @@ Man as `Male`, and Unspecified as `Undefined`. Explicit gender is exported
 directly. Older projects migrate exact `he/him` to `Male`, `she/her` to `Female`,
 and other pronouns to `Undefined`; original pronouns remain in the project.
 NPCs are social and giftable.
-The default route applies every season and weather. Enabled Life & reactions
-rules add conditional weekday dialogue, alternative routes, and spouse dialogue.
+The default route applies before marriage. Enabled rules in Dialogue and Schedule
+add conditional weekday dialogue, alternative routes, and spouse dialogue.
 Conditions include season, weather, weekday, hearts, relationship status,
 completed event, and minimum farmhouse upgrade. Rules update each morning;
 later matching rules override earlier ones. Married routines use dated marriage
