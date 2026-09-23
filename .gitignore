@@ -24,6 +24,7 @@ Pixelheart backups/
 *.tmp
 !/pixelheart_core/data/vanilla_items.json
 !/pixelheart_core/data/wiki_item_images.json
+!/runtime/Pixelheart.Interiors/ArchitectureRecipes.json
 
 # Custom portraits, sprites, tilesheets and editable artwork are user data.
 *.[pP][nN][gG]

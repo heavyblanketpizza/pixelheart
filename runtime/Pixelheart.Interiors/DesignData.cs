@@ -40,6 +40,10 @@ public sealed class RoomData
     [JsonProperty("height")] public int Height { get; set; }
     [JsonProperty("optional")] public bool Optional { get; set; }
     [JsonProperty("enabled")] public bool Enabled { get; set; } = true;
+    [JsonProperty("kind")] public string Kind { get; set; } = "";
+    [JsonProperty("level")] public int Level { get; set; }
+    [JsonProperty("upper_room_id")] public string UpperRoomId { get; set; } = "";
+    [JsonProperty("lower_room_id")] public string LowerRoomId { get; set; } = "";
 }
 
 public sealed class VariantData

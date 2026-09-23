@@ -10,6 +10,7 @@
     <EnableModZip>false</EnableModZip>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="ArchitectureRecipes.json" />
     <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
     <None Update="manifest.json.in" CopyToOutputDirectory="PreserveNewest" TargetPath="manifest.json" />
   </ItemGroup>

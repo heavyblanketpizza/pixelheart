@@ -96,7 +96,10 @@ def place_doorway(data, x, y):
     candidate = deepcopy(data)
     candidate["doorway"] = [x, y]
     candidate["entry"] = [x, y-1]
-    return normalize_interior(candidate)
+    candidate = normalize_interior(candidate)
+    from .interior_architecture_rules import validate_architecture_rules
+    validate_architecture_rules(candidate, before=data)
+    return candidate
 
 
 def ensure_doorway(data):
@@ -270,7 +273,8 @@ def reachable_tiles(data):
     """Conservative authoring reachability from the entry, using supplied bounds."""
     definitions = {item["id"]: item for item in data["catalog"]}
     from .interior_layout import partition_cells
-    cells = floor_cells(data) - partition_cells(data)
+    from .interior_architecture import architecture_cells
+    cells = floor_cells(data) - partition_cells(data) - architecture_cells(data)
     if "doorway" in data:
         cells.add(doorway_exit(data))
     for item in data["furniture"]:
@@ -436,6 +440,11 @@ def normalize_interior(value):
                 raise InteriorError("Animation frames must be objects.")
             _integer(frame.get("tile_id"), 0, max(0, atlas["tile_count"] - 1), "Animation frame is outside the tilesheet.")
             _integer(frame.get("duration_ms"), 16, 60000, "Frame duration must be 16–60000 milliseconds.")
+    from .interior_architecture import validate_architecture, architecture_cells
+    validate_architecture(data)
+    from .interior_levels import validate_levels
+    validate_levels(data)
+    architectural = architecture_cells(data)
     catalog = data.get("catalog")
     if not isinstance(catalog, list) or len(catalog) > 10000:
         raise InteriorError("Use a furniture library of up to 10000 items.")
@@ -476,6 +485,8 @@ def normalize_interior(value):
             raise InteriorError("Place the whole furniture footprint on its room's wall or floor.")
         if cells & structural:
             raise InteriorError("Move furniture clear of the interior wall before applying this layout.")
+        if cells & architectural and definition["kind"] != "rug":
+            raise InteriorError("Move furniture clear of the architectural piece before applying this layout.")
         if definition["kind"] != "rug":
             if solid & cells:
                 raise InteriorError("Furniture footprints overlap. Rugs may go underneath furniture.")
@@ -488,7 +499,7 @@ def normalize_interior(value):
         anchors.append(tuple(data["spouse_stand"]))
     if any(anchor in structural for anchor in anchors):
         raise InteriorError("Keep the entry, doorway approach, and spouse standing position clear of interior walls.")
-    if any(anchor in solid for anchor in anchors):
+    if any(anchor in solid or anchor in architectural for anchor in anchors):
         raise InteriorError("Keep the entry, doorway approach, and spouse standing position clear.")
     if data.get("partitions"):
         from .interior_layout import opening_approaches
@@ -503,7 +514,7 @@ def normalize_interior(value):
         while queue:
             x, y = queue.popleft()
             for point in ((x-1, y), (x+1, y), (x, y-1), (x, y+1)):
-                if point in floor and point not in solid and point not in reachable:
+                if point in floor and point not in solid and point not in architectural and point not in reachable:
                     reachable.add(point)
                     queue.append(point)
         if anchors[1] not in reachable:
@@ -581,10 +592,20 @@ def room_edit_candidate(data, *, room_id=None, x, y, width=None, height=None,
                 if item["id"] in carried:
                     item["x"] += dx
                     item["y"] += dy
-            for partition in candidate.get("partitions", []):
+            for partition in (*candidate.get("partitions", []), *candidate.get("architecture", [])):
                 if partition["room_id"] == room_id:
                     partition["x"] += dx
                     partition["y"] += dy
+            from .interior_levels import room_level
+            if room_level(previous) == 1:
+                for connector in candidate["rooms"]:
+                    if connector.get("upper_room_id") == room_id:
+                        connector["x"] += dx
+                        connector["y"] += dy
+                        for piece in candidate.get("architecture", []):
+                            if piece["room_id"] == connector["id"]:
+                                piece["x"] += dx
+                                piece["y"] += dy
             old_floor = room_cells(previous)
             for anchor in (key for key in ("entry", "spouse_stand", "doorway") if key in candidate):
                 if tuple(candidate[anchor]) in old_floor:
@@ -593,7 +614,7 @@ def room_edit_candidate(data, *, room_id=None, x, y, width=None, height=None,
         shift_x = max(0, 1 - min(room["x"] for room in candidate["rooms"])) if allow_rebase else 0
         shift_y = max(0, 4 - min(room["y"] for room in candidate["rooms"])) if allow_rebase else 0
         if shift_x or shift_y:
-            for item in (*candidate["rooms"], *candidate["furniture"], *candidate.get("partitions", [])):
+            for item in (*candidate["rooms"], *candidate["furniture"], *candidate.get("partitions", []), *candidate.get("architecture", [])):
                 item["x"] += shift_x
                 item["y"] += shift_y
             for anchor in (key for key in ("entry", "spouse_stand", "doorway") if key in candidate):
@@ -605,7 +626,10 @@ def room_edit_candidate(data, *, room_id=None, x, y, width=None, height=None,
             extent = max(room[coordinate] + room[dimension] for room in candidate["rooms"])
             candidate[dimension] = min(96, max(candidate[dimension] + shift, extent + 1))
         try:
-            return normalize_interior(candidate)
+            candidate = normalize_interior(candidate)
+            from .interior_architecture_rules import validate_architecture_rules
+            validate_architecture_rules(candidate, before=original)
+            return candidate
         except InteriorError as exc:
             if first_error is None:
                 first_error = exc
@@ -625,6 +649,8 @@ class InteriorDraft:
         candidate = normalize_interior(data)
         if candidate == self.data:
             return False
+        from .interior_architecture_rules import validate_architecture_rules
+        validate_architecture_rules(candidate, before=self.data)
         # Keep pre-existing placements intact when opening, restyling or
         # refreshing a library. New placements and deliberate moves/rotations
         # must follow current placement rules; failed edits leave history alone.
@@ -670,11 +696,19 @@ class InteriorDraft:
         room = next((r for r in data["rooms"] if r["id"] == identity), None)
         if room is None:
             raise InteriorError("Select a room to remove.")
+        from .interior_levels import room_level, remove_raised_room_candidate
+        if room.get("kind") == "stairway":
+            raise InteriorError("Remove the linked raised room to remove its stairway.")
+        if room_level(room) == 1:
+            self.apply(remove_raised_room_candidate(data, identity))
+            return
         occupied = {(x, y) for x in range(max(0, room["x"]-1), room["x"]+room["width"]+1)
                     for y in range(max(0, room["y"]-3), room["y"]+room["height"]+1)}
         definitions = {d["id"]: d for d in data["catalog"]}
         if any(placement_cells(item, definitions[item["item_id"]]) & occupied for item in data["furniture"]):
             raise InteriorError("Move or remove the room's furniture before removing the room.")
+        if any(piece["room_id"] == identity for piece in data.get("architecture", [])):
+            raise InteriorError("Move or remove the room’s architectural pieces before removing the room.")
         if "partitions" in data:
             data["partitions"] = [wall for wall in data["partitions"] if wall["room_id"] != identity]
         data["rooms"].remove(room)
@@ -836,6 +870,8 @@ def map_layers(data, enabled=None):
                 put("Front", tx, ty, frame.get(role, frame[fallback]))
     from .interior_layout import paint_partitions
     paint_partitions(data, layers, enabled)
+    from .interior_architecture import paint_architecture
+    paint_architecture(data, layers, enabled)
     return layers
 
 
@@ -940,6 +976,8 @@ def interior_export_issues(data, root):
     issues = []
     try:
         data = normalize_interior(data)
+        from .interior_architecture_rules import validate_architecture_rules
+        validate_architecture_rules(data)
         if not data["atlas"]["asset"]:
             raise InteriorError("Import a tilesheet and choose floor/wall tiles before exporting the interior.")
         from .interior_furniture import _read_texture
@@ -968,6 +1006,10 @@ def _properties(parent, values):
 def interior_tmx(data, *, enabled=None, design_id=""):
     """Generate only structural/decorative map tiles. Furniture stays in JSON."""
     data = normalize_interior(data)
+    from .interior_architecture_rules import validate_architecture_rules
+    validate_architecture_rules(data, enabled=enabled)
+    from .interior_levels import validate_levels
+    validate_levels(data, enabled)
     atlas = data["atlas"]
     if not atlas["asset"]:
         raise InteriorError("Choose the interior tilesheet before creating a game map.")
@@ -1046,12 +1088,17 @@ def compile_interior(data, identity, npc_id, root, prefix):
         # A removed connector may split the house. Such variants are never offered.
         floor = floor_cells(data, enabled)
         from .interior_layout import partition_cells, opening_approaches
-        walkable = floor - partition_cells(data, enabled)
-        if (not _connected(walkable) or tuple(data["entry"]) not in walkable
+        from .interior_architecture import architecture_cells, architecture_walkable_connected
+        walkable = floor - partition_cells(data, enabled) - architecture_cells(data, enabled)
+        if (not architecture_walkable_connected(data, enabled) or tuple(data["entry"]) not in walkable
                 or not opening_approaches(data, enabled) <= walkable):
             continue
         try:
             _validate_doorway_geometry(data, enabled)
+            from .interior_levels import validate_levels
+            validate_levels(data, enabled)
+            from .interior_architecture_rules import validate_architecture_rules
+            validate_architecture_rules(data, enabled=enabled)
         except InteriorError:
             continue
         key = str(mask)
@@ -1060,13 +1107,24 @@ def compile_interior(data, identity, npc_id, root, prefix):
         files[path] = interior_tmx(data, enabled=enabled, design_id=identity)
         patches.append({"Action": "Load", "Target": map_asset, "FromFile": path})
         edits = []
+        fixture_art = architecture_cells(data, enabled, layers=("Back",))
+        fixture_occupied = architecture_cells(data, enabled)
+        from .interior_architecture_rules import architecture_rule, architecture_clearance_cells
+        architecture_definitions = {piece["id"]: piece for piece in data.get("architecture_catalog", [])}
+        for piece in data.get("architecture", []):
+            if piece["room_id"] in enabled and architecture_rule(architecture_definitions[piece["piece_id"]]) == "steps_corridor":
+                from .interior_levels import stair_connection_clearance
+                fixture_occupied.update(stair_connection_clearance(data, piece, architecture_definitions[piece["piece_id"]]))
+        for x, y in sorted(fixture_occupied):
+            edits.append({"Layer": "Back", "Position": {"X": x, "Y": y}, "SetProperties": {"NoFurniture": "T"}})
         for room in data["rooms"]:
             if room["id"] not in enabled:
                 continue
             region = identity + "_" + room["id"]
             for x, y in sorted(room_cells(room)):
-                edits.append({"Layer": "Back", "Position": {"X": x, "Y": y}, "SetProperties": {"FloorID": region}})
-                if (x, y-1) not in floor and (x, y-3) not in floor:
+                if (x, y) not in fixture_art:
+                    edits.append({"Layer": "Back", "Position": {"X": x, "Y": y}, "SetProperties": {"FloorID": region}})
+                if (x, y-1) not in floor and (x, y-3) not in floor and not {(x, y-1), (x, y-2), (x, y-3)} & fixture_art:
                     edits.append({"Layer": "Back", "Position": {"X": x, "Y": y-3}, "SetProperties": {"WallID": region}})
         if "doorway" in data:
             threshold = tuple(data["doorway"])

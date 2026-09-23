@@ -213,7 +213,9 @@ internal static class FurnitureLibraryExporter
             throw new InvalidOperationException($"No compatible furniture previews could be resolved. Check this runtime against the installed game version; diagnostic notes: {diagnosticPath}");
         }
         var surfaces = ExportSurfaces(helper, output, sheets, failedSheets, messages, ref textureBytes, ref jsonBytes);
-        var library = new { format = "pixelheart-interior-library", version = 1, definitions, surfaces, warnings = messages, notes };
+        var architecture = ArchitectureLibraryExporter.Export(helper, output, messages, ref textureBytes, ref jsonBytes);
+        notes.Add("Architectural pieces are static map artwork with collision. Native shop actions, cooking, storage, fireplace effects, stairs between locations and map-specific warps are not copied.");
+        var library = new { format = "pixelheart-interior-library", version = 1, definitions, surfaces, architecture, warnings = messages, notes };
         byte[] payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(library));
         if (payload.Length > MaxJsonBytes) throw new InvalidDataException("The generated library exceeds the editor's JSON size limit.");
         using (var stream = new FileStream(Path.Combine(output, "library.json"), FileMode.CreateNew, FileAccess.Write, FileShare.None))

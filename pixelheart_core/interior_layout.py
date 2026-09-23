@@ -106,7 +106,10 @@ def resize_room_candidate(data, room_id, x, y, width, height):
     room.update(x=x, y=y, width=width, height=height)
     candidate["width"] = min(96, max(candidate["width"], x + width + 1))
     candidate["height"] = min(96, max(candidate["height"], y + height + 1))
-    return normalize_interior(candidate)
+    candidate = normalize_interior(candidate)
+    from .interior_architecture_rules import validate_architecture_rules
+    validate_architecture_rules(candidate, before=data)
+    return candidate
 
 
 def corridor_candidate(data, x, y, width, height, *, name="Hallway", allow_rebase=False):
@@ -140,7 +143,10 @@ def partition_candidate(data, room_id, axis, x, y, length, *, opening_width=1, o
         partitions.append(wall)
     else:
         partitions[partitions.index(previous)] = wall
-    return normalize_interior(candidate)
+    candidate = normalize_interior(candidate)
+    from .interior_architecture_rules import validate_architecture_rules
+    validate_architecture_rules(candidate, before=data)
+    return candidate
 
 
 def opening_candidate(data, partition_id, offset, width):
@@ -153,7 +159,10 @@ def opening_candidate(data, partition_id, offset, width):
     _integer(offset, 0, wall["length"]-1, "Place the opening within its wall.")
     _integer(width, 0, wall["length"], "Openings need a whole tile width.")
     wall["openings"] = [{"offset": offset, "width": width}] if width else []
-    return normalize_interior(candidate)
+    candidate = normalize_interior(candidate)
+    from .interior_architecture_rules import validate_architecture_rules
+    validate_architecture_rules(candidate, before=data)
+    return candidate
 
 
 def remove_partition_candidate(data, partition_id):
@@ -163,7 +172,10 @@ def remove_partition_candidate(data, partition_id):
     if wall is None:
         raise InteriorError("Select an interior wall to remove.")
     candidate["partitions"].remove(wall)
-    return normalize_interior(candidate)
+    candidate = normalize_interior(candidate)
+    from .interior_architecture_rules import validate_architecture_rules
+    validate_architecture_rules(candidate, before=data)
+    return candidate
 
 
 def paint_partitions(data, layers, enabled=None):
