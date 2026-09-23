@@ -1,6 +1,6 @@
 # Paint a place, play it, and come back to improve it
 
-Open **Cast & locations → Places & spouse room**, choose **Add place**, and give
+Open **Home & places → Advanced / Game connection**, choose **Add story location**, and give
 the place a name. Choose **Create map from a tilesheet…**. Save the project when
 prompted so its map and artwork can travel together.
 
@@ -29,7 +29,7 @@ prompted so its map and artwork can travel together.
 ## Connect the place to the game
 
 For a small location, complete **Give the player a way in and out** in
-**Cast & locations**. Choose the outside **Entrance map** and its trigger tile,
+**Home & places**. Choose the outside **Entrance map** and its trigger tile,
 the tile where the player arrives inside, the inside exit trigger, and the return
 tile outside. Keep arrival tiles separate from the corresponding exit triggers
 so walking through a door does not immediately send the player back.

@@ -14,7 +14,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QApplication, QCheckBox, QGridLayout
 
-from pixelheart.app import MainWindow
+from pixelheart.app import MainWindow, SECTION_INDEX
 from pixelheart.theme import apply_theme
 from pixelheart_core.birthdays import SEASONS, birthdays_for_season
 from pixelheart_core.projects import load_project
@@ -201,7 +201,7 @@ class BirthdayCalendarTests(unittest.TestCase):
         document["character"].update(season="spring", day=4)
         self.window.load_document(document)
         self.window.show()
-        self.window.navigation.setCurrentRow(6)
+        self.window.open_section("export")
         self.application.processEvents()
         self.browse("winter")
 

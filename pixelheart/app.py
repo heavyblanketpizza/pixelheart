@@ -10,7 +10,7 @@ from PySide6.QtCore import Qt, QSize, QSaveFile, QIODevice
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QScrollArea,
-    QListWidget, QListWidgetItem, QFrame, QFileDialog, QMessageBox,
+    QListWidget, QListWidgetItem, QFrame, QFileDialog, QMessageBox, QTabWidget,
 )
 
 from pixelheart_core.projects import (
@@ -22,31 +22,39 @@ from pixelheart_core.exporting import validate_character, build_mod_archive, Exp
 from pixelheart_core.artwork import inspect_artwork, ArtworkValidationError
 from . import __version__
 from .artwork_page import ArtworkPage
-from .editors import IdentityPage, RecordsPage, SchedulePage
+from .editors import IdentityPage, DialoguePage, SchedulePage
 from .gifts_page import GiftsPage
 from .story_page import StoryPage
-from .creator_page import CreatorPage
+from .playtest_page import PlaytestPage
 from .life_page import LifePage
 from .world_page import WorldPage
 from .location_picker import MapSelector
-from pixelheart_core.creator import record_export
+from pixelheart_core.playtesting import record_export
 from .theme import heart_icon
 from .navigation_icons import navigation_icon
 from .widgets import label, button, card
 
 
+# Stable keys keep issue links and editor actions independent of sidebar order.
 SECTIONS = [
-    ("Identity", "A new face in the valley.", "Give your character a name, a place, and a little personality."),
-    ("Dialogue", "Something only they would say.", "Write the small conversations that turn a stranger into someone familiar."),
-    ("Schedule", "Find their everyday rhythm.", "From a slow morning to a favorite spot at sunset."),
-    ("Gifts", "It's the thought that counts.", "A few favorites, a few pet peeves, and another way to get to know them."),
-    ("Story notes", "Every heart has a story.", "Turn small ideas into playable moments and relationships that grow."),
-    ("Artwork", "Let their personality show.", "Your portraits and sprites, prepared with care."),
-    ("Review & export", "Almost ready to meet the valley.", "Check the details, prepare a starter pack, then bring it into the game."),
-    ("Create your mod", "From an idea to a life in the valley.", "Build your first playable chapter, then grow the cast, relationships, and world around it."),
-    ("Life & reactions", "Let the story change their everyday life.", "Conversations, routines, and married life that respond to what the player has experienced."),
-    ("Cast & locations", "A world for your story to grow into.", "Create supporting characters, import locations, and connect them to the valley."),
+    ("identity", "Identity", "A new face in the valley.", "Define the character at the center of this project."),
+    ("dialogue", "Dialogue", "Something only they would say.", "Write their everyday voice, story reactions, and conversations after marriage."),
+    ("schedule", "Schedule", "Find their everyday rhythm.", "Plan their daily route and how it changes with the story, seasons, and marriage."),
+    ("gifts", "Gifts", "It's the thought that counts.", "Give them favorites, pet peeves, and another way to connect with the player."),
+    ("story", "Story & events", "Every heart has a story.", "Develop this character's storyline through connected scenes, choices, and relationships."),
+    ("artwork", "Artwork", "Let their personality show.", "Prepare this character's portraits, sprites, and seasonal appearances."),
+    ("home", "Home & places", "A place that feels like them.", "Design their residence, spouse room, and the places their story needs."),
+    ("export", "Review & export", "Bring them into Stardew Valley.", "Check the project, export and install the pack, then playtest their story."),
 ]
+SECTION_INDEX = {section[0]: index for index, section in enumerate(SECTIONS)}
+
+
+def scroll_page(page):
+    scroll = QScrollArea()
+    scroll.setWidgetResizable(True)
+    scroll.setWidget(page)
+    return scroll
+
 
 
 class ExportPage(QWidget):
@@ -54,8 +62,14 @@ class ExportPage(QWidget):
         super().__init__()
         self.window = window
         self.issues = []
-        root = QVBoxLayout(self)
-        root.setContentsMargins(0, 0, 0, 0)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        self.tabs = QTabWidget()
+        self.tabs.setDocumentMode(True)
+        outer.addWidget(self.tabs)
+        checks = QWidget()
+        root = QVBoxLayout(checks)
+        root.setContentsMargins(0, 14, 10, 10)
         root.setSpacing(20)
         summary, content = card("A thoughtful final check")
         self.summary = label("Check your character before exporting.", "profileName", True)
@@ -77,9 +91,21 @@ class ExportPage(QWidget):
         self.list.itemActivated.connect(self.open_issue)
         root.addWidget(self.list)
         root.addWidget(label("WHAT YOUR PACK INCLUDES", "eyebrow"))
-        root.addWidget(label("Character identity · Conversations and reactions · Gift tastes · Conditional routines · Selected PNG artwork · Ready story events · Supporting cast · Imported locations\n\nScenes include their triggers, cast, actions, and choices. Linked chapters develop relationships; authored spouse dialogue continues them after marriage. Unfinished scenes stay in your project backup. Review each enabled feature in-game.", "muted", True))
+        root.addWidget(label("Character identity · Conversations and reactions · Gift tastes · Conditional routines · Selected PNG artwork · Ready story events · Residence and spouse room · Story locations\n\nScenes include their triggers, cast, actions, and choices. Linked chapters develop relationships; authored spouse dialogue continues them after marriage. Unfinished scenes stay in your project backup. Review each enabled feature in-game.", "muted", True))
         root.addWidget(label("Install with SMAPI 4+ and Content Patcher 2.9.0+ for Stardew Valley 1.6. Test the exported pack in-game before sharing it.", "notice", True))
         root.addStretch()
+        self.tabs.addTab(scroll_page(checks), "Checks && export")
+        self.playtest = PlaytestPage(window)
+        self.tabs.addTab(scroll_page(self.playtest), "Install && playtest")
+        self.tabs.currentChanged.connect(self.refresh_tab)
+
+    def refresh_tab(self, index):
+        if not self.window.loading:
+            if index == 0:
+                self.refresh()
+            else:
+                self.window.collect()
+                self.playtest.refresh()
 
     def refresh(self):
         self.issues = self.window.validate_project()
@@ -100,15 +126,19 @@ class ExportPage(QWidget):
     def open_issue(self, item):
         field = item.data(Qt.ItemDataRole.UserRole)["field"]
         group = field.split(".")[0]
-        destination = {"dialogues": 1, "schedule": 2, "gifts": 3, "events": 4, "relationships": 4, "portrait": 5, "sprite": 5, "appearances": 5, "life": 8, "world": 9}.get(group, 0)
-        self.window.navigation.setCurrentRow(destination)
-        if destination == 4:
+        destination = {"dialogues": "dialogue", "schedule": "schedule", "gifts": "gifts", "events": "story", "relationships": "story", "portrait": "artwork", "sprite": "artwork", "appearances": "artwork", "life": "dialogue", "world": "home"}.get(group, "identity")
+        self.window.open_section(destination)
+        if destination == "story":
             self.window.story.open_issue(field)
-        if destination == 8:
+        if group == "life":
             self.window.life.open_issue(field)
-        if destination == 9 and hasattr(self.window.world, "open_issue"):
+        elif group == "dialogues":
+            self.window.dialogue_tabs.setCurrentIndex(0)
+        elif group == "schedule":
+            self.window.schedule_tabs.setCurrentIndex(0)
+        if destination == "home":
             self.window.world.open_issue(field)
-        if destination == 5:
+        if destination == "artwork":
             parts = field.split(".")
             self.window.artwork.select_appearance(parts[1] if group == "appearances" and len(parts) > 1 else None)
         if group in self.window.identity.fields:
@@ -181,8 +211,8 @@ class MainWindow(QMainWindow):
         self.navigation.setAccessibleName("Editor sections")
         self.navigation.setSpacing(1)
         self.navigation.setIconSize(QSize(20, 20))
-        for index, (title, _, _) in enumerate(SECTIONS):
-            item = QListWidgetItem(navigation_icon(index), title)
+        for key, title, _, _ in SECTIONS:
+            item = QListWidgetItem(navigation_icon(key), title)
             item.setSizeHint(QSize(176, 36))
             item.setToolTip(title)
             self.navigation.addItem(item)
@@ -216,14 +246,14 @@ class MainWindow(QMainWindow):
         main.addWidget(separator)
         heading = QVBoxLayout()
         heading.setSpacing(6)
-        self.title_label = label(SECTIONS[0][1], "title", True)
-        self.subtitle = label(SECTIONS[0][2], "muted", True)
+        self.title_label = label(SECTIONS[0][2], "title", True)
+        self.subtitle = label(SECTIONS[0][3], "muted", True)
         heading.addWidget(self.title_label)
         heading.addWidget(self.subtitle)
         main.addLayout(heading)
         self.stack = QStackedWidget()
         self.identity = IdentityPage()
-        self.dialogue = RecordsPage("dialogues")
+        self.dialogue = DialoguePage()
         self.schedule = SchedulePage()
         self.gifts = GiftsPage(auto_download=self.auto_download_icons)
         self.gifts.download_stopped.connect(self._finish_icon_close)
@@ -231,18 +261,29 @@ class MainWindow(QMainWindow):
         self.events = self.story.events
         self.relationships = self.story.relationships
         self.artwork = ArtworkPage(self)
-        self.export_page = ExportPage(self)
         self.life = LifePage(self)
         self.world = WorldPage(self)
-        self.creator = CreatorPage(self)
-        for page in (self.identity, self.dialogue, self.schedule, self.gifts, self.story, self.artwork, self.export_page, self.creator, self.life, self.world):
-            if page in (self.story, self.creator, self.life, self.world):
-                self.stack.addWidget(page)
-                continue
-            scroll = QScrollArea()
-            scroll.setWidgetResizable(True)
-            scroll.setWidget(page)
-            self.stack.addWidget(scroll)
+        self.export_page = ExportPage(self)
+        self.playtest = self.export_page.playtest
+        self.dialogue_tabs = QTabWidget()
+        self.dialogue_tabs.setDocumentMode(True)
+        self.dialogue_tabs.addTab(scroll_page(self.dialogue), "Everyday dialogue")
+        self.dialogue_tabs.addTab(self.life.editors["dialogues"], "Story reactions")
+        self.dialogue_tabs.addTab(self.life.editors["spouse_dialogue"], "Marriage dialogue")
+        self.schedule_tabs = QTabWidget()
+        self.schedule_tabs.setDocumentMode(True)
+        self.schedule_tabs.addTab(scroll_page(self.schedule), "Daily route")
+        self.schedule_tabs.addTab(self.life.editors["routines"], "Conditional routines")
+        for tabs in (self.dialogue_tabs, self.schedule_tabs):
+            tabs.currentChanged.connect(lambda *_: self.life.refresh_context() if not self.loading else None)
+        self.section_pages = {
+            "identity": scroll_page(self.identity), "dialogue": self.dialogue_tabs,
+            "schedule": self.schedule_tabs, "gifts": scroll_page(self.gifts),
+            "story": self.story, "artwork": scroll_page(self.artwork),
+            "home": self.world, "export": self.export_page,
+        }
+        for key, *_ in SECTIONS:
+            self.stack.addWidget(self.section_pages[key])
         for page in (self.identity, self.dialogue, self.schedule, self.gifts, self.story, self.life, self.world):
             page.changed.connect(self.content_changed)
         self.artwork.changed.connect(self.artwork_changed)
@@ -258,7 +299,7 @@ class MainWindow(QMainWindow):
             ("&Open project…", QKeySequence.StandardKey.Open, self.open_dialog),
             ("&Save project", QKeySequence.StandardKey.Save, self.save),
             ("Save project &as…", QKeySequence.StandardKey.SaveAs, self.save_as),
-            ("&Review and export…", "Ctrl+Shift+E", lambda: self.navigation.setCurrentRow(6)),
+            ("&Review and export…", "Ctrl+Shift+E", lambda: self.open_section("export")),
         ]
         for name, shortcut, callback in actions:
             action = QAction(name, self)
@@ -275,24 +316,41 @@ class MainWindow(QMainWindow):
         about.triggered.connect(self.about)
         help_menu.addAction(about)
 
+    def open_section(self, key):
+        self.navigation.setCurrentRow(SECTION_INDEX[key])
+
+    def open_life_editor(self, kind):
+        if kind == "routines":
+            self.open_section("schedule")
+            self.schedule_tabs.setCurrentIndex(1)
+        else:
+            self.open_section("dialogue")
+            self.dialogue_tabs.setCurrentIndex(2 if kind == "spouse_dialogue" else 1)
+        self.life.refresh_context()
+
     def navigate(self, index):
         if index < 0:
             return
         self.stack.setCurrentIndex(index)
-        name, title, subtitle = SECTIONS[index]
-        self.breadcrumb.setText("YOUR CHARACTER  /  " + name.upper())
+        key, name, title, subtitle = SECTIONS[index]
+        character_name = self.document["character"].get("name") or "Your character"
+        self.breadcrumb.setText(character_name.upper() + "  /  " + name.upper())
         self.title_label.setText(title)
         self.subtitle.setText(subtitle)
-        if index == 6 and not self.loading:
-            self.export_page.refresh()
-        if index == 4 and not self.loading:
+        if self.loading:
+            return
+        if key == "export":
+            self.export_page.refresh_tab(self.export_page.tabs.currentIndex())
+        elif key == "story":
             self.story.refresh_context()
             self.events.update_preview()
-        if index == 7 and not self.loading:
-            self.collect()
-            self.creator.refresh()
-        if index == 8 and not self.loading and hasattr(self.life, "refresh_context"):
+        elif key in ("dialogue", "schedule"):
             self.life.refresh_context()
+        elif key == "home":
+            if self.world.location_index >= 0:
+                self.world.refresh_location()
+            else:
+                self.world.refresh_home_actions()
 
     def collect(self):
         self.document["character"].update(self.identity.dump())
@@ -313,6 +371,7 @@ class MainWindow(QMainWindow):
             return
         self.collect()
         self.refresh_locations()
+        self.world.refresh_home_actions()
         self.dirty = True
         self.update_title()
 
@@ -331,6 +390,8 @@ class MainWindow(QMainWindow):
     def update_title(self):
         name = self.document["character"].get("name") or "Untitled character"
         self.setWindowTitle(f"{name}[*] — Pixelheart")
+        section = SECTIONS[max(0, self.navigation.currentRow())][1]
+        self.breadcrumb.setText(name.upper() + "  /  " + section.upper())
         self.setWindowModified(self.dirty)
         self.save_state.setText("Unsaved changes" if self.dirty else "Saved locally" if self.project_file else "New project")
         self.save_state.setToolTip(str(self.project_file or "Choose Save project to select a portable project folder."))
@@ -349,16 +410,19 @@ class MainWindow(QMainWindow):
         self.life.load(character)
         self.world.load(self.document.get("world", {}))
         self.refresh_locations()
-        self.creator.load(self.document)
         self.artwork.select_appearance()
         self.artwork.refresh()
         self.update_portrait()
         self.dirty = False
         self.loading = False
         self.update_title()
-        self.navigation.setCurrentRow(7)
-        self.creator.refresh()
-        self.statusBar().showMessage("Start in Create your mod, or open any editor to keep developing your project.", 12000)
+        self.dialogue_tabs.setCurrentIndex(0)
+        self.schedule_tabs.setCurrentIndex(0)
+        self.export_page.tabs.setCurrentIndex(0)
+        self.open_section("identity")
+        self.navigate(SECTION_INDEX["identity"])
+        self.playtest.refresh()
+        self.statusBar().showMessage("Develop this character's dialogue, story, daily life, and home using the editors on the left.", 12000)
 
     def update_portrait(self):
         try:
@@ -501,12 +565,13 @@ class MainWindow(QMainWindow):
         return issues
 
     def export_project(self):
-        self.navigation.setCurrentRow(6)
+        self.open_section("export")
+        self.export_page.tabs.setCurrentIndex(0)
         issues = self.export_page.refresh()
         if any(issue["level"] == "error" for issue in issues):
             return False
         name = self.document["character"]["internal_name"]
-        path, _ = QFileDialog.getSaveFileName(self, "Export Content Patcher starter pack", str((self.project_file.parent if self.project_file else Path.cwd()) / f"[CP] {name}.zip"), "Mod archive (*.zip)")
+        path, _ = QFileDialog.getSaveFileName(self, "Export NPC Content Patcher pack", str((self.project_file.parent if self.project_file else Path.cwd()) / f"[CP] {name}.zip"), "Mod archive (*.zip)")
         if not path:
             return False
         if not path.lower().endswith(".zip"):
@@ -522,6 +587,7 @@ class MainWindow(QMainWindow):
             if output.write(payload) != len(payload) or not output.commit():
                 raise OSError(output.errorString())
             self.document = record_export(self.document, path, payload)
+            self.playtest.refresh()
             self.dirty = True
             self.update_title()
             self.statusBar().showMessage(f"Exported · {path}", 15000)

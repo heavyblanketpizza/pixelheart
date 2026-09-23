@@ -206,18 +206,59 @@ class WorldPageTests(unittest.TestCase):
         self.page.load()
         self.addCleanup(self.page.deleteLater)
 
-    def test_first_save_during_second_companion_import_keeps_selected_character(self):
-        self.page.add_companion()
-        self.page.add_companion()
-        second = self.page.world["characters"][1]["id"]
+    def test_single_npc_ui_preserves_legacy_supporting_characters(self):
+        companion = new_companion("Old companion")
+        companion["private_notes"] = {"unmodified": "legacy extension"}
+        legacy = {**new_world(), "characters": [companion]}
+        self.page.load(legacy)
+        self.page.add_location()
+        self.window.ensure_saved()
+        self.assertEqual(self.page.dump()["characters"], [companion])
+        self.assertEqual(load_project(self.window.project_file)["world"]["characters"], [companion])
+        self.assertFalse(hasattr(self.page, "cast_list"))
+        self.assertEqual(self.page.tabs.currentIndex(), 0)
+        self.assertFalse(self.page.tabs.isTabVisible(1))
+        self.assertTrue(self.page.legacy_characters_button.isHidden())
+        self.page.place_advanced_toggle.setChecked(True)
+        self.assertFalse(self.page.legacy_characters_button.isHidden())
+
+    def test_legacy_artwork_repair_keeps_character_selected_after_first_save(self):
+        from pixelheart.legacy_characters import LegacyCharactersDialog
+        records = [new_companion("First"), new_companion("Second")]
+        self.page.load({**new_world(), "characters": records})
+        dialog = LegacyCharactersDialog(self.page, index=1)
+        self.addCleanup(dialog.deleteLater)
         portrait = self.root / "portrait.png"
         Image.new("RGBA", (128, 192)).save(portrait)
-        with patch("pixelheart.world_page.QFileDialog.getOpenFileName", return_value=(str(portrait), "")):
-            self.page.import_cast_artwork("portrait")
+        with patch("pixelheart.legacy_characters.QFileDialog.getOpenFileName", return_value=(str(portrait), "")):
+            dialog.import_artwork("portrait")
         self.assertFalse(self.window.errors)
-        self.assertEqual(self.page.world["characters"][self.page.cast_index]["id"], second)
         self.assertIsNone(self.page.world["characters"][0]["artwork"]["portrait"])
         self.assertTrue(self.page.world["characters"][1]["artwork"]["portrait"])
+        self.assertEqual(self.page.world["characters"][1]["character"], records[1]["character"])
+
+    def test_legacy_removal_requires_confirmation_and_keeps_saved_project_until_save(self):
+        from PySide6.QtWidgets import QMessageBox
+        from pixelheart.legacy_characters import LegacyCharactersDialog
+        records = [new_companion("First"), new_companion("Second")]
+        self.page.load({**new_world(), "characters": records})
+        self.window.ensure_saved()
+        dialog = LegacyCharactersDialog(self.page, index=1)
+        self.addCleanup(dialog.deleteLater)
+        with patch("pixelheart.legacy_characters.QMessageBox.question", return_value=QMessageBox.StandardButton.No):
+            dialog.remove_character()
+        self.assertEqual(self.page.world["characters"], records)
+        with patch("pixelheart.legacy_characters.QMessageBox.question", return_value=QMessageBox.StandardButton.Yes):
+            dialog.remove_character()
+        self.assertEqual(self.page.world["characters"], records[:1])
+        self.assertEqual(load_project(self.window.project_file)["world"]["characters"], records)
+
+    def test_legacy_validation_issue_opens_repair_dialog_for_affected_record(self):
+        self.page.load({**new_world(), "characters": [new_companion("First"), new_companion("Second")]})
+        with patch("pixelheart.legacy_characters.LegacyCharactersDialog") as constructor:
+            self.page.open_issue("world.characters.1.artwork.sprite")
+            constructor.assert_called_once_with(self.page, index=1)
+            constructor.return_value.exec.assert_called_once()
 
     def test_first_save_during_second_map_import_keeps_selected_place(self):
         self.page.add_location()

@@ -19,7 +19,7 @@ except ImportError:
     from test_world import make_map
 
 
-class CreatorExportTests(unittest.TestCase):
+class WorldExportTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

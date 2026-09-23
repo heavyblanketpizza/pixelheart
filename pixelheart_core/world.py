@@ -570,6 +570,10 @@ def world_issues(world, character, project_root=None):
     locations_by_name = {location["internal_name"]: location for location in world["locations"]}
     known_dimensions = {}
     for index, location in enumerate(world["locations"]):
+        if "doorway" in location.get("interior", {}):
+            from .interiors import doorway_exit
+            exit_x, exit_y = doorway_exit(location["interior"])
+            location = {**location, "exit_x": exit_x, "exit_y": exit_y}
         prefix = f"locations.{index}"
         internal = location["internal_name"]
         if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,39}", internal) or internal.casefold() in names:
@@ -713,6 +717,10 @@ def compile_world(world, character, project_root):
     """Compile imported maps and companion archives into one content pack."""
     from .exporting import build_mod_archive, _story_test_guide
     world = normalize_world(world)
+    for location in world["locations"]:
+        if "doorway" in location.get("interior", {}):
+            from .interiors import doorway_exit
+            location["exit_x"], location["exit_y"] = doorway_exit(location["interior"])
     backup_world = copy.deepcopy(world)
     issues = world_issues(world, character, project_root)
     if any(issue["level"] == "error" for issue in issues):
@@ -752,6 +760,8 @@ def compile_world(world, character, project_root):
             compiled = compile_interior(location["interior"], identity, exported_npc_id(character), project_root, prefix)
             protected = ([location["interior"]["spouse_stand"]] if location["spouse_room"] else
                          [location["interior"]["entry"], [location["exit_x"], location["exit_y"]]])
+            if "doorway" in location["interior"]:
+                protected.append(location["interior"]["doorway"])
             for authored in ([] if location["spouse_room"] else [character, *(c["character"] for c in world["characters"])]):
                 if authored.get("home_map") == location["internal_name"]:
                     protected.append([int(authored["home_x"]), int(authored["home_y"])])

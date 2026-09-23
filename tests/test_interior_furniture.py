@@ -9,7 +9,7 @@ from unittest.mock import patch
 from PIL import Image
 
 from pixelheart_core.interior_furniture import (
-    ROOM_FRAME_JOINS, ROOM_FRAME_TILES, FurnitureValidationError, _read_texture,
+    ROOM_FRAME_DOORWAY, ROOM_FRAME_JOINS, ROOM_FRAME_TILES, FurnitureValidationError, _read_texture,
     attach_texture, clear_preview_cache,
     definition_assets, frame_at,
     import_catalog_textures, import_furniture_library, import_texture, preview_frame,
@@ -310,8 +310,8 @@ class InteriorFurnitureTests(unittest.TestCase):
             self.assertEqual(image.size, (32, 32))
         self.assertNotIn("room_frame", import_furniture_library(self.library([]), self.project))
 
-    def test_room_frame_optional_joins_are_detached_and_validate_every_supplied_rectangle(self):
-        for role in ROOM_FRAME_JOINS:
+    def test_room_frame_optional_joins_and_doorway_corners_validate_every_supplied_rectangle(self):
+        for role in ROOM_FRAME_JOINS + ROOM_FRAME_DOORWAY:
             with self.subTest(role=role):
                 original = self.room_frame()
                 original["tiles"][role] = [16, 16, 16, 16]
@@ -325,7 +325,7 @@ class InteriorFurnitureTests(unittest.TestCase):
                     with self.assertRaises(FurnitureValidationError):
                         validate_room_frame(original)
         complete = self.room_frame()
-        complete["tiles"].update({role: [0, 0, 16, 16] for role in ROOM_FRAME_JOINS})
+        complete["tiles"].update({role: [0, 0, 16, 16] for role in ROOM_FRAME_JOINS + ROOM_FRAME_DOORWAY})
         self.assertEqual(validate_room_frame(complete), complete)
 
     def test_bad_room_frame_preflight_prevents_all_furniture_and_surface_asset_copies(self):
@@ -340,7 +340,7 @@ class InteriorFurnitureTests(unittest.TestCase):
         invalid = [None, self.room_frame(tiles={}), late_bad_rect,
                    self.room_frame(preview_asset="textures/missing.png"),
                    self.room_frame(preview_asset="textures/corrupt.png")]
-        for role in ROOM_FRAME_JOINS:
+        for role in ROOM_FRAME_JOINS + ROOM_FRAME_DOORWAY:
             frame = self.room_frame()
             frame["tiles"][role] = [17, 16, 16, 16]
             invalid.append(frame)

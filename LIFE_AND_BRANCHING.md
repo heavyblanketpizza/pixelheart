@@ -1,14 +1,14 @@
 # Give the character a life beyond the first meeting
 
-**Life & reactions** connects completed story chapters to ordinary conversations,
-changing routines, and authored spouse dialogue. **Story notes** adds relationship
+**Dialogue** and **Schedule** connects completed story chapters to ordinary conversations,
+changing routines, and authored spouse dialogue. **Story & events** adds relationship
 and farmhouse conditions, repeatable scenes, and a player choice with two endings.
 Everything is authored locally. These tools do not generate content during play.
 
 ## Start with one visible change
 
-1. Review the first story event and mark it ready in **Story notes**.
-2. Open **Life & reactions → Conversations** and add a conversation.
+1. Review the first story event and mark it ready in **Story & events**.
+2. Open **Dialogue → Story reactions** and add a conversation.
 3. Name it, choose that event under **After this story event**, and write what the
    character says after the player has helped them. Use `@` for the farmer's name.
 4. Check **Include this rule in the next mod export** after reviewing the text.
@@ -27,11 +27,11 @@ lasting story prerequisite: its completion is forgotten by the repeat framework.
 Conversations change weekday greetings. The game's special date, festival,
 location, and more specific authored dialogue can still have higher priority.
 Choosing **Married to this NPC** changes the spouse's home conversations instead.
-The **Married life** tab lets you write a particular morning or evening separately.
+The **Marriage dialogue** tab lets you write a particular morning or evening separately.
 
 ## Seasonal, rainy, dating, and married routines
 
-Open **Life & reactions → Routines**, add a routine, and select its conditions. The
+Open **Schedule → Conditional routines**, add a routine, and select its conditions. The
 initial stops copy the normal **Schedule** so there is something concrete to edit.
 Season, weather, weekday, hearts, completed story, and relationship can be combined.
 The lower matching routine takes priority over earlier alternatives.
@@ -51,14 +51,14 @@ farmhand relationship setup before distributing a pack for multiplayer use.
 
 ## Write their married voice
 
-In **Life & reactions → Married life**, choose a morning, rainy morning, evening, or
+In **Dialogue → Marriage dialogue**, choose a morning, rainy morning, evening, or
 rainy evening. The authored text fills the random slots for that moment, so a
 missing random slot does not unexpectedly replace your line with generic text.
 More specific rules can change those words after a later chapter or in a season.
 
 The game retains its default spouse interactions outside those four categories.
 This editor does not claim to author every marriage interaction, festival, or
-animation. Custom rooms and other characters belong in **Cast & locations**.
+animation. Their residence, spouse room, and story locations belong in **Home & places**.
 The [map workshop guide](MAP_WORKSHOP.md) covers painting a supplied tilesheet,
 connecting the place, and reopening it for revisions after a game test.
 

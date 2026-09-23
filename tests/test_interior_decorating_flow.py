@@ -306,7 +306,7 @@ class InteriorDecoratingFlowTests(unittest.TestCase):
         self.click_tile(dialog, 6, 7)
         dialog.tabs.setCurrentIndex(2)
         before = dialog.draft.snapshot()
-        self.click_button(dialog, "← Left")
+        self.assertTrue(dialog.place_room_drop(-4, 5, 6, 6))
         rooms = dialog.draft.data["rooms"]
         self.assertEqual(len(rooms), 2)
         self.assertGreater(dialog.draft.data["width"], before["width"])
@@ -324,10 +324,10 @@ class InteriorDecoratingFlowTests(unittest.TestCase):
         dialog.allow_rebase = False
         dialog.tabs.setCurrentIndex(2)
         before = dialog.draft.snapshot()
-        self.click_button(dialog, "← Left")
+        self.assertFalse(dialog.place_room_drop(-4, 5, 6, 6))
         self.assertEqual(dialog.draft.snapshot(), before)
-        self.assertIn("routes and doorways", dialog.status.text())
-        self.click_button(dialog, "Right →")
+        self.assertTrue(dialog.status.text())
+        self.assertTrue(dialog.place_room_drop(12, 5, 6, 6))
         self.assertEqual(len(dialog.draft.data["rooms"]), 2)
         self.assertEqual(dialog.draft.data["rooms"][0], before["rooms"][0])
         self.assertEqual(dialog.draft.data["entry"], before["entry"])

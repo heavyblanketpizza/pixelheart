@@ -19,7 +19,7 @@ from PIL import Image
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
-from pixelheart.app import MainWindow
+from pixelheart.app import MainWindow, SECTION_INDEX
 from pixelheart.artwork_page import PreparationDialog
 from pixelheart.theme import apply_theme
 from pixelheart_core.artwork import inspect_artwork
@@ -279,7 +279,7 @@ class DesktopTests(unittest.TestCase):
         with patch("pixelheart.app.QFileDialog.getSaveFileName") as choose:
             self.assertFalse(self.window.export_project())
         choose.assert_not_called()
-        self.assertEqual(self.window.navigation.currentRow(), 6)
+        self.assertEqual(self.window.navigation.currentRow(), SECTION_INDEX["export"])
 
     def test_canceling_export_creates_no_archive(self):
         self.valid_artwork()

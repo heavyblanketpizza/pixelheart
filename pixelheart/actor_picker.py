@@ -9,7 +9,8 @@ def vanilla_actors():
 
 
 class ActorSelector(MapSelector):
-    def __init__(self, default="$npc", *, parent=None):
+    def __init__(self, default="$npc", *, cast_only=False, parent=None):
+        self.cast_only = cast_only
         super().__init__(default, compact=True, parent=parent)
         self.setAccessibleName("Scene character")
         self.combo.setAccessibleName("Choose a scene character")
@@ -36,8 +37,11 @@ class ActorSelector(MapSelector):
             if identity not in seen:
                 self.combo.addItem(caption, identity)
                 seen.add(identity)
-        self.combo.addItem("Other mod character…", None)
-        self.custom_index = self.combo.count() - 1
+        if self.cast_only:
+            self.custom_index = -1
+        else:
+            self.combo.addItem("Other mod character…", None)
+            self.custom_index = self.combo.count() - 1
         self.combo.blockSignals(False)
         self._loading = False
         self.set_value(before)
@@ -45,6 +49,15 @@ class ActorSelector(MapSelector):
     def set_value(self, identity):
         self._loading = True
         self._value = str(identity)
+        if self.cast_only and hasattr(self, "_options"):
+            # A missing actor stays visible for repair without becoming a new
+            # cast choice or silently changing the saved beat.
+            blocked = self.combo.blockSignals(True)
+            while self.combo.count() > len({identity for _, identity in self._options}):
+                self.combo.removeItem(self.combo.count() - 1)
+            if self.combo.findData(identity) < 0:
+                self.combo.addItem(f"{identity or 'No character'} · missing from cast", identity)
+            self.combo.blockSignals(blocked)
         index = self.combo.findData(identity)
         if index < 0:
             self.custom.setText(str(identity))
@@ -54,7 +67,7 @@ class ActorSelector(MapSelector):
         self._loading = False
 
     def _render(self):
-        self.custom.setVisible(self.combo.currentIndex() == self.custom_index)
+        self.custom.setVisible(not self.cast_only and self.combo.currentIndex() == self.custom_index)
         self.hint.hide()
-        self.combo.setToolTip("Choose a character by name. They must also be included in the scene cast.")
+        self.combo.setToolTip("Choose someone in this scene. Add other characters under Set the stage first." if self.cast_only else "Choose the farmer, a villager, or a character supplied by another mod.")
         self.custom.setToolTip("Use the exact internal character name supplied by the other mod, and declare that mod as a dependency.")

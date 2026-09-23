@@ -2,9 +2,9 @@
 from copy import deepcopy
 import uuid
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QFormLayout, QTabWidget,
+    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QFormLayout,
     QListWidget, QSplitter, QScrollArea, QComboBox, QCheckBox, QPlainTextEdit, QLabel,
     QStackedWidget,
 )
@@ -262,26 +262,20 @@ class LifeRules(QWidget):
             self.changed.emit()
 
 
-class LifePage(QWidget):
+class LifePage(QObject):
+    """Shared life data for the Dialogue and Schedule rule editors."""
     changed = Signal()
 
     def __init__(self, window=None):
-        super().__init__()
+        super().__init__(window)
         self.window = window
         self._character = {}
         self._life = normalize_life()
-        root = QVBoxLayout(self)
-        root.setContentsMargins(0, 0, 0, 0)
-        self.tabs = QTabWidget()
-        self.tabs.setDocumentMode(True)
         self.editors = {}
-        for kind, caption in zip(COLLECTIONS, ("Conversations", "Routines", "Married life")):
+        for kind in COLLECTIONS:
             editor = LifeRules(self, kind)
             editor.changed.connect(self.changed)
             self.editors[kind] = editor
-            self.tabs.addTab(editor, caption)
-        self.tabs.currentChanged.connect(lambda *_: self.refresh_context())
-        root.addWidget(self.tabs)
 
     def character(self):
         if self.window is not None and hasattr(self.window, "document"):
@@ -307,7 +301,8 @@ class LifePage(QWidget):
     def open_issue(self, field):
         parts = field.split(".")
         if len(parts) >= 2 and parts[1] in self.editors:
-            self.tabs.setCurrentIndex(COLLECTIONS.index(parts[1]))
+            if self.window is not None:
+                self.window.open_life_editor(parts[1])
             editor = self.editors[parts[1]]
             if len(parts) >= 3 and parts[2].isdigit():
                 editor.list.setCurrentRow(int(parts[2]))

@@ -233,6 +233,75 @@ def stage_room_frame(data, frame, root):
             source.close()
 
 
+def stage_partition_frame(data, root):
+    """Build inward-facing timber from the design's own structural trim.
+
+    Exterior frame tiles include a black outside half. A freestanding divider
+    instead joins their two wood-facing halves. The resulting portable atlas
+    is shared by previews and game maps; source frame and finish IDs stay fixed.
+    Explicit partition art supplied by a library always takes precedence.
+    """
+    from .interior_furniture import ROOM_FRAME_PARTITIONS
+    candidate = normalize_interior(data)
+    frame = candidate.get("room_frame", {})
+    if (candidate["kind"] != "residence" or not frame
+            or set(ROOM_FRAME_PARTITIONS) <= frame.keys()):
+        return candidate
+    atlas = candidate["atlas"]
+    _, source = _read_texture(asset_path(atlas["asset"], root))
+    try:
+        columns, count = atlas["columns"], atlas["tile_count"]
+        if source.width != columns * 16 or source.height * source.width // 256 != count:
+            raise InteriorError("The design's tilesheet no longer matches its tile references.")
+        def crop(role):
+            tile = frame[role]
+            x, y = tile % columns * 16, tile // columns * 16
+            return source.crop((x, y, x+16, y+16))
+        with crop("right") as right, crop("left") as left, Image.new("RGBA", (16, 16)) as beam:
+            with right.crop((0, 0, 8, 16)) as half:
+                beam.paste(half, (0, 0))
+            with left.crop((8, 0, 16, 16)) as half:
+                beam.paste(half, (8, 0))
+            with beam.transpose(Image.Transpose.ROTATE_90) as cap:
+                additions = {"partition_vertical": beam.tobytes(), "partition_cap": cap.tobytes()}
+        existing = {}
+        for index in range(count):
+            x, y = index % columns * 16, index // columns * 16
+            with source.crop((x, y, x+16, y+16)) as tile:
+                existing.setdefault(tile.tobytes(), index)
+        pixels = []
+        for role, raw in additions.items():
+            if role in frame:
+                continue
+            index = existing.get(raw)
+            if index is None:
+                index = count + len(pixels)
+                existing[raw] = index
+                pixels.append(raw)
+            frame[role] = index
+        if not pixels:
+            return normalize_interior(candidate)
+        rows = (count + len(pixels) + columns - 1) // columns
+        if rows * 16 > MAX_ATLAS_PIXELS:
+            raise InteriorError("The partition trim would make the tilesheet taller than 4096 pixels.")
+        with Image.new("RGBA", (columns*16, rows*16)) as output:
+            output.paste(source, (0, 0))
+            for offset, raw in enumerate(pixels):
+                tile = count + offset
+                with Image.frombytes("RGBA", (16, 16), raw) as image:
+                    output.paste(image, (tile % columns*16, tile // columns*16))
+            stream = io.BytesIO()
+            output.save(stream, format="PNG")
+        raw = stream.getvalue()
+        reference = "world_assets/interior_surfaces/" + hashlib.sha256(raw).hexdigest() + ".png"
+        candidate["atlas"] = {"asset": reference, "columns": columns, "tile_count": columns*rows}
+        candidate = normalize_interior(candidate)
+        _write_new_file(asset_path(reference, Path(root)), raw)
+        return candidate
+    finally:
+        source.close()
+
+
 def apply_surface(data, surface_id, room_id=None):
     """Apply a stored swatch to one room, or all rooms, without mutating data."""
     candidate = normalize_interior(data)
