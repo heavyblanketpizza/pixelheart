@@ -271,12 +271,15 @@ public sealed class ModEntry : Mod
         if (!Context.IsMainPlayer) return "Only the host can change residence rooms.";
         if (Context.IsMultiplayer) return "Room changes are currently available in single-player; furniture remains usable in multiplayer.";
         if (!string.IsNullOrEmpty(design.SpouseNpc)) return "Spouse rooms use the farmhouse room structure.";
-        RoomData? room = design.Rooms.FirstOrDefault(candidate => candidate.Id == roomId && candidate.Optional);
+        RoomData? room = design.Rooms.FirstOrDefault(candidate => candidate.Id == roomId && candidate.Optional && !RoomConnections.IsStairway(candidate));
         if (room == null) return "This room is not an optional room in the residence.";
         HashSet<string> active = EnabledRooms(id, design, location);
         if (active.Contains(roomId) == enabled) return "That room already has the requested state.";
-        if (!enabled && IsOccupied(design, location, room)) return "Empty this room and move its resident's entry or standing point before removing it.";
-        if (enabled) active.Add(roomId); else active.Remove(roomId);
+        RoomData[] group = RoomConnections.ToggleGroup(design, room);
+        if (!enabled && group.Any(member => IsOccupied(design, location, member)))
+            return "Empty this room and its stairs, and move any resident or standing point clear before removing it.";
+        foreach (RoomData member in group)
+            if (enabled) active.Add(member.Id); else active.Remove(member.Id);
         VariantData? variant = design.Variants.FirstOrDefault(candidate => active.SetEquals(candidate.EnabledRooms));
         if (variant == null) return "No exported map exists for this room combination.";
         string key = VariantKey(id);
@@ -306,7 +309,8 @@ public sealed class ModEntry : Mod
         Rectangle tiles = Rectangle.Intersect(new Rectangle(room.X - 1, room.Y - 3, room.Width + 2, room.Height + 4), new Rectangle(0, 0, design.Width, design.Height));
         Rectangle pixels = new(tiles.X * 64, tiles.Y * 64, tiles.Width * 64, tiles.Height * 64);
         if (design.Entry.Length == 2 && tiles.Contains(design.Entry[0], design.Entry[1])) return true;
-        if (design.SpouseStand.Length == 2 && tiles.Contains(design.SpouseStand[0], design.SpouseStand[1])) return true;
+        if (!string.IsNullOrEmpty(design.SpouseNpc) && design.SpouseStand.Length == 2
+            && tiles.Contains(design.SpouseStand[0], design.SpouseStand[1])) return true;
         if (design.ProtectedTiles.Any(tile => tiles.Contains(tile[0], tile[1]))) return true;
         return location.furniture.Any(item => item.GetBoundingBox().Intersects(pixels))
             || location.Objects.Pairs.Any(pair => tiles.Contains((int)pair.Key.X, (int)pair.Key.Y))
@@ -320,7 +324,7 @@ public sealed class ModEntry : Mod
         if (e.Button != SButton.F8 || !Context.IsPlayerFree) return;
         var match = GetDesigns().FirstOrDefault(pair => string.IsNullOrEmpty(pair.Value.SpouseNpc) && pair.Value.Location == Game1.currentLocation.Name);
         if (match.Value == null || !Validate(match.Key, match.Value, out _)) return;
-        RoomData[] rooms = match.Value.Rooms.Where(room => room.Optional).ToArray();
+        RoomData[] rooms = match.Value.Rooms.Where(room => room.Optional && !RoomConnections.IsStairway(room)).ToArray();
         if (rooms.Length == 0) return;
         Helper.Input.Suppress(e.Button);
         GameLocation location = Game1.currentLocation;
@@ -340,7 +344,7 @@ public sealed class ModEntry : Mod
         foreach ((string id, DesignData design) in GetDesigns().Where(pair => pair.Value.Location == Game1.currentLocation.Name))
         {
             HashSet<string> active = EnabledRooms(id, design, Game1.currentLocation);
-            foreach (RoomData room in design.Rooms)
+            foreach (RoomData room in design.Rooms.Where(room => !RoomConnections.IsStairway(room)))
                 Monitor.Log($"{design.Location} {room.Id}: {room.Name} ({(active.Contains(room.Id) ? "on" : "off")}, {(room.Optional ? "optional" : "required")})", LogLevel.Info);
         }
     }
@@ -382,6 +386,7 @@ public sealed class ModEntry : Mod
                 || variant.EnabledRooms.Distinct(StringComparer.Ordinal).Count() != variant.EnabledRooms.Count
                 || design.Rooms.Any(room => !room.Optional && !variant.EnabledRooms.Contains(room.Id))) return false;
         if (design.Variants.Count > 0 && !variantIds.Contains(design.DefaultVariant)) return false;
+        if (!RoomConnections.AreValid(design)) return false;
         error = "";
         return true;
     }

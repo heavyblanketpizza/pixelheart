@@ -617,6 +617,26 @@ def import_furniture_library(path, project_dir):
             raise FurnitureValidationError("A pattern extends beyond its PNG atlas.")
         surface["preview_asset"] = target
         surfaces.append(surface)
+    architecture = []
+    from .interior_architecture import validate_architecture_definition, MAX_PIECES
+    from .interiors import InteriorError
+    architecture_entries = data.get("architecture", [])
+    if not isinstance(architecture_entries, list) or len(architecture_entries) > MAX_PIECES:
+        raise FurnitureValidationError("Use an architectural library with up to 2048 pieces.")
+    architecture_ids = set()
+    for entry in architecture_entries:
+        try:
+            piece = validate_architecture_definition(entry, external=True)
+        except InteriorError as exc:
+            raise FurnitureValidationError(str(exc)) from exc
+        if piece["id"] in architecture_ids:
+            raise FurnitureValidationError("Architectural library identities must be unique.")
+        architecture_ids.add(piece["id"])
+        _payload, size, target = prepare_texture(piece["preview_asset"])
+        if size != (piece["columns"] * 16, piece["tile_count"] // piece["columns"] * 16):
+            raise FurnitureValidationError("The architectural atlas dimensions do not match its tile references.")
+        piece["preview_asset"] = target
+        architecture.append(piece)
     room_frame = None
     if "room_frame" in data:
         room_frame = validate_room_frame(data["room_frame"])
@@ -629,7 +649,7 @@ def import_furniture_library(path, project_dir):
     # after preflight cannot replace those bytes or their recorded dimensions.
     for payload, _size, _target in textures.values():
         _store_texture(payload, project_dir)
-    result = {"definitions": definitions, "surfaces": surfaces, "warnings": messages}
+    result = {"definitions": definitions, "surfaces": surfaces, "architecture": architecture, "warnings": messages}
     if room_frame is not None:
         result["room_frame"] = room_frame
     return result

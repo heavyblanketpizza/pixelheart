@@ -1,0 +1,184 @@
+{
+  "version": 1,
+  "recipes": [
+    {
+      "id": "stardew.counter", "name": "Kitchen counter",
+      "category": "Kitchen", "placement": "floor", "rules": "wall_backed",
+      "map": "Maps/SeedShop", "map_size": [48, 32],
+      "texture": "Maps/townInterior",
+      "width": 1, "height": 2,
+      "cells": [
+        {"layer": "Buildings", "x": 0, "y": 0, "source_x": 34, "source_y": 3, "tile": 598},
+        {"layer": "Buildings", "x": 0, "y": 1, "source_x": 34, "source_y": 4, "tile": 630}
+      ]
+    },
+    {
+      "id": "stardew.prep-counter", "name": "Preparation counter",
+      "category": "Kitchen", "placement": "floor", "rules": "wall_backed",
+      "map": "Maps/SeedShop", "map_size": [48, 32],
+      "texture": "Maps/townInterior",
+      "width": 1, "height": 2,
+      "cells": [
+        {"layer": "Buildings", "x": 0, "y": 0, "source_x": 36, "source_y": 3, "tile": 599},
+        {"layer": "Buildings", "x": 0, "y": 1, "source_x": 36, "source_y": 4, "tile": 631}
+      ]
+    },
+    {
+      "id": "stardew.stove", "name": "Kitchen stove",
+      "category": "Kitchen", "placement": "floor", "rules": "wall_backed",
+      "map": "Maps/SeedShop", "map_size": [48, 32],
+      "texture": "Maps/townInterior",
+      "width": 1, "height": 2,
+      "cells": [
+        {"layer": "Buildings", "x": 0, "y": 0, "source_x": 37, "source_y": 3, "tile": 600},
+        {"layer": "Buildings", "x": 0, "y": 1, "source_x": 37, "source_y": 4, "tile": 632}
+      ]
+    },
+    {
+      "id": "stardew.sink", "name": "Kitchen sink",
+      "category": "Kitchen", "placement": "floor", "rules": "wall_backed",
+      "map": "Maps/SeedShop", "map_size": [48, 32],
+      "texture": "Maps/townInterior",
+      "width": 1, "height": 2,
+      "cells": [
+        {"layer": "Front", "x": 0, "y": 0, "source_x": 38, "source_y": 3, "tile": 601},
+        {"layer": "Buildings", "x": 0, "y": 1, "source_x": 38, "source_y": 4, "tile": 633}
+      ]
+    },
+    {
+      "id": "stardew.refrigerator", "name": "Refrigerator",
+      "category": "Kitchen", "placement": "floor", "rules": "wall_backed",
+      "map": "Maps/SeedShop", "map_size": [48, 32],
+      "texture": "Maps/townInterior",
+      "width": 1, "height": 2,
+      "cells": [
+        {"layer": "Front", "x": 0, "y": 0, "source_x": 39, "source_y": 3, "tile": 602},
+        {"layer": "Buildings", "x": 0, "y": 1, "source_x": 39, "source_y": 4, "tile": 634}
+      ]
+    },
+    {
+      "id": "stardew.dish-cupboard", "name": "Dish cupboard",
+      "category": "Wall fixtures", "placement": "wall", "rules": "wall_art",
+      "map": "Maps/SeedShop", "map_size": [48, 32],
+      "texture": "Maps/townInterior",
+      "width": 2, "height": 2,
+      "cells": [
+        {"layer": "Front", "x": 0, "y": 0, "source_x": 34, "source_y": 1, "tile": 530},
+        {"layer": "Front", "x": 1, "y": 0, "source_x": 35, "source_y": 1, "tile": 531},
+        {"layer": "Front", "x": 0, "y": 1, "source_x": 34, "source_y": 2, "tile": 562},
+        {"layer": "Front", "x": 1, "y": 1, "source_x": 35, "source_y": 2, "tile": 563}
+      ]
+    },
+    {
+      "id": "stardew.wall-cabinet", "name": "Wall cabinet",
+      "category": "Wall fixtures", "placement": "wall", "rules": "wall_art",
+      "map": "Maps/SeedShop", "map_size": [48, 32],
+      "texture": "Maps/townInterior",
+      "width": 1, "height": 1,
+      "cells": [
+        {"layer": "Front", "x": 0, "y": 0, "source_x": 38, "source_y": 2, "tile": 569}
+      ]
+    },
+    {
+      "id": "stardew.brick-hearth", "name": "Brick hearth & chimney",
+      "category": "Hearths", "placement": "floor", "rules": "hearth",
+      "map": "Maps/SeedShop", "map_size": [48, 32],
+      "texture": "Maps/townInterior",
+      "width": 2, "height": 5,
+      "cells": [
+        {"layer": "Front", "x": 0, "y": 0, "source_x": 25, "source_y": 9, "tile": 666},
+        {"layer": "Front", "x": 1, "y": 0, "source_x": 26, "source_y": 9, "tile": 667},
+        {"layer": "Front", "x": 0, "y": 1, "source_x": 25, "source_y": 10, "tile": 698},
+        {"layer": "Front", "x": 1, "y": 1, "source_x": 26, "source_y": 10, "tile": 699},
+        {"layer": "Front", "x": 0, "y": 2, "source_x": 25, "source_y": 11, "tile": 730},
+        {"layer": "Front", "x": 1, "y": 2, "source_x": 26, "source_y": 11, "tile": 731},
+        {"layer": "Front", "x": 0, "y": 3, "source_x": 25, "source_y": 12, "tile": 762},
+        {"layer": "Front", "x": 1, "y": 3, "source_x": 26, "source_y": 12, "tile": 763},
+        {"layer": "Buildings", "x": 0, "y": 4, "source_x": 25, "source_y": 13, "tile": 794},
+        {"layer": "Buildings", "x": 1, "y": 4, "source_x": 26, "source_y": 13, "tile": 795}
+      ]
+    },
+    {
+      "id": "stardew.bookcase", "name": "Built-in bookcase",
+      "category": "Storage", "placement": "floor", "rules": "wall_backed",
+      "map": "Maps/SeedShop", "map_size": [48, 32],
+      "texture": "Maps/townInterior",
+      "width": 2, "height": 4,
+      "cells": [
+        {"layer": "Front", "x": 0, "y": 0, "source_x": 20, "source_y": 1, "tile": 577},
+        {"layer": "Front", "x": 1, "y": 0, "source_x": 21, "source_y": 1, "tile": 578},
+        {"layer": "Front", "x": 0, "y": 1, "source_x": 20, "source_y": 2, "tile": 609},
+        {"layer": "Front", "x": 1, "y": 1, "source_x": 21, "source_y": 2, "tile": 610},
+        {"layer": "Buildings", "x": 0, "y": 2, "source_x": 20, "source_y": 3, "tile": 609},
+        {"layer": "Buildings", "x": 1, "y": 2, "source_x": 21, "source_y": 3, "tile": 610},
+        {"layer": "Buildings", "x": 0, "y": 3, "source_x": 20, "source_y": 4, "tile": 641},
+        {"layer": "Buildings", "x": 1, "y": 3, "source_x": 21, "source_y": 4, "tile": 642}
+      ]
+    },
+    {
+      "id": "stardew.timber-column", "name": "Timber wall post",
+      "category": "Columns", "placement": "floor", "rules": "column",
+      "map": "Maps/ScienceHouse", "map_size": [32, 25],
+      "texture": "Maps/townInterior",
+      "width": 1, "height": 4,
+      "cells": [
+        {"layer": "Front", "x": 0, "y": 0, "source_x": 2, "source_y": 14, "tile": 2158},
+        {"layer": "Buildings", "x": 0, "y": 1, "source_x": 2, "source_y": 15, "tile": 2125},
+        {"layer": "Buildings", "x": 0, "y": 2, "source_x": 2, "source_y": 16, "tile": 2157},
+        {"layer": "Buildings", "x": 0, "y": 3, "source_x": 2, "source_y": 17, "tile": 2156}
+      ]
+    },
+    {
+      "id": "stardew.stairs", "name": "Wooden steps",
+      "category": "Stairs", "placement": "floor", "rules": "steps_corridor",
+      "map": "Maps/ScienceHouse", "map_size": [32, 25],
+      "texture": "Maps/townInterior",
+      "width": 2, "height": 2,
+      "cells": [
+        {"layer": "Back", "x": 0, "y": 0, "source_x": 12, "source_y": 13, "tile": 1043},
+        {"layer": "Back", "x": 1, "y": 0, "source_x": 13, "source_y": 13, "tile": 1043},
+        {"layer": "Back", "x": 0, "y": 1, "source_x": 12, "source_y": 14, "tile": 1043},
+        {"layer": "Back", "x": 1, "y": 1, "source_x": 13, "source_y": 14, "tile": 1043}
+      ]
+    },
+    {
+      "id": "stardew.work-counter", "name": "Work counter end",
+      "category": "Counters", "placement": "floor", "rules": "counter_end",
+      "map": "Maps/ScienceHouse", "map_size": [32, 25],
+      "texture": "Maps/townInterior",
+      "width": 2, "height": 2,
+      "cells": [
+        {"layer": "Front", "x": 0, "y": 0, "source_x": 20, "source_y": 16, "tile": 1003},
+        {"layer": "Front", "x": 1, "y": 0, "source_x": 21, "source_y": 16, "tile": 1004},
+        {"layer": "Buildings", "x": 0, "y": 0, "source_x": 20, "source_y": 16, "tile": 1003},
+        {"layer": "Buildings", "x": 1, "y": 0, "source_x": 21, "source_y": 16, "tile": 42},
+        {"layer": "Buildings", "x": 0, "y": 1, "source_x": 20, "source_y": 17, "tile": 1005},
+        {"layer": "Buildings", "x": 1, "y": 1, "source_x": 21, "source_y": 17, "tile": 1006}
+      ]
+    },
+    {
+      "id": "stardew.bar-counter", "name": "Bar counter",
+      "category": "Counters", "placement": "floor", "rules": "bar_run",
+      "map": "Maps/Saloon", "map_size": [46, 25],
+      "texture": "Maps/townInterior",
+      "width": 1, "height": 2,
+      "cells": [
+        {"layer": "Front", "x": 0, "y": 0, "source_x": 9, "source_y": 18, "tile": 918},
+        {"layer": "Buildings", "x": 0, "y": 1, "source_x": 9, "source_y": 19, "tile": 950}
+      ]
+    },
+    {
+      "id": "stardew.bar-return", "name": "Bar end",
+      "category": "Counters", "placement": "floor", "rules": "bar_return",
+      "map": "Maps/Saloon", "map_size": [46, 25],
+      "texture": "Maps/townInterior",
+      "width": 1, "height": 3,
+      "cells": [
+        {"layer": "Front", "x": 0, "y": 0, "source_x": 8, "source_y": 17, "tile": 885},
+        {"layer": "Front", "x": 0, "y": 1, "source_x": 8, "source_y": 18, "tile": 917},
+        {"layer": "Buildings", "x": 0, "y": 1, "source_x": 8, "source_y": 18, "tile": 917},
+        {"layer": "Buildings", "x": 0, "y": 2, "source_x": 8, "source_y": 19, "tile": 949}
+      ]
+    }
+  ]
+}

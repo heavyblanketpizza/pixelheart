@@ -98,6 +98,54 @@ Partitions use the room's authored wallpaper and structural trim. Their finishes
 are exported as fixed map artwork; changing wallpaper inside the game does not
 redecorate partition faces.
 
+Choose **Architectural pieces** in the Rooms selector to browse built-in
+counters, cupboards, columns, bookcases, hearths and stairs from the connected
+game library. Search by name or filter by category. Click a picture to pick up
+the piece, then click the canvas to place it. Drag a placed piece to move it;
+**Duplicate** picks up another copy, and **Remove** or Delete removes it.
+Escape cancels placement or a drag. Each successful edit is one Undo step.
+
+Each piece has placement rules. Its catalogue hint explains the required
+support, and the canvas outlines any space that must stay clear:
+
+- **Steps:** connect a raised room to a lower room through an enclosed passage.
+  Choose **Raised room with steps** when adding a room, and place it above the
+  lower room with a four-tile gap. The room, two-tile-wide stairs, and both
+  landings are added together. Drag the steps sideways to reposition the
+  connection within the shared room width. Furniture and rugs cannot cover the
+  treads or either landing. Wall strips inside a flat room do not make a valid
+  staircase.
+- **Kitchen fixtures and bookcases:** align their bottom row with the first
+  floor row against a continuous north wall, and keep their front accessible.
+  A work counter end must join a compatible counter or a side wall on its left.
+- **Cupboards and cabinets:** fit completely on the upper wall, above the
+  lower trim and away from openings.
+- **Wall posts and chimneys:** attach to the wall structure with their bases
+  on the first floor row. The chimney must also meet the ceiling cap.
+- **Bars:** leave access behind and in front of the straight counter. The
+  left return attaches to a straight section on its right, with aligned bases.
+
+These checks also apply when moving furniture, resizing rooms, changing walls,
+or removing a supporting piece. Invalid previews explain what to fix. Older
+designs remain openable; **Placements to fix** selects pieces that need repair.
+Move or remove them before saving or exporting. Exported stair treads and
+landings prevent furniture placement in-game as well.
+
+These pieces retain their map artwork, collision and foreground layers. Tall
+parts can stand in front of characters while their bases block walking. Wall
+fixtures belong against a north wall or a horizontal interior wall. Room moves
+carry their built-in pieces; resizing keeps them fixed and rejects cropping.
+Blocked entrances, wall openings and authored NPC destinations are protected.
+
+Raised rooms and their steps occupy the same map; they do not create a separate
+map or warp. Their walls keep travel between the two levels within the stairway.
+Remove a raised room to remove its attached stairs, and undo restores both.
+Architectural pieces are fixed map structures; built-in hearths do not provide fire controls.
+Movable windows and working furniture fireplaces remain in **Furnish**. If the
+architectural catalogue is empty, open a save with the updated companion, then
+use **Refresh game library…**. Artwork is read from your installed game and
+stored privately with the design.
+
 Use **Undo** and **Redo** while experimenting. **Grid**, zoom, and **Fit room**
 help with placement, and **Play** previews available animations. The layout
 protects occupied rooms, the doorway, and the spouse's standing spot.
