@@ -1,13 +1,49 @@
 """Atomic floorplan edits and explicit, portable interior partitions.
 
-A partition's origin is its leftmost/topmost occupied tile. Its physical
-footprint is one tile deep; a horizontal wall's native artwork rises two tiles
-above that footprint, just as tall furniture does. Openings are spans measured
-from the origin and remove both artwork and collision.
+A partition's origin is its leftmost/topmost occupied tile. Room walls reserve
+a cutaway cavity, framed by the same shell as the outside of a room. Older
+one-tile dividers keep their dimensions and supplied trim. Openings are spans
+along the segment and cross its complete thickness.
 """
 from copy import deepcopy
 import re
 import uuid
+
+
+def native_partition_thickness(axis):
+    """Space for two side edges, or a void/cap/three-row north wall."""
+    return 5 if axis == "horizontal" else 2
+
+
+def partition_rectangle(partition, *, visual=False):
+    horizontal = partition["axis"] == "horizontal"
+    thickness = partition.get("thickness", 1)
+    x, y = partition["x"], partition["y"]
+    width, height = ((partition["length"], thickness) if horizontal
+                     else (thickness, partition["length"]))
+    if visual and horizontal and thickness == 1:
+        y, height = y - 2, 3
+    return x, y, width, height
+
+
+def partition_opening_rectangle(partition, gap, *, visual=False):
+    x, y, width, height = partition_rectangle(partition, visual=visual)
+    if partition["axis"] == "horizontal":
+        return x + gap["offset"], y, gap["width"], height
+    return x, y + gap["offset"], width, gap["width"]
+
+
+def _rectangle_cells(rectangle):
+    x, y, width, height = rectangle
+    return {(tx, ty) for ty in range(y, y + height) for tx in range(x, x + width)}
+
+
+def partition_footprint(partition, *, include_openings=False):
+    cells = _rectangle_cells(partition_rectangle(partition))
+    if not include_openings:
+        for gap in partition["openings"]:
+            cells.difference_update(_rectangle_cells(partition_opening_rectangle(partition, gap)))
+    return cells
 
 
 def partition_span(partition):
@@ -18,17 +54,37 @@ def partition_span(partition):
             for offset in range(partition["length"])]
 
 
-def partition_cells(data, enabled=None):
+def partition_cells(data, enabled=None, *, cutaway_only=False):
     """Physical wall cells for the selected room configuration."""
     active = {room["id"] for room in data["rooms"] if room["enabled"]} if enabled is None else set(enabled)
     cells = set()
     for partition in data.get("partitions", []):
-        if partition["room_id"] not in active:
+        if partition["room_id"] not in active or cutaway_only and partition.get("thickness", 1) == 1:
             continue
-        gaps = {index for gap in partition["openings"]
-                for index in range(gap["offset"], gap["offset"] + gap["width"])}
-        cells.update(point for index, point in enumerate(partition_span(partition)) if index not in gaps)
+        cells.update(partition_footprint(partition))
     return cells
+
+
+def shell_floor_cells(data, enabled=None):
+    """Visible floor, with room-wall cavities removed before framing."""
+    from .interiors import floor_cells
+    return floor_cells(data, enabled) - partition_cells(data, enabled, cutaway_only=True)
+
+
+def shell_wall_regions(data, enabled=None):
+    """North wall faces belong to the room whose floor is immediately south."""
+    from .interiors import room_cells
+    active = {room["id"] for room in data["rooms"] if room["enabled"]} if enabled is None else set(enabled)
+    floor = shell_floor_cells(data, enabled)
+    walls, caps = {}, {}
+    for room in data["rooms"]:
+        if room["id"] not in active:
+            continue
+        heads = {point for point in room_cells(room) & floor if (point[0], point[1]-1) not in floor}
+        walls[room["id"]] = {(x, y-d) for x, y in heads for d in (1, 2, 3)
+                              if y >= d and (x, y-d) not in floor}
+        caps[room["id"]] = {(x, y-4) for x, y in heads if y >= 4 and (x, y-4) not in floor}
+    return walls, caps
 
 
 def validate_partitions(data):
@@ -58,7 +114,10 @@ def validate_partitions(data):
         for key in ("x", "y"):
             _integer(partition.get(key), 0, 95, "Wall positions use whole tile coordinates.")
         length = _integer(partition.get("length"), 1, 96, "Interior walls must be 1–96 tiles long.")
-        if not set(partition_span(partition)) <= room_cells(room):
+        thickness = partition.get("thickness", 1)
+        if type(thickness) is not int or thickness not in (1, native_partition_thickness(partition["axis"])):
+            raise InteriorError("Room walls need two columns or five rows; slim dividers use one tile.")
+        if not _rectangle_cells(partition_rectangle(partition)) <= room_cells(room):
             raise InteriorError("Keep the entire wall inside its room; resize or move the wall first.")
         openings = partition.get("openings")
         if not isinstance(openings, list) or len(openings) > 32:
@@ -121,7 +180,7 @@ def corridor_candidate(data, x, y, width, height, *, name="Hallway", allow_rebas
     return candidate
 
 
-def partition_candidate(data, room_id, axis, x, y, length, *, opening_width=1, openings=None, partition_id=None):
+def partition_candidate(data, room_id, axis, x, y, length, *, opening_width=1, openings=None, partition_id=None, thickness=None):
     """Create or replace a wall atomically; unchanged IDs survive later edits."""
     from .interiors import InteriorError, _integer, normalize_interior
     _integer(length, 1, 96, "Interior walls must be 1–96 tiles long.")
@@ -139,6 +198,8 @@ def partition_candidate(data, room_id, axis, x, y, length, *, opening_width=1, o
     wall = deepcopy(previous) if previous else {"id": uuid.uuid4().hex}
     wall.update(room_id=room_id, axis=axis, x=x, y=y, length=length,
                 openings=deepcopy(openings if openings is not None else []))
+    if thickness is not None:
+        wall["thickness"] = thickness
     if previous is None:
         partitions.append(wall)
     else:
@@ -191,7 +252,7 @@ def paint_partitions(data, layers, enabled=None):
     # structural trim draws last to finish corner and T-shaped junctions.
     walls = sorted(data.get("partitions", []), key=lambda wall: wall["axis"] == "vertical")
     for wall in walls:
-        if wall["room_id"] not in active:
+        if wall["room_id"] not in active or wall.get("thickness", 1) > 1:
             continue
         room = rooms[wall["room_id"]]
         style = {**data["style"], **data.get("room_styles", {}).get(room["id"], {})}
@@ -227,10 +288,10 @@ def opening_approaches(data, enabled=None):
     for wall in data.get("partitions", []):
         if wall["room_id"] not in active:
             continue
-        span = partition_span(wall)
         dx, dy = (0, 1) if wall["axis"] == "horizontal" else (1, 0)
         for gap in wall["openings"]:
-            for index in range(gap["offset"], gap["offset"] + gap["width"]):
-                x, y = span[index]
-                points.update(((x, y), (x-dx, y-dy), (x+dx, y+dy)))
+            cells = _rectangle_cells(partition_opening_rectangle(wall, gap))
+            points.update(cells)
+            points.update((x-dx, y-dy) for x, y in cells)
+            points.update((x+dx, y+dy) for x, y in cells)
     return points

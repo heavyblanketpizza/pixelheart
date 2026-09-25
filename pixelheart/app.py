@@ -56,6 +56,22 @@ def scroll_page(page):
     return scroll
 
 
+def _export_completion_message(filename, manifest):
+    """Describe installation requirements from the archive actually written."""
+    message = (f"Saved {filename}.\n\n"
+               "Extract the pack into your Stardew Valley Mods folder with SMAPI and Content Patcher installed.")
+    required = [entry for entry in manifest.get("Dependencies", []) if entry.get("IsRequired", True)]
+    if required:
+        requirements = [entry["UniqueID"] + (f" {entry['MinimumVersion']}+" if entry.get("MinimumVersion") else "")
+                        for entry in required]
+        message += "\n\nInstall these required mods separately:\n" + "\n".join("• " + name for name in requirements)
+    if any(entry["UniqueID"].casefold() == "pixelheart.interiors" for entry in required):
+        message += ("\n\nPixelheart Interiors is the required companion for designed homes and spouse rooms. "
+                    "Its DLL is not included in this ZIP. Follow the companion build and installation steps in WORLD_BUILDING.md. "
+                    "Designed interiors need Stardew Valley 1.6.9+ and SMAPI 4.1+.")
+    return message + "\n\nLaunch through SMAPI and test this version in-game before sharing it."
+
+
 
 class ExportPage(QWidget):
     def __init__(self, window):
@@ -591,7 +607,12 @@ class MainWindow(QMainWindow):
             self.dirty = True
             self.update_title()
             self.statusBar().showMessage(f"Exported · {path}", 15000)
-            QMessageBox.information(self, "Your character is ready for a first visit", f"Saved {Path(path).name}.\n\nExtract the pack into your Stardew Valley Mods folder with SMAPI and Content Patcher installed. Test dialogue, gifts, the daily route, and artwork in-game before sharing.")
+            import io
+            import json
+            import zipfile
+            with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+                manifest = json.loads(archive.read(f"[CP] {name}/manifest.json"))
+            QMessageBox.information(self, "Exported for playtesting", _export_completion_message(Path(path).name, manifest))
             return True
         except (ExportValidationError, OSError, ProjectError) as exc:
             self.show_error("Could not export character", str(exc))

@@ -89,15 +89,17 @@ def architecture_cells(data, enabled=None, *, layers=("Buildings",)):
 
 def _regions(data):
     from .interiors import room_cells
-    from .interior_layout import partition_span
-    all_floor = set().union(*(room_cells(room) for room in data["rooms"]))
+    from .interior_layout import partition_span, shell_floor_cells, shell_wall_regions
+    enabled = {room["id"] for room in data["rooms"]}
+    all_floor = shell_floor_cells(data, enabled)
+    walls, _ = shell_wall_regions(data, enabled)
     regions = {}
     for room in data["rooms"]:
-        floor = room_cells(room)
-        wall = {(x, y-distance) for x, y in floor if (x, y-1) not in all_floor
-                for distance in (1, 2, 3) if y-distance >= 0 and (x, y-distance) not in all_floor}
+        floor = room_cells(room) & all_floor
+        wall = walls[room["id"]]
         for partition in data.get("partitions", []):
-            if partition["room_id"] != room["id"] or partition["axis"] != "horizontal":
+            if (partition["room_id"] != room["id"] or partition["axis"] != "horizontal"
+                    or partition.get("thickness", 1) > 1):
                 continue
             gaps = {index for gap in partition["openings"]
                     for index in range(gap["offset"], gap["offset"] + gap["width"])}
@@ -157,20 +159,24 @@ def validate_architecture(data):
         wall_mounted = definition["placement"] == "wall" or architecture_rule(definition) in {"wall_backed", "hearth", "column", "counter_end"}
         if cells & partitions and (not wall_mounted or not cells & partitions <= wall):
             raise InteriorError("Move the architectural piece clear of the interior wall.")
-        from .interior_layout import partition_span
+        from .interior_layout import partition_opening_rectangle
         for partition in data.get("partitions", []):
-            span = partition_span(partition)
-            gap_cells = {span[index] for gap in partition["openings"]
-                         for index in range(gap["offset"], gap["offset"] + gap["width"])}
-            if partition["axis"] == "horizontal":
-                gap_cells = {(x, y-offset) for x, y in gap_cells for offset in (0, 1, 2)}
+            gap_cells = set()
+            for gap in partition["openings"]:
+                gx, gy, gw, gh = partition_opening_rectangle(partition, gap, visual=True)
+                gap_cells.update((tx, ty) for ty in range(gy, gy+gh) for tx in range(gx, gx+gw))
             if cells & gap_cells:
                 raise InteriorError("Keep architectural artwork clear of interior openings.")
         if cells & occupied:
             raise InteriorError("Architectural pieces cannot overlap one another.")
         occupied.update(cells)
     if placements and not architecture_walkable_connected(data):
-        raise InteriorError("Keep a walkable route between rooms around architectural pieces.")
+        # Storage must still open spouse designs accepted by the old bottom-
+        # entry rule. Editing and export enforce actual farmhouse access via
+        # validate_spouse_access; this fallback exists only for legacy loading.
+        if (data["kind"] != "spouse"
+                or not _architecture_walkable_from(data, None, {tuple(data["entry"])})):
+            raise InteriorError("Keep a walkable route between rooms around architectural pieces.")
 
 
 def architecture_walkable_connected(data, enabled=None):
@@ -180,12 +186,18 @@ def architecture_walkable_connected(data, enabled=None):
     between solid counters can enclose a passable tile hidden under its Front
     artwork; that is not an inaccessible room. Front tiles remain traversable
     during the flood fill, so passages beneath arches still connect normally.
+    Spouse floor sections may connect through separate farmhouse openings.
     """
+    from .interiors import spouse_entrance_tiles
+    entrances = spouse_entrance_tiles(data) if data["kind"] == "spouse" else {tuple(data["entry"])}
+    return _architecture_walkable_from(data, enabled, entrances)
+
+
+def _architecture_walkable_from(data, enabled, entrances):
     from .interiors import floor_cells
     from .interior_layout import partition_cells
     walkable = floor_cells(data, enabled) - partition_cells(data, enabled) - architecture_cells(data, enabled)
-    entry = tuple(data["entry"])
-    seen = {entry} if entry in walkable else set()
+    seen = entrances & walkable
     queue = list(seen)
     while queue:
         x, y = queue.pop()
@@ -193,11 +205,11 @@ def architecture_walkable_connected(data, enabled=None):
             if point in walkable and point not in seen:
                 seen.add(point)
                 queue.append(point)
-    return entry in seen and walkable - architecture_cells(data, enabled, layers=("Front",)) <= seen
+    return bool(seen) and walkable - architecture_cells(data, enabled, layers=("Front",)) <= seen
 
 
 def architecture_candidate(data, piece_id, x, y, *, placement_id=None, room_id=None):
-    from .interiors import InteriorError, normalize_interior
+    from .interiors import InteriorError, normalize_interior, validate_spouse_access
     candidate = normalize_interior(data)
     definition = next((piece for piece in candidate.get("architecture_catalog", []) if piece["id"] == piece_id), None)
     if definition is None:
@@ -234,13 +246,14 @@ def architecture_candidate(data, piece_id, x, y, *, placement_id=None, room_id=N
     else:
         placements[placements.index(previous)] = item
     candidate = normalize_interior(candidate)
+    validate_spouse_access(candidate, before=data)
     from .interior_architecture_rules import validate_architecture_rules
     validate_architecture_rules(candidate, before=data)
     return candidate
 
 
 def remove_architecture_candidate(data, placement_id):
-    from .interiors import InteriorError, normalize_interior
+    from .interiors import InteriorError, normalize_interior, validate_spouse_access
     candidate = normalize_interior(data)
     item = next((piece for piece in candidate.get("architecture", []) if piece["id"] == placement_id), None)
     if item is None:
@@ -249,6 +262,7 @@ def remove_architecture_candidate(data, placement_id):
         raise InteriorError("Remove the linked raised room to remove its stairway and steps together.")
     candidate["architecture"].remove(item)
     candidate = normalize_interior(candidate)
+    validate_spouse_access(candidate, before=data)
     from .interior_architecture_rules import validate_architecture_rules
     validate_architecture_rules(candidate, before=data)
     return candidate
@@ -291,6 +305,43 @@ def architecture_preview(definition, data, root):
         raise
     finally:
         atlas.close()
+
+
+def _restore_kitchen_top_row(candidate, previous, replacement):
+    """Keep native kitchen bases fixed when refreshing the old cropped pieces.
+
+    This only recognizes the original two-row crop, with identical lower
+    artwork and collision. Custom replacements still use normal validation.
+    The caller validates the complete candidate before writing any new atlas.
+    """
+    from .interior_architecture_rules import architecture_rule
+    if (previous is None or replacement["id"] not in {"stardew.sink", "stardew.refrigerator"}
+            or previous["width"] != 1 or replacement["width"] != 1
+            or previous["height"] != 2 or replacement["height"] != 3
+            or previous["placement"] != "floor" or replacement["placement"] != "floor"
+            or architecture_rule(previous) != "wall_backed" or architecture_rule(replacement) != "wall_backed"
+            or replacement["layers"]["Front"][0] is None
+            or replacement["layers"]["Back"][0] is not None
+            or replacement["layers"]["Buildings"][0] is not None
+            or any(replacement["layers"][layer][1:] != previous["layers"][layer] for layer in LAYERS)):
+        return
+    for item in candidate.get("architecture", []):
+        if item["piece_id"] == replacement["id"]:
+            item["y"] -= 1
+
+
+def _retire_unused_cabinet_fragment(candidate, definitions, incoming):
+    """Stop offering the old half-cabinet while retaining existing placements."""
+    from .interior_architecture_rules import architecture_rule
+    if not any(piece["id"] == "stardew.sink" and piece["height"] == 3 for piece in incoming):
+        return
+    cabinet = definitions.get("stardew.wall-cabinet")
+    sink = definitions["stardew.sink"]
+    if (cabinet is not None and cabinet["width"] == cabinet["height"] == 1
+            and cabinet["placement"] == "wall" and architecture_rule(cabinet) == "wall_art"
+            and cabinet["layers"] == {"Back": [None], "Buildings": [None], "Front": [sink["layers"]["Front"][0]]}
+            and not any(item["piece_id"] == cabinet["id"] for item in candidate.get("architecture", []))):
+        del definitions[cabinet["id"]]
 
 
 def stage_architecture_library(data, definitions, root):
@@ -349,9 +400,11 @@ def stage_architecture_library(data, definitions, root):
                           if key not in ("preview_asset", "columns", "tile_count")}
                 staged["layers"] = {layer: [None if tile is None else mapping[tile] for tile in tiles]
                                     for layer, tiles in piece["layers"].items()}
+                _restore_kitchen_top_row(candidate, merged.get(piece["id"]), staged)
                 merged[piece["id"]] = staged
             finally:
                 source.close()
+        _retire_unused_cabinet_fragment(candidate, merged, incoming)
         candidate["architecture_catalog"] = list(merged.values())
         if not additions:
             return normalize_interior(candidate)

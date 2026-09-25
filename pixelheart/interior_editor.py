@@ -11,23 +11,23 @@ import tempfile
 import time
 
 from PIL.ImageQt import ImageQt
-from PySide6.QtCore import Qt, QRect, QSize, QPoint, Signal, QTimer, QMimeData
+from PySide6.QtCore import Qt, QRect, QSize, QPoint, Signal, QTimer, QMimeData, QEvent
 from PySide6.QtGui import QColor, QPainter, QPen, QPixmap, QIcon, QShortcut, QKeySequence, QDrag
 from PySide6.QtWidgets import (
     QDialog, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QSplitter,
     QTabWidget, QScrollArea, QComboBox, QSpinBox, QCheckBox, QLineEdit,
     QListWidget, QListWidgetItem, QFileDialog, QTableWidget, QTableWidgetItem,
     QHeaderView, QAbstractItemView, QFrame, QListView, QStackedWidget,
-    QStyledItemDelegate, QStyle, QApplication,
+    QStyledItemDelegate, QStyle, QApplication, QSizePolicy,
 )
 
 from pixelheart_core.interiors import (
     InteriorDraft, import_atlas, render_interior, footprint, room_edit_candidate,
-    ensure_doorway, place_doorway,
+    ensure_doorway, place_doorway, interior_asset_references, spouse_access_issues, validate_spouse_access,
 )
 from pixelheart_core.interior_layout import (
     resize_room_candidate, corridor_candidate, partition_candidate,
-    opening_candidate, remove_partition_candidate,
+    opening_candidate, remove_partition_candidate, native_partition_thickness, partition_rectangle,
 )
 from pixelheart_core.interior_architecture import (
     architecture_candidate, remove_architecture_candidate, stage_architecture_library,
@@ -52,11 +52,7 @@ def _number(minimum=0, maximum=255, initial=0):
 
 
 def _asset_references(design):
-    if design.get("atlas", {}).get("asset"):
-        yield design["atlas"]["asset"]
-    for definition in design.get("catalog", []):
-        if definition.get("preview_asset"):
-            yield definition["preview_asset"]
+    yield from interior_asset_references(design)
 
 
 class CatalogueTile(QStyledItemDelegate):
@@ -143,7 +139,7 @@ class RoomPreset(QWidget):
         super().__init__()
         self.editor = editor
         self._press = None
-        self.setMinimumHeight(104)
+        self.setFixedHeight(80)
         self.setCursor(Qt.CursorShape.OpenHandCursor)
         self.setAccessibleName("Drag a new room into the layout")
         self.setToolTip("Drag this room onto the canvas, beside an existing room.")
@@ -154,12 +150,13 @@ class RoomPreset(QWidget):
         painter.setBrush(QColor("#eef0e3"))
         painter.drawRoundedRect(self.rect().adjusted(2, 2, -2, -2), 5, 5)
         width, height = self.editor.room_size.currentData()
-        cell = min(7, 64 // max(width, height))
-        room = QRect(20, (self.height() - height * cell) // 2, width * cell, height * cell)
+        raised = self.editor.room_type.currentData() == "raised"
+        total_height = height + (4 if raised else 0)
+        cell = min(7, 64 // max(width, total_height))
+        room = QRect(20, (self.height() - total_height * cell) // 2, width * cell, height * cell)
         painter.setBrush(QColor("#d8c596"))
         painter.setPen(QPen(QColor("#796747"), 2))
         painter.drawRect(room)
-        raised = self.editor.room_type.currentData() == "raised"
         if raised:
             steps = QRect(room.center().x() - cell, room.bottom() + 1, 2 * cell, 4 * cell)
             painter.drawRect(steps)
@@ -409,6 +406,9 @@ class InteriorEditor(QDialog):
         self._refreshing = False
         self._auto_fit = True
         self._fitting = False
+        self._fit_timer = QTimer(self)
+        self._fit_timer.setSingleShot(True)
+        self._fit_timer.timeout.connect(self._fit_visible_room)
         self._catalog_signature = None
         self._surface_signature = None
         self.favorites = set(self.settings.value("interiors/favorites", [], type=list))
@@ -428,6 +428,8 @@ class InteriorEditor(QDialog):
         heading.addLayout(titles, 1)
         self.library_button = button("Connect game library…", self.connect_library)
         heading.addWidget(self.library_button)
+        self.change_library_button = button("Change library…", self.change_library, "quiet")
+        heading.addWidget(self.change_library_button)
         root.addLayout(heading)
 
         # The hidden tool model also preserves the editor's programmatic contract.
@@ -435,6 +437,7 @@ class InteriorEditor(QDialog):
         self.tool = QComboBox(self)
         for title, value in (("Move furniture", "select"), ("Place furniture", "place"),
                              ("Move rooms", "room-select"), ("Draw a room", "room"),
+                             ("Select walls", "wall-select"),
                              ("Draw hallway", "corridor"), ("Draw wall", "partition"),
                              ("Place opening", "opening"), ("Choose a finish", "surface"),
                              ("Move pieces", "architecture-select"), ("Place piece", "architecture-place")):
@@ -514,8 +517,12 @@ class InteriorEditor(QDialog):
         self.preview_time.currentIndexChanged.connect(lambda *_: self.render())
         self.preview_lights.currentIndexChanged.connect(lambda *_: self.render())
         right_layout.addLayout(preview_controls)
+        self.farmhouse_caption = label("", "hint", True)
+        self.farmhouse_caption.setVisible(spouse)
+        right_layout.addWidget(self.farmhouse_caption)
         self.canvas = InteriorCanvas(self.draft, root=self.stage_root)
         self.canvas.catalogue_source = self.catalog_list
+        self.canvas.furniture_validator = self.checked_layout
         self.canvas.place_catalog_drop = self.place_catalog_drop
         self.canvas.room_catalogue_source = self.room_preset
         self.canvas.room_dimensions = lambda: self.room_size.currentData()
@@ -528,6 +535,7 @@ class InteriorEditor(QDialog):
         self.canvas.corridor_candidate = lambda *args: self.hallway_candidate(*args, preview=True)
         self.canvas.corridor_drawn.connect(self.draw_hallway)
         self.canvas.partition_candidate = lambda *args: self.wall_candidate(*args, preview=True)
+        self.canvas.partition_thickness = self.wall_thickness
         self.canvas.partition_drawn.connect(self.draw_partition)
         self.canvas.partition_selected.connect(self.select_partition_on_canvas)
         self.canvas.opening_candidate = lambda x, y: self.opening_at_candidate(x, y, preview=True)
@@ -553,6 +561,7 @@ class InteriorEditor(QDialog):
         self.canvas.setParent(self.canvas_stage)
         self.canvas_scroll.setWidget(self.canvas_stage)
         self.canvas_scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.canvas_scroll.viewport().installEventFilter(self)
         right_layout.addWidget(self.canvas_scroll, 1)
         self.coordinates = label("Drag furniture from the catalogue into the room. Drag a placed piece to move it.", "hint", True)
         right_layout.addWidget(self.coordinates)
@@ -573,14 +582,19 @@ class InteriorEditor(QDialog):
         self.status = label("", "notice", True)
         self.status.hide()
         root.addWidget(self.status)
+        self.access_notice = label("", "notice", True)
+        self.access_notice.hide()
+        root.addWidget(self.access_notice)
         bottom = QHBoxLayout()
         bottom.addWidget(button("Advanced…", self.advanced.exec, "quiet"))
         self.design_summary = label("", "hint")
         bottom.addWidget(self.design_summary, 1)
         bottom.addWidget(button("Cancel", self.reject, "quiet"))
-        self.save_button = button("Save room" if spouse else "Save home", self.save_design, "primary")
+        self.save_button = button("Apply room" if spouse else "Apply home", self.save_design, "primary")
+        self.save_button.setToolTip("Apply these edits to the project draft, then use Save project in the main window.")
         bottom.addWidget(self.save_button)
         root.addLayout(bottom)
+        root.addWidget(label("Editing a draft · Apply returns to Home & places. Save project keeps your changes on disk.", "hint", True))
         self.timer = QTimer(self)
         self.timer.setInterval(75)
         self.timer.timeout.connect(self.advance_animation)
@@ -595,24 +609,30 @@ class InteriorEditor(QDialog):
             shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
             shortcut.activated.connect(callback)
             self.shortcuts.append(shortcut)
+        for sequence in ("Delete", "Backspace"):
+            shortcut = QShortcut(QKeySequence(sequence), self.partition_list)
+            shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+            shortcut.activated.connect(self.remove_partition)
+            self.shortcuts.append(shortcut)
         escape = QShortcut(QKeySequence("Escape"), self)
         escape.activated.connect(self.canvas.cancel_interaction)
         self.shortcuts.append(escape)
         self.finished.connect(self._finish)
         self.refresh()
-        if not self.draft.data["catalog"] or (self.draft.data["kind"] == "residence"
+        if not self.draft.data["catalog"] or (spouse and not self.draft.data.get("spouse_context")) or (self.draft.data["kind"] == "residence"
                 and self.draft.data.get("surfaces")
                 and not {"door_left", "door_right"} <= self.draft.data.get("room_frame", {}).keys()):
-            saved_library = self.settings.value("interiors/libraryFolder", "")
+            saved_library = self.remembered_library()
             if isinstance(saved_library, str) and saved_library:
-                from pixelheart_core.interior_furniture import discover_furniture_libraries
-                candidates = discover_furniture_libraries([saved_library], include_standard_paths=False)
+                candidates = self.remembered_library_candidates()
                 if candidates:
                     if not self.draft.data["catalog"]:
                         self.load_catalog(candidates[0])
+                    elif spouse:
+                        self.load_spouse_context(candidates[0])
                     else:
                         self.load_room_frame(candidates[0])
-        QTimer.singleShot(0, self.fit_room)
+        self.schedule_fit()
 
     def _tab(self, title, *, advanced=False):
         content = QWidget()
@@ -669,28 +689,37 @@ class InteriorEditor(QDialog):
         layout.addWidget(self.layout_mode)
         self.room_list = QListWidget()
         self.room_list.setAccessibleName("Choose a room")
-        self.room_list.setMaximumHeight(126)
+        self.room_list.setFixedHeight(64)
         self.room_list.currentItemChanged.connect(self.room_selection_changed)
         layout.addWidget(self.room_list)
         self.room_controls = QWidget()
         controls = QVBoxLayout(self.room_controls)
         controls.setContentsMargins(0, 0, 0, 0)
+        controls.setSpacing(6)
         controls.addWidget(label("Add a room", "sectionTitle"))
         self.room_name = QLineEdit("New room")
         self.room_name.setPlaceholderText("Room name")
         self.room_name.setAccessibleName("New room name")
         controls.addWidget(self.room_name)
         self.room_type = QComboBox()
-        self.room_type.addItem("Ordinary room", "ordinary")
-        self.room_type.addItem("Raised room with steps", "raised")
+        self.room_type.addItem("Ordinary", "ordinary")
+        self.room_type.addItem("Raised + steps", "raised")
         self.room_type.setAccessibleName("New room type")
         self.room_type.currentIndexChanged.connect(self.change_room_type)
-        controls.addWidget(self.room_type)
+        room_options = QHBoxLayout()
+        room_options.addWidget(self.room_type, 1)
         self.room_size = QComboBox()
-        for name, dimensions in (("Small · 4 × 4", (4, 4)), ("Medium · 6 × 6", (6, 6)), ("Large · 8 × 6", (8, 6))):
+        for name, dimensions in (("4 × 4 tiles", (4, 4)), ("6 × 6 tiles", (6, 6)), ("8 × 6 tiles", (8, 6))):
             self.room_size.addItem(name, dimensions)
         self.room_size.setCurrentIndex(1)
-        controls.addWidget(self.room_size)
+        self.room_size.setAccessibleName("New room size")
+        for combo in (self.room_type, self.room_size):
+            combo.setMinimumWidth(0)
+            combo.setMinimumContentsLength(5)
+            combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            combo.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        room_options.addWidget(self.room_size, 1)
+        controls.addLayout(room_options)
         self.room_preset = RoomPreset(self)
         controls.addWidget(self.room_preset)
         self.room_size.currentIndexChanged.connect(lambda *_: self.room_preset.update())
@@ -698,7 +727,8 @@ class InteriorEditor(QDialog):
         draw_actions.addWidget(button("Draw a room…", lambda: self.set_tool("room"), "quiet"))
         draw_actions.addWidget(button("Draw hallway", lambda: self.set_tool("corridor"), "quiet"))
         controls.addLayout(draw_actions)
-        self.room_optional = QCheckBox("Offer the new room as an optional expansion")
+        self.room_optional = QCheckBox("Optional expansion")
+        self.room_optional.setToolTip("Offer this room as an optional expansion players can enable in game.")
         self.room_optional.setChecked(False)
         controls.addWidget(self.room_optional)
         controls.addWidget(button("Remove selected room", self.remove_room, "quiet"))
@@ -708,6 +738,13 @@ class InteriorEditor(QDialog):
         walls.setContentsMargins(0, 0, 0, 0)
         walls.addWidget(label("Interior walls", "sectionTitle"))
         walls.addWidget(label("Drag a straight wall inside a room. Leave an opening for a doorway or a wide passage.", "hint", True))
+        self.wall_type = QComboBox()
+        self.wall_type.addItem("Room wall", "room")
+        self.wall_type.addItem("Slim divider", "slim")
+        self.wall_type.setAccessibleName("Interior wall type")
+        self.wall_type.setToolTip("Room walls use the game's closed-wall cutaway. Slim dividers occupy one tile.")
+        self.wall_type.currentIndexChanged.connect(self.change_wall_type)
+        walls.addWidget(self.wall_type)
         walls.addWidget(button("Draw wall", lambda: self.set_tool("partition")))
         self.partition_list = QListWidget()
         self.partition_list.setAccessibleName("Interior walls")
@@ -740,10 +777,10 @@ class InteriorEditor(QDialog):
         spouse = self.draft.data["kind"] == "spouse"
         self.layout_mode.setVisible(not spouse)
         self.room_controls.setVisible(not spouse)
-        self.layout_help = label("Your spouse room fits the farmhouse. The marked standing spot stays clear for the NPC." if spouse else "Select a room, then drag its edges to resize. Furniture stays in place; a red preview explains what needs room.", "hint", True)
+        self.layout_help = label("Keep a clear path from the bedroom opening on the left to the heart. The surrounding farmhouse is preview only." if spouse else "Drag rooms to move. Drag selected edges to resize.", "hint", True)
         layout.addWidget(self.layout_help)
         self.entrance_button = button("Choose their standing spot" if spouse else "Move the doorway", lambda: self.set_tool("spouse_stand" if spouse else "entry"))
-        layout.addWidget(self.entrance_button)
+        layout.insertWidget(1, self.entrance_button)
         layout.addStretch()
         _, precise = self._tab("Dimensions", advanced=True)
         self.canvas_size_controls = QWidget()
@@ -873,7 +910,8 @@ class InteriorEditor(QDialog):
         self.canvas.clear_placement()
         room_mode = self.tabs.currentIndex() == 2 and self.draft.data["kind"] == "residence"
         architecture = room_mode and self.layout_mode.currentData() == "architecture"
-        self.set_tool("architecture-select" if architecture else "room-select" if room_mode else "select")
+        walls = room_mode and self.layout_mode.currentData() == "walls"
+        self.set_tool("architecture-select" if architecture else "wall-select" if walls else "room-select" if room_mode else "select")
         self.select_furniture("")
         self.select_architecture("")
         self.preview_feedback(True, "")
@@ -887,13 +925,13 @@ class InteriorEditor(QDialog):
         self.room_list.setVisible(not walls and not architecture)
         self.wall_controls.setVisible(walls)
         self.architecture_panel.setVisible(architecture)
-        self.entrance_button.setVisible(not architecture)
+        self.entrance_button.setVisible(True)
         if hasattr(self, "canvas"):
             self.cancel_tool()
             self.move_tool.setText("Move pieces" if architecture else "Select walls" if walls else "Move rooms")
             self.move_tool.setToolTip("Drag a built-in piece to move it." if architecture else "Select a wall to adjust its opening." if walls else "Drag a room to move it; drag its handles to resize.")
             self.layout_help.setVisible(not walls and not architecture)
-            self.selection_bar.setVisible(architecture)
+            self.update_contextual_actions()
             if walls or architecture:
                 self.canvas.selected_room_id = ""
             else:
@@ -911,11 +949,12 @@ class InteriorEditor(QDialog):
         room_mode = index == 2 and self.draft.data["kind"] == "residence"
         wall_mode = room_mode and self.layout_mode.currentData() == "walls"
         architecture = room_mode and self.layout_mode.currentData() == "architecture"
+        self.move_tool.setVisible(index == 0 or room_mode)
         self.move_tool.setText("Move pieces" if architecture else "Select walls" if wall_mode else "Move rooms" if room_mode else "Move furniture")
         self.move_tool.setToolTip("Drag a built-in piece to move it." if architecture else "Select a wall to adjust its opening." if wall_mode
                                  else "Drag a room to move it; drag its handles to resize." if room_mode
                                  else "Click an item to select it. Drag to move it.")
-        self.selection_bar.setVisible(not room_mode or architecture)
+        self.selection_bar.setVisible(index == 0 or architecture)
         self.rotate_button.setVisible(not architecture)
         self.remove_button.setText("Remove" if architecture else "Put away")
         self.cancel_tool()
@@ -926,6 +965,15 @@ class InteriorEditor(QDialog):
         elif index == 2:
             self.coordinates.setText("Choose their standing spot to position the NPC in the farmhouse room.")
 
+    def update_contextual_actions(self):
+        if not hasattr(self, "selection_bar"):
+            return
+        tool = self.tool.currentData()
+        self.selection_bar.setVisible(
+            (self.tabs.currentIndex() == 0 and tool in ("select", "place"))
+            or tool in ("architecture-select", "architecture-place"))
+        self.schedule_fit()
+
     def center_room(self):
         if not hasattr(self, "canvas_scroll"):
             return
@@ -933,6 +981,9 @@ class InteriorEditor(QDialog):
         left, top = min(r["x"] for r in rooms), min(r["y"] - 3 for r in rooms)
         right = max(r["x"] + r["width"] for r in rooms)
         bottom = max(r["y"] + r["height"] for r in rooms)
+        if self.draft.data["kind"] == "spouse":
+            left, top = 0, 0
+            right, bottom = self.canvas.view_size
         cell = self.canvas.scale * 16
         viewport = self.canvas_scroll.viewport()
         cx, cy = (left + right) * cell / 2, (top + bottom) * cell / 2
@@ -952,6 +1003,8 @@ class InteriorEditor(QDialog):
         rooms = [r for r in self.draft.data["rooms"] if r["enabled"]]
         width = max(r["x"] + r["width"] for r in rooms) - min(r["x"] for r in rooms) + 1
         height = max(r["y"] + r["height"] for r in rooms) - min(r["y"] - 3 for r in rooms) + 1
+        if self.draft.data["kind"] == "spouse":
+            width, height = (dimension + 1 for dimension in self.canvas.view_size)
         viewport = self.canvas_scroll.viewport()
         scale = max(1, min(4, viewport.width() // (width * 16), viewport.height() // (height * 16)))
         self._auto_fit = True
@@ -962,8 +1015,27 @@ class InteriorEditor(QDialog):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        if getattr(self, "_auto_fit", False) and hasattr(self, "canvas_scroll"):
-            QTimer.singleShot(0, self.fit_room)
+        self.schedule_fit()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.schedule_fit()
+
+    def eventFilter(self, watched, event):
+        if (hasattr(self, "canvas_scroll") and watched is self.canvas_scroll.viewport()
+                and event.type() == QEvent.Type.Resize):
+            self.schedule_fit()
+        return super().eventFilter(watched, event)
+
+    def schedule_fit(self):
+        """Wait for the visible viewport after layout changes, preserving manual zoom."""
+        if (getattr(self, "_auto_fit", False) and not self._fitting
+                and hasattr(self, "canvas_scroll") and not self._fit_timer.isActive()):
+            self._fit_timer.start(0)
+
+    def _fit_visible_room(self):
+        if self.isVisible() and self._auto_fit:
+            self.fit_room()
 
     def preview_feedback(self, valid, message):
         if message:
@@ -975,11 +1047,10 @@ class InteriorEditor(QDialog):
         elif self.tool.currentData() == "room":
             self.coordinates.setText("Draw above a lower room, leaving four tiles for steps and landings. Release to build both." if self.room_type.currentData() == "raised"
                                      else "Drag out a room beside an existing room. Release to build it.")
+        elif self.tool.currentData() == "wall-select":
+            self.coordinates.setText("Select a wall to adjust its opening · Delete to remove · Esc to cancel")
         elif self.tool.currentData() == "room-select":
-            if self.layout_mode.currentData() == "walls":
-                self.coordinates.setText("Select a wall to adjust its opening · Delete to remove · Esc to cancel")
-            else:
-                self.coordinates.setText("Drag rooms to move · Drag selected edges to resize · Esc to cancel")
+            self.coordinates.setText("Drag rooms to move · Drag selected edges to resize · Esc to cancel")
         elif self.tool.currentData() == "corridor":
             self.coordinates.setText("Drag a narrow hallway from a room edge · Esc to cancel")
         elif self.tool.currentData() == "partition":
@@ -996,13 +1067,35 @@ class InteriorEditor(QDialog):
             self.coordinates.setText("Click to select · Drag to move · R to rotate · Delete to put away")
 
     def connect_library(self):
-        from pixelheart_core.interior_furniture import discover_furniture_libraries, resolve_furniture_library
-        saved = self.settings.value("interiors/libraryFolder", "")
+        from pixelheart_core.interior_furniture import discover_furniture_libraries
+        saved = self.remembered_library()
         cp = self.settings.value("localGame/contentPatcherExportFolder", "")
-        candidates = discover_furniture_libraries([p for p in (saved, cp) if isinstance(p, str) and p])
+        candidates = (self.remembered_library_candidates() if saved
+                      else discover_furniture_libraries([cp] if isinstance(cp, str) and cp else []))
         if candidates and self.load_catalog(candidates[0]):
-            self.settings.setValue("interiors/libraryFolder", str(candidates[0].parent))
             return
+        message = (self.status.text() if candidates else
+                   "The connected library is unavailable. Choose its new location, or connect another library." if saved else "")
+        self.change_library(message=message)
+
+    def remembered_library(self):
+        source = self.settings.value("interiors/librarySource", "")
+        if not isinstance(source, str) or not source:
+            source = self.settings.value("interiors/libraryFolder", "")
+        return source if isinstance(source, str) else ""
+
+    def remembered_library_candidates(self):
+        source = self.settings.value("interiors/librarySource", "")
+        if isinstance(source, str) and source:
+            path = Path(source).expanduser()
+            return [path] if path.is_file() else []
+        from pixelheart_core.interior_furniture import discover_furniture_libraries
+        saved = self.remembered_library()
+        return discover_furniture_libraries([saved], include_standard_paths=False) if saved else []
+
+    def change_library(self, checked=False, *, message=""):
+        from pixelheart_core.interior_furniture import resolve_furniture_library
+        saved = self.settings.value("interiors/libraryFolder", "")
         setup = QDialog(self)
         setup.setWindowTitle("Connect your Stardew Valley library")
         setup.resize(540, 440)
@@ -1014,8 +1107,11 @@ class InteriorEditor(QDialog):
                      "2. Open a save in Stardew Valley. The companion prepares your furniture and finishes automatically.",
                      "3. Choose your Stardew Valley folder here."):
             layout.addWidget(label(text, wrap=True))
-        feedback = label("", "notice", True)
-        feedback.hide()
+        layout.addWidget(button("Library setup guide…", self.show_library_guide, "quiet"))
+        if self.remembered_library():
+            layout.addWidget(label("Connected source: " + self.remembered_library(), "hint", True))
+        feedback = label(message, "notice", True)
+        feedback.setVisible(bool(message))
         layout.addWidget(feedback)
         def choose_folder():
             directory = QFileDialog.getExistingDirectory(setup, "Choose Stardew Valley, Mods, or a Pixelheart library folder", saved if isinstance(saved, str) else "")
@@ -1045,6 +1141,31 @@ class InteriorEditor(QDialog):
         setup.exec()
         setup.deleteLater()
 
+    def show_library_guide(self):
+        guide = QDialog(self)
+        guide.setWindowTitle("Game library setup — Pixelheart")
+        guide.resize(620, 540)
+        layout = QVBoxLayout(guide)
+        layout.addWidget(label("Connect your local game artwork", "profileName", True))
+        for text in (
+            "Pixelheart Interiors is a separate SMAPI companion. This app includes its source, not a prebuilt companion. You need Stardew Valley 1.6.9 or newer, SMAPI 4.1 or newer, and Content Patcher.",
+            "1. From the Pixelheart source folder, build the companion with the .NET SDK on a machine with Stardew Valley and SMAPI installed. Use the command below with your game folder.",
+            "2. Put its built DLL and manifest together in a Pixelheart Interiors folder inside your game's Mods folder. Keep your exported NPC pack alongside it.",
+            "3. Launch the game through SMAPI and load a save. The companion creates cache/library/library.json in its mod folder.",
+            "4. Return here and choose your game folder, Mods folder, or the prepared library file. After changing game mods, load a save again and use Refresh game library.",
+            "Refresh uses your connected source. Change library lets you choose another installation or snapshot. Your game artwork remains local.",
+        ):
+            layout.addWidget(label(text, wrap=True))
+        command = QLineEdit('dotnet build runtime/Pixelheart.Interiors/Pixelheart.Interiors.csproj -c Release -p:GamePath="/path/to/Stardew Valley/game-folder"')
+        command.setReadOnly(True)
+        command.setAccessibleName("Companion build command; copy and replace the game path")
+        command.setCursorPosition(0)
+        layout.addWidget(command)
+        layout.addStretch()
+        layout.addWidget(button("Back to library setup", guide.accept, "primary"))
+        guide.exec()
+        guide.deleteLater()
+
     def _selected_room(self):
         selected = self.room_list.currentItem()
         identity = selected.data(Qt.ItemDataRole.UserRole) if selected else None
@@ -1057,7 +1178,7 @@ class InteriorEditor(QDialog):
                                    else "Drag this room onto the canvas, beside an existing room.")
         self.room_preset.update()
         self.layout_help.setText("Place the raised room above a lower room, leaving four tiles for steps and landings. Connect your native game library first. The room and steps are built together." if raised
-                                 else "Select a room, then drag its edges to resize. Furniture stays in place; a red preview explains what needs room.")
+                                 else "Drag rooms to move. Drag selected edges to resize.")
         if hasattr(self, "canvas"):
             self.canvas.clear_room_interaction()
             if self.tabs.currentIndex() == 2 and self.layout_mode.currentData() == "rooms":
@@ -1104,6 +1225,7 @@ class InteriorEditor(QDialog):
 
     def checked_layout(self, candidate, offsets=None):
         validate_architecture_rules(candidate, before=self.draft.data)
+        validate_spouse_access(candidate, before=self.draft.data)
         if self.validate_layout is not None:
             self.validate_layout(candidate, self._room_offsets if offsets is None else offsets)
         return candidate
@@ -1170,15 +1292,20 @@ class InteriorEditor(QDialog):
             self.set_tool("room-select")
         return bool(changed)
 
+    def wall_thickness(self, axis):
+        return native_partition_thickness(axis) if self.wall_type.currentData() == "room" else 1
+
     def wall_candidate(self, axis, x, y, length, *, preview=False):
-        width, height = (length, 1) if axis == "horizontal" else (1, length)
+        thickness = self.wall_thickness(axis)
+        _, _, width, height = partition_rectangle(
+            {"axis": axis, "x": x, "y": y, "length": length, "thickness": thickness})
         room = next((r for r in self.draft.data["rooms"] if r["enabled"]
                      and r["x"] <= x and r["y"] <= y
                      and x+width <= r["x"]+r["width"] and y+height <= r["y"]+r["height"]), None)
         if room is None:
             raise ValueError("Draw each wall inside one room, including its edges.")
         candidate = partition_candidate(self._preview_data(preview), room["id"], axis, x, y, length,
-                                        opening_width=self.opening_width.currentData())
+                                        opening_width=self.opening_width.currentData(), thickness=thickness)
         return self.checked_layout(candidate)
 
     def draw_partition(self, axis, x, y, length):
@@ -1190,7 +1317,7 @@ class InteriorEditor(QDialog):
         changed = self.run_change(change)
         if changed:
             self.select_partition_on_canvas(candidate["partitions"][-1]["id"])
-            self.set_tool("room-select")
+            self.set_tool("wall-select")
         return bool(changed)
 
     def _partition_at(self, x, y):
@@ -1226,6 +1353,9 @@ class InteriorEditor(QDialog):
         self.remove_wall_button.setEnabled(wall is not None)
         self.opening_button.setEnabled(wall is not None)
         if wall is not None:
+            self.wall_type.blockSignals(True)
+            self.wall_type.setCurrentIndex(self.wall_type.findData("room" if wall.get("thickness", 1) > 1 else "slim"))
+            self.wall_type.blockSignals(False)
             width = wall.get("openings", [{}])[0].get("width", 0) if wall.get("openings") else 0
             self.opening_width.blockSignals(True)
             self.opening_width.setCurrentIndex(self.opening_width.findData(width))
@@ -1235,6 +1365,23 @@ class InteriorEditor(QDialog):
             if wall:
                 self.canvas.selected_room_id = ""
             self.canvas.update()
+
+    def change_wall_type(self, *_):
+        if self._refreshing:
+            return
+        if hasattr(self, "canvas"):
+            self.canvas.clear_room_interaction()
+        wall = next((p for p in self.draft.data.get("partitions", []) if p["id"] == self.selected_partition), None)
+        if wall is None:
+            return
+        thickness = self.wall_thickness(wall["axis"])
+        if thickness == wall.get("thickness", 1):
+            return
+        changed = self.run_change(lambda: self.apply_layout(self.checked_layout(partition_candidate(
+            self.draft.data, wall["room_id"], wall["axis"], wall["x"], wall["y"], wall["length"],
+            openings=wall["openings"], partition_id=wall["id"], thickness=thickness))))
+        if not changed:
+            self.partition_selection_changed()
 
     def change_opening_width(self, *_):
         if self._refreshing:
@@ -1427,6 +1574,12 @@ class InteriorEditor(QDialog):
 
     def refresh(self):
         self._refreshing = True
+        access_issues = spouse_access_issues(self.draft.data)
+        self.access_notice.setText(access_issues[0]["message"] if access_issues else "")
+        self.access_notice.setVisible(bool(access_issues))
+        self.farmhouse_caption.setText(
+            "Farmhouse surroundings · preview only" if self.draft.data.get("spouse_context")
+            else "Simplified farmhouse outline · this library has no surrounding farmhouse artwork")
         self.canvas_width.setValue(self.draft.data["width"])
         self.canvas_height.setValue(self.draft.data["height"])
         previous_room = self.room_list.currentItem().data(Qt.ItemDataRole.UserRole) if self.room_list.currentItem() else None
@@ -1441,11 +1594,13 @@ class InteriorEditor(QDialog):
             self.room_list.addItem(item)
             if room["id"] == previous_room:
                 self.room_list.setCurrentItem(item)
+        self.room_list.setFixedHeight(min(96, max(48, self.room_list.count() * 26 + 8)))
         self.partition_list.clear()
         rooms = {r["id"]: r for r in self.draft.data["rooms"]}
         for wall in self.draft.data.get("partitions", []):
             name = rooms[wall["room_id"]]["name"]
-            item = QListWidgetItem(f"{name} · {wall['axis'].title()} · {wall['length']} tiles")
+            kind = "Room wall" if wall.get("thickness", 1) > 1 else "Slim divider"
+            item = QListWidgetItem(f"{name} · {kind} · {wall['axis'].title()} · {wall['length']} tiles")
             item.setData(Qt.ItemDataRole.UserRole, wall["id"])
             self.partition_list.addItem(item)
             if wall["id"] == self.selected_partition:
@@ -1459,6 +1614,7 @@ class InteriorEditor(QDialog):
         self.palette.load(atlas, self.stage_root)
         self.artwork_status.setText(("Furniture connected. Choose finishes, or add custom tile art in Advanced." if self.draft.data["catalog"] else "Plan the room now. Connect your game to start decorating.") if not atlas.get("asset") else "Pick a piece. Make it their place.")
         self.library_button.setText("Refresh game library…" if self.draft.data["catalog"] else "Connect game library…")
+        self.change_library_button.setVisible(bool(self.draft.data["catalog"] or self.remembered_library()))
         self.library_welcome.setVisible(not self.draft.data["catalog"])
         self.plan_first.setVisible(not self.draft.data["catalog"])
         for widget in (self.search, self.category, self.catalog_list, self.catalog_details, self.favorite_button):
@@ -1541,12 +1697,13 @@ class InteriorEditor(QDialog):
             self.canvas.set_room_preview(None)
             if self.canvas.tool == "room":
                 self.coordinates.setText("Drag beside a room to add space. Rooms must share an edge.")
-            elif self.canvas.tool in ("room-select", "corridor", "partition", "opening", "architecture-place", "architecture-select"):
+            elif self.canvas.tool in ("room-select", "wall-select", "corridor", "partition", "opening", "architecture-place", "architecture-select"):
                 self.preview_feedback(True, "")
             elif self.canvas.tool == "entry":
                 self.coordinates.setText("Choose a clear spot along the lower outside wall. The doorway needs space on both sides.")
             elif self.canvas.tool == "spouse_stand":
                 self.coordinates.setText("Click a clear spot on the floor. Keep a path to it open.")
+            self.update_contextual_actions()
 
     def change_zoom(self):
         if hasattr(self, "canvas"):
@@ -1637,11 +1794,22 @@ class InteriorEditor(QDialog):
     def load_catalog(self, path):
         warnings = []
         succeeded = False
-        def change():
-            nonlocal succeeded
-            imported = import_furniture_library(path, self.stage_root)
-            warnings.extend(imported["warnings"])
-            candidate = self.draft.snapshot()
+        resource_fields = ("atlas", "catalog", "surfaces", "room_frame", "spouse_context",
+                           "architecture_catalog", "architecture", "animations", "style", "room_styles")
+        staged_resources = {}
+        def update(candidate, imported):
+            # Most edit snapshots share the same artwork. Reuse PNG staging,
+            # including finish-dependent and kitchen-placement migrations, but
+            # let update_resources validate every complete layout separately.
+            cache_key = repr((candidate["kind"], [(key, candidate[key]) for key in resource_fields if key in candidate]))
+            if cache_key in staged_resources:
+                cached = staged_resources[cache_key]
+                for key in resource_fields:
+                    if key in cached:
+                        candidate[key] = deepcopy(cached[key])
+                    else:
+                        candidate.pop(key, None)
+                return candidate
             existing = {definition["id"]: definition for definition in candidate["catalog"]}
             for definition in imported["definitions"]:
                 previous = existing.get(definition["id"], {})
@@ -1672,29 +1840,54 @@ class InteriorEditor(QDialog):
                 from pixelheart_core.interior_surface_design import stage_room_frame, stage_partition_frame
                 candidate = stage_room_frame(candidate, imported["room_frame"], self.stage_root)
                 candidate = stage_partition_frame(candidate, self.stage_root)
+            if imported.get("spouse_context") and candidate["kind"] == "spouse":
+                candidate["spouse_context"] = imported["spouse_context"]
             if imported.get("architecture"):
                 candidate = stage_architecture_library(candidate, imported["architecture"], self.stage_root)
-            self.draft.apply(candidate)
+            staged_resources[cache_key] = {key: deepcopy(candidate[key]) for key in resource_fields if key in candidate}
+            return candidate
+        def change():
+            nonlocal succeeded
+            imported = import_furniture_library(path, self.stage_root)
+            warnings.extend(imported["warnings"])
+            self.draft.update_resources(lambda candidate: update(candidate, imported))
             succeeded = True
-        self.run_change(change)
+        self.run_change(change, remember=False)
+        if succeeded:
+            source = Path(path).expanduser().resolve()
+            self.settings.setValue("interiors/librarySource", str(source))
+            self.settings.setValue("interiors/libraryFolder", str(source.parent))
+            self.change_library_button.show()
         if succeeded and warnings:
             self.notice("Library notes: " + "\n".join(warnings[:3]))
         return succeeded
 
+    def load_spouse_context(self, path):
+        """Refresh only the read-only farmhouse backdrop on older designs."""
+        def change():
+            imported = import_furniture_library(path, self.stage_root)
+            if imported.get("spouse_context"):
+                def update(candidate):
+                    candidate["spouse_context"] = imported["spouse_context"]
+                    return candidate
+                self.draft.update_resources(update)
+        self.run_change(change, remember=False)
+
     def load_room_frame(self, path):
         """Complete an older library-backed room without replacing its edits."""
+        def update(candidate, frame):
+            from pixelheart_core.interior_surface_design import stage_room_frame, stage_partition_frame
+            existing = candidate.get("room_frame", {})
+            candidate = stage_room_frame(candidate, frame, self.stage_root)
+            # A remembered library may differ from this design's authored
+            # trim. Complete missing roles without replacing existing art.
+            candidate["room_frame"].update(existing)
+            return stage_partition_frame(candidate, self.stage_root)
         def change():
             imported = import_furniture_library(path, self.stage_root)
             if imported.get("room_frame"):
-                from pixelheart_core.interior_surface_design import stage_room_frame, stage_partition_frame
-                existing = self.draft.data.get("room_frame", {})
-                candidate = stage_room_frame(self.draft.data, imported["room_frame"], self.stage_root)
-                # A remembered library may differ from this design's authored
-                # trim. Complete missing roles without replacing existing art.
-                candidate["room_frame"].update(existing)
-                candidate = stage_partition_frame(candidate, self.stage_root)
-                self.draft.apply(candidate)
-        self.run_change(change)
+                self.draft.update_resources(lambda candidate: update(candidate, imported["room_frame"]))
+        self.run_change(change, remember=False)
 
     def choose_texture_folder(self):
         directory = QFileDialog.getExistingDirectory(self, "Choose exported furniture textures")
@@ -1908,7 +2101,7 @@ class InteriorEditor(QDialog):
 
     def place_furniture_once(self, identity, x, y, rotation):
         def place():
-            placed_id = self.draft.place_furniture(identity, x, y, rotation)
+            placed_id = self.apply_furniture_change(lambda trial: trial.place_furniture(identity, x, y, rotation))
             self.recent = [identity] + [i for i in self.recent if i != identity][:23]
             self.selected_furniture = placed_id
             return placed_id
@@ -1931,7 +2124,7 @@ class InteriorEditor(QDialog):
             self.place_furniture_once(self.selected_catalog, x, y, self.placement_rotation)
         elif tool == "surface" and self.selected_surface:
             from pixelheart_core.interior_surface_design import apply_surface
-            room = next((r for r in self.draft.data["rooms"] if r["x"] <= x < r["x"] + r["width"] and r["y"] - 3 <= y < r["y"] + r["height"]), None)
+            room = self.canvas.room_at(x, y, include_walls=True)
             if room:
                 self.run_change(lambda: self.draft.apply(apply_surface(self.draft.data, self.selected_surface, room["id"])))
             else:
@@ -1942,7 +2135,7 @@ class InteriorEditor(QDialog):
             wall = self._partition_at(x, y)
             if self.run_change(lambda: self.apply_layout(self.opening_at_candidate(x, y))):
                 self.select_partition_on_canvas(wall["id"])
-                self.set_tool("room-select")
+                self.set_tool("wall-select")
         elif tool == "spouse_stand":
             def change():
                 candidate = self.draft.snapshot()
@@ -1978,7 +2171,14 @@ class InteriorEditor(QDialog):
         self.canvas.update()
 
     def move_furniture(self, identity, x, y):
-        self.run_change(lambda: self.draft.move_furniture(identity, x, y))
+        self.run_change(lambda: self.apply_furniture_change(lambda trial: trial.move_furniture(identity, x, y)))
+
+    def apply_furniture_change(self, change):
+        """Validate against authored destinations before committing or recording undo."""
+        trial = InteriorDraft(self.draft.data)
+        result = change(trial)
+        self.apply_layout(trial.data)
+        return result
 
     def move_selected(self):
         if self.selected_furniture:
@@ -1986,7 +2186,7 @@ class InteriorEditor(QDialog):
 
     def rotate_selected(self):
         if self.selected_furniture:
-            self.run_change(lambda: self.draft.rotate_furniture(self.selected_furniture))
+            self.run_change(lambda: self.apply_furniture_change(lambda trial: trial.rotate_furniture(self.selected_furniture)))
 
     def remove_selected(self):
         if self.selected_furniture:
@@ -2059,6 +2259,7 @@ class InteriorEditor(QDialog):
         created = []
         try:
             design = self.draft.snapshot()
+            validate_spouse_access(design)
             issues = architecture_rule_issues(design)
             if issues:
                 self.review_architecture_placement(issues[0]["placement_id"])

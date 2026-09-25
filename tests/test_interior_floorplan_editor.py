@@ -36,6 +36,7 @@ class FloorplanEditorTests(unittest.TestCase):
         self.app.processEvents()
         self.editor.tabs.setCurrentIndex(2)
         self.editor.select_room_on_canvas("main")
+        self.editor.wall_type.setCurrentIndex(self.editor.wall_type.findData("slim"))
 
     def tearDown(self):
         self.editor.reject()
@@ -126,7 +127,7 @@ class FloorplanEditorTests(unittest.TestCase):
         self.assertEqual(self.editor.canvas._room_preview, (8, 6, 2, 3))
         QTest.mouseClick(self.editor.canvas, Qt.MouseButton.LeftButton, pos=self.point(9, 8))
         self.assertEqual(self.editor.draft.data["partitions"][0]["openings"], [{"offset": 6, "width": 2}])
-        self.assertEqual(self.editor.canvas.tool, "room-select")
+        self.assertEqual(self.editor.canvas.tool, "wall-select")
         self.assertEqual(len(self.editor.draft._undo), 3)
         self.editor.undo()
         self.assertEqual(self.editor.draft.data["partitions"][0]["openings"], [{"offset": 3, "width": 2}])

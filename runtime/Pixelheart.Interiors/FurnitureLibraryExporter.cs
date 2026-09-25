@@ -130,7 +130,7 @@ internal static class FurnitureLibraryExporter
                 Texture2D texture = metadata.GetTexture();
                 if (failedSheets.Contains(texture)) throw new InvalidDataException("This item's texture could not be exported within the library limits.");
                 furniture.SetPlacement(0, 0, 0);
-                var observed = new List<(Rectangle Source, bool Flipped, int[] Footprint)>();
+                var observed = new List<(Rectangle Source, bool Flipped, int[] Footprint, int[]? HeldOffset)>();
                 for (int rotation = 0; rotation < rotations; rotation++)
                 {
                     // Only read the installed game's public state. No private-field probes,
@@ -145,7 +145,16 @@ internal static class FurnitureLibraryExporter
                     if (bounds.Width < 64 || bounds.Height < 64 || bounds.Width > 128 * 64 || bounds.Height > 128 * 64
                         || bounds.Width % 64 != 0 || bounds.Height % 64 != 0)
                         throw new InvalidDataException("The resolved collision footprint is not a supported whole-tile rectangle.");
-                    observed.Add((rect, flipped, new[] { bounds.Width / 64, bounds.Height / 64 }));
+                    // Native Furniture centers a 16px tabletop sprite on the collision
+                    // box, raised 20px (or 12px for its public low-display setting).
+                    // Custom subclasses may draw differently, so do not infer their anchor.
+                    int[]? heldOffset = furniture.GetType() == typeof(Furniture) && furniture.IsTable()
+                        ? new[] {
+                            (bounds.Center.X - (int)furniture.TileLocation.X * 64 - 32) / 4,
+                            (bounds.Center.Y - (int)furniture.TileLocation.Y * 64 - 80
+                                + (furniture.drawHeldObjectLow.Value ? 32 : 0)) / 4
+                        } : null;
+                    observed.Add((rect, flipped, new[] { bounds.Width / 64, bounds.Height / 64 }, heldOffset));
                     if (rotation + 1 < rotations) furniture.rotate();
                 }
                 if (!sheets.TryGetValue(texture, out Sheet? sheet))
@@ -160,6 +169,7 @@ internal static class FurnitureLibraryExporter
                 }
                 var frames = new List<Dictionary<string, object>>();
                 var footprints = new Dictionary<string, int[]>();
+                var heldOffsets = new Dictionary<string, int[]>();
                 for (int rotation = 0; rotation < observed.Count; rotation++)
                 {
                     var state = observed[rotation];
@@ -174,6 +184,7 @@ internal static class FurnitureLibraryExporter
                         ["duration_ms"] = 100
                     });
                     footprints[rotation.ToString(CultureInfo.InvariantCulture)] = state.Footprint;
+                    if (state.HeldOffset != null) heldOffsets[rotation.ToString(CultureInfo.InvariantCulture)] = state.HeldOffset;
                 }
                 var definition = new Dictionary<string, object?>
                 {
@@ -192,6 +203,7 @@ internal static class FurnitureLibraryExporter
                     ["dependency"] = "",
                     ["mod_data"] = new Dictionary<string, string>()
                 };
+                if (heldOffsets.Count == rotations) definition["held_item_offsets"] = heldOffsets;
                 long definitionBytes = Encoding.UTF8.GetByteCount(JsonConvert.SerializeObject(definition));
                 if (jsonBytes + definitionBytes > MaxJsonBytes - 1024 * 1024)
                 { messages.Add("The library reached its JSON size limit; remaining furniture was omitted."); break; }
@@ -214,8 +226,15 @@ internal static class FurnitureLibraryExporter
         }
         var surfaces = ExportSurfaces(helper, output, sheets, failedSheets, messages, ref textureBytes, ref jsonBytes);
         var architecture = ArchitectureLibraryExporter.Export(helper, output, messages, ref textureBytes, ref jsonBytes);
+        var spouseContext = SpouseContextExporter.Export(helper, output, messages, ref textureBytes, ref jsonBytes);
         notes.Add("Architectural pieces are static map artwork with collision. Native shop actions, cooking, storage, fireplace effects, stairs between locations and map-specific warps are not copied.");
-        var library = new { format = "pixelheart-interior-library", version = 1, definitions, surfaces, architecture, warnings = messages, notes };
+        var library = new Dictionary<string, object?>
+        {
+            ["format"] = "pixelheart-interior-library", ["version"] = 1,
+            ["definitions"] = definitions, ["surfaces"] = surfaces, ["architecture"] = architecture,
+            ["warnings"] = messages, ["notes"] = notes
+        };
+        if (spouseContext != null) library["spouse_context"] = spouseContext;
         byte[] payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(library));
         if (payload.Length > MaxJsonBytes) throw new InvalidDataException("The generated library exceeds the editor's JSON size limit.");
         using (var stream = new FileStream(Path.Combine(output, "library.json"), FileMode.CreateNew, FileAccess.Write, FileShare.None))

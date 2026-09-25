@@ -1,21 +1,21 @@
 # Give your character a home and places for their story
 
 Open **Home & places** to design the loaded NPC's residence and spouse room.
-Save the project before importing files so the assets travel together. Additional
-story locations and external mod dependencies are available under **Advanced / Game connection**.
+Save the project before importing files so the assets travel together. Use **+ Story place** for additional locations. External mod dependencies and
+import settings are under **Map tools & dependencies**.
 
 Each project authors one custom NPC. Scene casts can include townspeople and
 other installed characters. Older projects retain any previously bundled
 supporting characters and their assets; this page no longer creates or edits
-separate NPC projects inside the current one. For older projects only, **Advanced / Game connection → Legacy bundled characters…** can repair missing artwork or remove an old bundled character after confirmation. Review scenes that referenced a removed character before exporting.
+separate NPC projects inside the current one. For older projects only, **Map tools & dependencies → Legacy bundled characters…** can repair missing artwork or remove an old bundled character after confirmation. Review scenes that referenced a removed character before exporting.
 
 ## Create or import a place
 
 For an NPC home, start with **Build residence…**. To
-import a map or create another kind of place, open **Advanced / Game connection**,
-choose **Add story location**, and give it a display name and unique **Stable map ID**.
-That place appears by name in location selectors. The advanced section contains
-the map tools:
+import a map or create another kind of place, choose **+ Story place** and give
+it a display name. **Map tools & dependencies** contains the **Stable map ID**
+and import tools. Renaming an ID updates references in this project; keep IDs
+stable after using the pack in a game save. Places appear by name in location selectors:
 
 - **Create map from a tilesheet…** opens the simple painter for a 20×20 location
   or 6×9 spouse room, using your own 16×16 PNG tiles. **Edit painted map…** reopens
@@ -35,9 +35,10 @@ must be edited in Tiled and imported again.
 
 In **Home & places**, choose **Build residence…** to start decorating a new
 home for your character. Pixelheart names the place and creates its game ID for
-you. Saving the design assigns it as their residence; cancelling leaves no
+you. **Apply home** assigns the design as their residence; cancelling leaves no
 empty place behind. Choose **Design spouse room…** for their farmhouse room.
-The residence and spouse-room actions reopen existing assigned designs instead of creating duplicates.
+Once a place exists, select it and use its **Edit interior…** action. The creation
+actions are hidden when that residence or spouse room already exists.
 
 Select an existing place and **Design interior…** or **Edit interior…** to work
 on it again. The spouse canvas stays 6×9 tiles. A residence can contain connected
@@ -69,17 +70,26 @@ is unavailable.
 Under **Rooms & hallways**, **Draw a room…** creates a connected rectangular
 addition, and **Draw hallway** creates a narrow connecting floor region. Draw
 from an existing room edge, then add another room at the end. Hallways are
-permanent parts of the home. New rooms are permanent by default; **Offer the
-new room as an optional expansion** makes one available for player-controlled
+permanent parts of the home. New rooms are permanent by default; **Optional expansion** makes one available for player-controlled
 addition/removal in-game.
 
 Choose **Walls & openings**, then **Draw wall** and drag horizontally or
 vertically inside a room. An interior wall can also divide adjoining rooms
-along their shared edge. Select a wall on the canvas or in the list to choose
+along their shared edge. **Room wall** uses the game's cutaway appearance:
+separate timber edges around a black cavity, with a full wallpaper face above
+the passage. It reserves two columns for a vertical wall or five rows for a
+horizontal wall. The preview shows the space the wall needs.
+
+Select a wall on the canvas or in the list to choose
 a solid wall, a one-tile doorway, or a wider passage. **Place opening** previews
 the opening at the pointer; click the wall to position it. **Remove selected
 wall**, or Delete while it is selected, removes it. Openings are permanent
 passages; they do not add animated or locked doors.
+
+**Slim divider** keeps the narrower timber style used by older designs. Existing
+dividers keep their size when reopened. Change their wall type to **Room wall**
+after making space; Pixelheart rejects a conversion that would cover furniture
+or block a route, and Undo restores the previous wall.
 
 Red previews explain rejected layouts: disconnected rooms, walls blocking
 passages, cropped furniture, or unreachable authored NPC destinations. Resizing
@@ -94,9 +104,8 @@ moves just inside it; the passage leads back outside. Spouse rooms keep their
 fixed size and marked standing spot. Existing homes keep their map coordinates:
 an addition on the left needs enough free space.
 
-Partitions use the room's authored wallpaper and structural trim. Their finishes
-are exported as fixed map artwork; changing wallpaper inside the game does not
-redecorate partition faces.
+Room walls use the room's wallpaper and structural trim. Slim-divider faces
+remain fixed map artwork and do not follow in-game wallpaper changes.
 
 Choose **Architectural pieces** in the Rooms selector to browse built-in
 counters, cupboards, columns, bookcases, hearths and stairs from the connected
@@ -117,6 +126,8 @@ support, and the canvas outlines any space that must stay clear:
   staircase.
 - **Kitchen fixtures and bookcases:** align their bottom row with the first
   floor row against a continuous north wall, and keep their front accessible.
+  The sink includes its matching wall cabinet. Both it and the refrigerator
+  are three tiles tall; place separate dish cupboards above the counters.
   A work counter end must join a compatible counter or a side wall on its left.
 - **Cupboards and cabinets:** fit completely on the upper wall, above the
   lower trim and away from openings.
@@ -164,11 +175,14 @@ and [Nintendo's decorating manual](https://www.nintendo.com/eu/media/downloads/g
 Spouse rooms use the same finish-and-furniture approach demonstrated by
 [Spouse Room Renovation](https://www.nexusmods.com/stardewvalley/mods/23529).
 
-Imports are staged until **Save home** or **Save room**. Cancel discards edits and
-staged assets. Undo and redo work across room, furniture, and surface edits.
+Imports are staged until **Apply home** or **Apply room**. Apply returns the
+design to Home & places; **Save project** keeps those changes on disk. Cancel
+discards edits and staged assets. Drafts can be applied before all artwork is
+ready; the Home page keeps missing setup visible and export remains blocked.
+Undo and redo work across room, furniture, and surface edits.
 Save As carries the private tilesheets and preview textures with the project.
-**Set as their residence** updates the character's home; review their authored
-schedules separately. Saving an interior replaces that place's imported map.
+**Use this story location as their residence** updates the character's home; review their authored
+schedules separately. Applying an interior replaces that place's imported map.
 
 Designed interiors require the separate **Pixelheart Interiors** SMAPI companion,
 Stardew Valley 1.6.9+, SMAPI 4.1+, and Content Patcher. The companion source is in
@@ -188,7 +202,10 @@ After a save loads, the companion automatically prepares a private library of
 furniture and finishes in its `cache/library` folder. **Connect game library…**
 finds it from your game folder, Mods folder, or the library folder itself, then
 remembers the connection. After changing installed mods, restart the game, open
-a save, and choose **Refresh game library…** in Pixelheart. The library reflects
+a save, and choose **Refresh game library…** in Pixelheart. Refresh keeps the
+selected source; use **Change library…** to choose a different installation or
+snapshot. **Library setup guide…** in the connection dialog includes build and
+installation instructions. The library reflects
 default appearances; it does not enumerate every texture variant or custom
 drawing effect. Record required provider mods in the item's advanced details
 where needed.
@@ -214,14 +231,21 @@ before treating an exported design as ready for play.
 
 ## Connect the entrance and exit
 
-Open **Advanced / Game connection** and complete **Give the player a way in and
-out** for every standalone place:
+Choose **Connect entrance…** beside **Edit interior…** for each new standalone
+place. New places remain unconnected until you choose **Use this entrance**:
 
-1. Select the outside **Entrance map** and the X/Y tile that triggers entry.
-2. Set the X/Y tile where the player arrives inside your place.
-3. For a designed residence, its doorway supplies the exit automatically. For
-   an imported or painted map, set a different inside tile that triggers the exit.
-4. Set the outside return tile, different from the entry trigger.
+1. Select the **Outside map** and the **Enter from** X/Y tile that triggers entry.
+2. Choose a different outside **Return to** tile.
+3. Designed residences derive their inside arrival and exit from the doorway.
+   Use **Move doorway in designer…** to change it. Imported or painted maps
+   expose separate **Arrive inside** and **Exit from** coordinates.
+4. Choose **Use this entrance**, then **Save project**. Editing its map or
+   coordinates requires confirming the entrance again. Existing projects retain
+   their saved connections.
+
+**Remove place** is blocked while routes, scenes, bundled characters, or other
+entrances still use it. The page lists those references so you can update them.
+**Undo removal** restores an unreferenced place until the next project save.
 
 The export creates the location and both game warps. Other project locations can
 be connected, provided the chain eventually leads to an existing outside map.
@@ -242,7 +266,7 @@ Choose **Design spouse room…** to decorate the fixed room directly. Only one
 primary spouse room is supported, and the primary character must have romance
 enabled.
 
-For a supplied map, open **Advanced / Game connection**, select **Use a section
+For a supplied map, open **Map tools & dependencies**, select **Use a section
 as the primary character's spouse room**, and choose the top-left X/Y tile of a
 6×9 section. The map must contain the whole section. The 6×9 painter preset
 selects X 0, Y 0 automatically.
@@ -255,7 +279,7 @@ See [LIFE_AND_BRANCHING.md](LIFE_AND_BRANCHING.md) for conversations and routine
 
 ## Declare other mods
 
-Open **Advanced / Game connection**, then **Mod dependencies**. Use the UniqueID from another mod's `manifest.json`,
+Open **Map tools & dependencies**, then **Mod dependencies**. Use the UniqueID from another mod's `manifest.json`,
 optionally require a minimum version, and specify whether the dependency is
 required. Include mods that provide external maps, NPC actors, or modded items
 your content needs. Declaring a dependency does not download or bundle that mod.

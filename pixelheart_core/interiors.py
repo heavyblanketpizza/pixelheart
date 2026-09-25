@@ -61,6 +61,17 @@ def floor_cells(data, enabled=None):
                          if (room["enabled"] if enabled is None else room["id"] in enabled)))
 
 
+def spouse_entrance_tiles(data):
+    """Floor cells adjoining the farmhouse's open west side of a spouse insert.
+
+    The farmhouse pillar blocks the first floor row at (0, 3). Rows 4–8
+    connect to the bedroom; the stored ``entry`` is legacy authoring metadata.
+    """
+    if data["kind"] != "spouse":
+        return set()
+    return {(0, y) for y in range(4, 9)} & floor_cells(data)
+
+
 def doorway_exit(data):
     """The exterior passage tile triggers the return warp, beyond the room floor."""
     doorway = data.get("doorway")
@@ -134,9 +145,9 @@ WALL_FURNITURE = {"painting", "window", "sconce"}
 
 
 def wall_cells(data, enabled=None):
-    floor = floor_cells(data, enabled)
-    return {(x, y-distance) for x, y in floor if (x, y-1) not in floor
-            for distance in (1, 2, 3) if y-distance >= 0 and (x, y-distance) not in floor}
+    from .interior_layout import shell_wall_regions
+    walls, _ = shell_wall_regions(data, enabled)
+    return set().union(*walls.values())
 
 
 def placement_cells(item, definition):
@@ -269,8 +280,8 @@ def _connected(cells):
     return seen == cells
 
 
-def reachable_tiles(data):
-    """Conservative authoring reachability from the entry, using supplied bounds."""
+def _walkable_tiles(data):
+    """The floor left clear by structural pieces and solid furniture."""
     definitions = {item["id"]: item for item in data["catalog"]}
     from .interior_layout import partition_cells
     from .interior_architecture import architecture_cells
@@ -281,8 +292,14 @@ def reachable_tiles(data):
         definition = definitions[item["item_id"]]
         if definition["kind"] != "rug":
             cells.difference_update(placement_cells(item, definition))
-    entry = tuple(data["entry"])
-    seen = {entry} if entry in cells else set()
+    return cells
+
+
+def reachable_tiles(data):
+    """Walkable floor reached from a residence entry or the farmhouse opening."""
+    cells = _walkable_tiles(data)
+    entrances = spouse_entrance_tiles(data) if data["kind"] == "spouse" else {tuple(data["entry"])}
+    seen = entrances & cells
     queue = deque(seen)
     while queue:
         x, y = queue.popleft()
@@ -293,9 +310,36 @@ def reachable_tiles(data):
     return seen
 
 
+def spouse_access_issues(data):
+    """Report a blocked farmhouse approach without making old projects unreadable."""
+    if data["kind"] != "spouse" or tuple(data["spouse_stand"]) in reachable_tiles(data):
+        return []
+    return [{"level": "error", "field": "interior.spouse_stand",
+             "message": "Keep a walkable route from the farmhouse opening on the left to the spouse standing position."}]
+
+
+def validate_spouse_access(data, before=None):
+    """Reject blocked access; allow unchanged or incremental repairs in old drafts.
+
+    Loading retains older rooms that passed the former bottom-entry check.
+    During repairs, removing blockers or changing finishes is safe even when
+    another blocker remains. New blockers and a moved stand must leave a route.
+    Saving a finished design or exporting calls this without ``before``.
+    """
+    issues = spouse_access_issues(data)
+    if not issues:
+        return
+    if (before is not None and before["kind"] == "spouse"
+            and before["spouse_stand"] == data["spouse_stand"]
+            and spouse_access_issues(before)
+            and _walkable_tiles(before) <= _walkable_tiles(data)):
+        return
+    raise InteriorError(issues[0]["message"])
+
+
 def normalize_interior(value):
     """Validate bounded, portable authoring data without resolving local assets."""
-    from .interior_furniture import validate_definition, FurnitureValidationError
+    from .interior_furniture import validate_definition, validate_held_item, FurnitureValidationError
     if not isinstance(value, dict) or type(value.get("version")) is not int or value["version"] != 1:
         raise InteriorError("This interior design version is not supported.")
     data = deepcopy(value)
@@ -372,6 +416,9 @@ def normalize_interior(value):
         raise InteriorError("Choose interior floor and wall tiles.")
     for key in ("floor", "wall_top", "wall_middle", "wall_bottom"):
         _integer(style.get(key), 0, max(0, atlas["tile_count"] - 1), "A surface tile is outside the tilesheet.")
+    if "spouse_context" in data:
+        from .interior_furniture import validate_spouse_context
+        data["spouse_context"] = validate_spouse_context(data["spouse_context"])
     if "room_frame" in data:
         from .interior_furniture import ROOM_FRAME_TILES, ROOM_FRAME_JOINS, ROOM_FRAME_DOORWAY, ROOM_FRAME_PARTITIONS
         frame = data["room_frame"]
@@ -477,6 +524,11 @@ def normalize_interior(value):
         metadata = item.setdefault("mod_data", {})
         if not isinstance(metadata, dict) or len(metadata) > 128 or any(not isinstance(k, str) or not isinstance(v, str) or len(k) > 256 or len(v) > 4096 for k, v in metadata.items()):
             raise InteriorError("Furniture metadata needs short text keys and values.")
+        if "held_item" in item:
+            try:
+                item["held_item"] = validate_held_item(item["held_item"], definition, definitions)
+            except FurnitureValidationError as exc:
+                raise InteriorError(str(exc)) from exc
         if definition.get("placement") == "outdoors":
             raise InteriorError("Outdoor-only furniture cannot be placed in an interior.")
         cells = placement_cells(item, definition)
@@ -491,12 +543,10 @@ def normalize_interior(value):
             if solid & cells:
                 raise InteriorError("Furniture footprints overlap. Rugs may go underneath furniture.")
             solid.update(cells)
-    anchors = [tuple(data["entry"])]
+    anchors = [tuple(data["spouse_stand"] if data["kind"] == "spouse" else data["entry"])]
     if "doorway" in data:
         x, y = data["doorway"]
         anchors.extend(((x, y), (x, y-1)))
-    if data["kind"] == "spouse":
-        anchors.append(tuple(data["spouse_stand"]))
     if any(anchor in structural for anchor in anchors):
         raise InteriorError("Keep the entry, doorway approach, and spouse standing position clear of interior walls.")
     if any(anchor in solid or anchor in architectural for anchor in anchors):
@@ -507,18 +557,8 @@ def normalize_interior(value):
             raise InteriorError("Keep a clear, walkable approach on both sides of each interior opening.")
     if "doorway" in data and doorway_exit(data) not in reachable_tiles(data):
         raise InteriorError("Keep a walkable route from the arrival to the doorway.")
-    if data["kind"] == "spouse":
-        # Both anchors must remain mutually reachable after furnishing.
-        reachable = {anchors[0]}
-        queue = deque(reachable)
-        while queue:
-            x, y = queue.popleft()
-            for point in ((x-1, y), (x+1, y), (x, y-1), (x, y+1)):
-                if point in floor and point not in solid and point not in architectural and point not in reachable:
-                    reachable.add(point)
-                    queue.append(point)
-        if anchors[1] not in reachable:
-            raise InteriorError("Keep a walkable route from the entry to the spouse standing position.")
+    # Access is an editing/export rule so older blocked spouse rooms can still
+    # open for repair. Their standing tile remains protected above.
     return data
 
 
@@ -649,6 +689,7 @@ class InteriorDraft:
         candidate = normalize_interior(data)
         if candidate == self.data:
             return False
+        validate_spouse_access(candidate, before=self.data)
         from .interior_architecture_rules import validate_architecture_rules
         validate_architecture_rules(candidate, before=self.data)
         # Keep pre-existing placements intact when opening, restyling or
@@ -668,6 +709,24 @@ class InteriorDraft:
         self._redo.clear()
         self.data = candidate
         return True
+
+    def update_resources(self, update):
+        """Refresh library resources in every snapshot without adding an edit.
+
+        Connecting game artwork establishes the room's editing baseline. Keep
+        that connection in undo and redo states too, while retaining their
+        authored layouts, finishes and furniture. Validate all replacements
+        before committing so a failed refresh leaves the entire history intact.
+        """
+        def prepare(data):
+            trial = InteriorDraft(data)
+            trial.apply(update(trial.snapshot()))
+            return trial.data
+
+        candidate = prepare(self.data)
+        undo = [prepare(data) for data in self._undo]
+        redo = [prepare(data) for data in self._redo]
+        self.data, self._undo, self._redo = candidate, undo, redo
 
     def undo(self):
         if not self._undo:
@@ -746,6 +805,22 @@ class InteriorDraft:
     def remove_furniture(self, identity):
         self._edit_item(identity, lambda data, item: data["furniture"].remove(item))
 
+    def set_held_item(self, identity, item_id, mod_data=None):
+        """Put one native decoration on a table as an undoable item edit."""
+        from .interior_furniture import qualified_furniture_id, FurnitureValidationError
+        try:
+            item_id = qualified_furniture_id(item_id)
+        except FurnitureValidationError as exc:
+            raise InteriorError(str(exc)) from exc
+        definition = next((entry for entry in self.data["catalog"] if entry["id"] == item_id), None)
+        if definition is None:
+            raise InteriorError("Choose a tabletop item from the furniture library.")
+        metadata = deepcopy(definition.get("mod_data", {}) if mod_data is None else mod_data)
+        self._edit_item(identity, lambda data, item: item.update(held_item={"item_id": item_id, "mod_data": metadata}))
+
+    def clear_held_item(self, identity):
+        self._edit_item(identity, lambda data, item: item.pop("held_item", None))
+
 
 def interior_asset_references(data):
     if data["atlas"]["asset"]:
@@ -753,6 +828,8 @@ def interior_asset_references(data):
     for definition in data["catalog"]:
         if definition.get("preview_asset"):
             yield definition["preview_asset"]
+    from .interior_spouse_context import spouse_context_asset_refs
+    yield from spouse_context_asset_refs(data)
 
 
 def import_atlas(path, project_root):
@@ -768,9 +845,10 @@ def import_atlas(path, project_root):
 
 
 def map_layers(data, enabled=None):
+    from .interior_layout import shell_floor_cells, partition_cells
     width, height = data["width"], data["height"]
     layers = {name: [0] * (width * height) for name in ("Back", "Buildings", "Front", "Paths")}
-    floor = floor_cells(data, enabled)
+    floor = shell_floor_cells(data, enabled)
     active_rooms = [r for r in data["rooms"] if (r["enabled"] if enabled is None else r["id"] in enabled)]
     owners = {cell: room for room in active_rooms for cell in room_cells(room)}
     walls = set()
@@ -797,10 +875,16 @@ def map_layers(data, enabled=None):
                     put("Back", x, y-distance, tile)
                     if y-distance >= 0:
                         walls.add((x, y-distance))
-                    # A transparent collision tile leaves editable Back-wall
-                    # artwork visible when wallpaper changes in the game.
-                    put("Buildings", x, y-distance, data["atlas"]["tile_count"])
+                    # The baseboard blocks entry into the wall. Native hanging
+                    # furniture needs the upper two rows free of Buildings tiles.
+                    if distance == 1:
+                        put("Buildings", x, y-distance, data["atlas"]["tile_count"])
     envelope = floor | walls
+    # Room walls are missing floor bounded by real room trim. Their entire
+    # cavity remains impassable, including Back wall faces and empty centers;
+    # Front art alone does not block movement in the game.
+    for x, y in partition_cells(data, enabled, cutaway_only=True):
+        put("Buildings", x, y, data["atlas"]["tile_count"])
     # Wallpaper is a three-row north-wall finish, never structural edge art.
     # Legacy/custom designs without frame artwork still keep their collision
     # boundary; transparent blockers must not repeat a wallpaper baseboard.
@@ -894,7 +978,7 @@ def interior_background(data):
 
 def render_interior(data, project_root, elapsed_ms=0, grid=False, *, time_of_day="day", lights_on=True):
     """Render supplied artwork, animation states and observed furniture lights."""
-    from .interior_furniture import preview_frame, preview_frame_offset, FurnitureValidationError
+    from .interior_furniture import preview_frame, preview_frame_offset, held_item_preview_offset, FurnitureValidationError
     data = normalize_interior(data)
     width, height = data["width"], data["height"]
     image = Image.new("RGBA", (width * 16, height * 16), interior_background(data))
@@ -912,7 +996,8 @@ def render_interior(data, project_root, elapsed_ms=0, grid=False, *, time_of_day
     partition_art = {(x, y) for y in range(height) for x in range(width)
                      if layers["Front"][y*width+x] and ((x, y) in structural
                         or (x, y+1) in structural or (x, y+2) in structural)}
-    floor = floor_cells(data)
+    from .interior_layout import shell_floor_cells
+    floor = shell_floor_cells(data)
     if "doorway" in data:
         floor.add(doorway_exit(data))
     def draw_layer(layer):
@@ -956,6 +1041,17 @@ def render_interior(data, project_root, elapsed_ms=0, grid=False, *, time_of_day
         except (FurnitureValidationError, OSError):
             draw.rectangle((x, y, x+fw*16-1, y+fh*16-1), fill="#76849b", outline="#d9dfeb")
             draw.text((x+2, y+1), "?", fill="#ffffff")
+        if "held_item" in item:
+            held_definition = definitions[item["held_item"]["item_id"]]
+            try:
+                with preview_frame(held_definition, project_root, 0, elapsed_ms,
+                                   time_of_day=time_of_day, lights_on=lights_on) as sprite:
+                    dx, dy = held_item_preview_offset(definition, item["rotation"], sprite_size=sprite.size)
+                    image.alpha_composite(sprite, (x + dx, y + dy))
+            except (FurnitureValidationError, OSError):
+                # The native item remains exportable even when its optional
+                # local sprite or observed tabletop position is unresolved.
+                pass
     draw_layer("Front")
     if sheet is not None:
         sheet.close()
@@ -976,6 +1072,7 @@ def interior_export_issues(data, root):
     issues = []
     try:
         data = normalize_interior(data)
+        validate_spouse_access(data)
         from .interior_architecture_rules import validate_architecture_rules
         validate_architecture_rules(data)
         if not data["atlas"]["asset"]:
@@ -1006,6 +1103,7 @@ def _properties(parent, values):
 def interior_tmx(data, *, enabled=None, design_id=""):
     """Generate only structural/decorative map tiles. Furniture stays in JSON."""
     data = normalize_interior(data)
+    validate_spouse_access(data)
     from .interior_architecture_rules import validate_architecture_rules
     validate_architecture_rules(data, enabled=enabled)
     from .interior_levels import validate_levels
@@ -1053,6 +1151,12 @@ def interior_tmx(data, *, enabled=None, design_id=""):
                               tilewidth="16", tileheight="16", tilecount="8", columns="8")
         ET.SubElement(paths, "image", source="paths.png", width="128", height="16")
         layers["Paths"][y * width + x] = path_first + 7
+    # Native DecoratableLocation requires this vanilla sheet when it initializes
+    # wall/floor regions, even when the authored finish uses a custom atlas.
+    native_first = max(int(sheet.get("firstgid")) + int(sheet.get("tilecount")) for sheet in root.findall("tileset"))
+    native_surfaces = ET.SubElement(root, "tileset", firstgid=str(native_first), name="walls_and_floors",
+                                    tilewidth="16", tileheight="16", tilecount="688", columns="16")
+    ET.SubElement(native_surfaces, "image", source="walls_and_floors", width="256", height="688")
     for index, (name, values) in enumerate(layers.items(), 1):
         node = ET.SubElement(root, "layer", id=str(index), name=name, width=str(width), height=str(height))
         if name == "Paths":
@@ -1090,7 +1194,8 @@ def compile_interior(data, identity, npc_id, root, prefix):
         from .interior_layout import partition_cells, opening_approaches
         from .interior_architecture import architecture_cells, architecture_walkable_connected
         walkable = floor - partition_cells(data, enabled) - architecture_cells(data, enabled)
-        if (not architecture_walkable_connected(data, enabled) or tuple(data["entry"]) not in walkable
+        if (not architecture_walkable_connected(data, enabled)
+                or data["kind"] != "spouse" and tuple(data["entry"]) not in walkable
                 or not opening_approaches(data, enabled) <= walkable):
             continue
         try:
@@ -1117,14 +1222,16 @@ def compile_interior(data, identity, npc_id, root, prefix):
                 fixture_occupied.update(stair_connection_clearance(data, piece, architecture_definitions[piece["piece_id"]]))
         for x, y in sorted(fixture_occupied):
             edits.append({"Layer": "Back", "Position": {"X": x, "Y": y}, "SetProperties": {"NoFurniture": "T"}})
+        from .interior_layout import shell_floor_cells
+        surface_floor = shell_floor_cells(data, enabled)
         for room in data["rooms"]:
             if room["id"] not in enabled:
                 continue
             region = identity + "_" + room["id"]
-            for x, y in sorted(room_cells(room)):
+            for x, y in sorted(room_cells(room) & surface_floor):
                 if (x, y) not in fixture_art:
                     edits.append({"Layer": "Back", "Position": {"X": x, "Y": y}, "SetProperties": {"FloorID": region}})
-                if (x, y-1) not in floor and (x, y-3) not in floor and not {(x, y-1), (x, y-2), (x, y-3)} & fixture_art:
+                if (x, y-1) not in surface_floor and (x, y-3) not in surface_floor and not {(x, y-1), (x, y-2), (x, y-3)} & fixture_art:
                     edits.append({"Layer": "Back", "Position": {"X": x, "Y": y-3}, "SetProperties": {"WallID": region}})
         if "doorway" in data:
             threshold = tuple(data["doorway"])
@@ -1135,7 +1242,10 @@ def compile_interior(data, identity, npc_id, root, prefix):
         if data["kind"] == "spouse":
             x, y = data["spouse_stand"]
             edits.append({"Layer": "Back", "Position": {"X": x, "Y": y}, "SetProperties": {"Pixelheart.Interiors/SpouseRoom": identity}})
-        patches.append({"Action": "EditMap", "Target": map_asset, "MapTiles": edits})
+        # Nonempty region lists select the game's modern WallID/FloorID scan;
+        # otherwise a generic DecoratableLocation uses empty legacy rectangles.
+        regions = ",".join(identity + "_" + room["id"] for room in data["rooms"] if room["id"] in enabled)
+        patches.append({"Action": "EditMap", "Target": map_asset, "MapProperties": {"WallIDs": regions, "FloorIDs": regions}, "MapTiles": edits})
         variants.append({"id": key, "map_asset": map_asset, "enabled_rooms": sorted(enabled)})
         if enabled == default_enabled:
             default = key
@@ -1148,7 +1258,9 @@ def compile_interior(data, identity, npc_id, root, prefix):
                "spouse_marker_y": data["spouse_stand"][1], "rooms": deepcopy(data["rooms"]),
                "variants": variants, "default_variant": default, "furniture": deepcopy(data["furniture"])}
     used_surfaces = {style.get(key, {}).get("surface_id") for style in (data["style"], *data.get("room_styles", {}).values()) for key in ("floor_pattern", "wall_pattern")}
-    dependencies = sorted({d["dependency"] for d in data["catalog"] if d.get("dependency") and any(f["item_id"] == d["id"] for f in data["furniture"])} |
+    used_furniture = {item["item_id"] for item in data["furniture"]}
+    used_furniture.update(item["held_item"]["item_id"] for item in data["furniture"] if "held_item" in item)
+    dependencies = sorted({d["dependency"] for d in data["catalog"] if d.get("dependency") and d["id"] in used_furniture} |
                           {d["dependency"] for d in data.get("surfaces", []) if d.get("dependency") and d["id"] in used_surfaces})
     return {"files": files, "patches": patches, "runtime": runtime,
             "map_asset": next(v["map_asset"] for v in variants if v["id"] == default),

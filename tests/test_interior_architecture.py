@@ -10,7 +10,7 @@ from PIL import Image
 
 from pixelheart_core.interior_architecture import (
     architecture_bounds, architecture_candidate, architecture_cells,
-    architecture_preview, remove_architecture_candidate,
+    architecture_preview, architecture_walkable_connected, remove_architecture_candidate,
     stage_architecture_library, validate_architecture_definition,
 )
 from pixelheart_core.interior_furniture import FurnitureValidationError, import_furniture_library
@@ -19,6 +19,7 @@ from pixelheart_core.interiors import (
     InteriorDraft, InteriorError, compile_interior, ensure_doorway,
     interior_asset_references, interior_tmx, map_layers, new_interior,
     normalize_interior, reachable_tiles, render_interior, room_edit_candidate,
+    spouse_access_issues,
 )
 
 
@@ -38,6 +39,49 @@ def design():
 
 
 class ArchitectureModelTests(unittest.TestCase):
+    def spouse_design(self):
+        data = new_interior("spouse")
+        data["atlas"] = dict(asset="atlas.png", columns=4, tile_count=4)
+        data["architecture_catalog"] = [definition("block", width=1, height=1),
+                                        definition("crossing", width=6, height=1)]
+        return data
+
+    def test_spouse_architecture_can_cover_the_former_bottom_entry_and_export(self):
+        data = architecture_candidate(self.spouse_design(), "block", 3, 8)
+        self.assertTrue(architecture_walkable_connected(data))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            Image.new("RGBA", (64, 16), "white").save(root / "atlas.png")
+            compiled = compile_interior(data, "Spouse", "NPC", root, "room/")
+        self.assertEqual(compiled["runtime"]["default_variant"], "0")
+        self.assertEqual(compiled["runtime"]["entry"], [3, 8])
+        self.assertEqual(compiled["runtime"]["spouse_stand"], [3, 5])
+
+    def test_spouse_architecture_can_split_floor_served_by_separate_west_openings(self):
+        data = architecture_candidate(self.spouse_design(), "crossing", 0, 6)
+        self.assertTrue(architecture_walkable_connected(data))
+        self.assertIn((3, 5), reachable_tiles(data))
+        self.assertIn((3, 8), reachable_tiles(data))
+
+    def test_legacy_west_architecture_barrier_reopens_for_repair(self):
+        data = self.spouse_design()
+        data["architecture"] = [dict(id=f"west-{y}", piece_id="block", room_id="main", x=0, y=y)
+                                for y in range(4, 9)]
+        saved = deepcopy(data)
+        self.assertFalse(architecture_walkable_connected(data))
+        draft = InteriorDraft(data)
+        self.assertEqual(draft.data["architecture"], saved["architecture"])
+        self.assertTrue(spouse_access_issues(draft.data))
+        repaired = remove_architecture_candidate(draft.data, "west-6")
+        draft.apply(repaired)
+        self.assertTrue(architecture_walkable_connected(draft.data))
+        self.assertFalse(spouse_access_issues(draft.data))
+        self.assertTrue(draft.undo())
+        self.assertTrue(spouse_access_issues(draft.data))
+        self.assertEqual(data, saved)
+        with self.assertRaisesRegex(InteriorError, "farmhouse opening on the left"):
+            architecture_candidate(repaired, "block", 0, 6)
+
     def test_legacy_data_stays_unchanged(self):
         data = new_interior()
         self.assertEqual(normalize_interior(data), data)

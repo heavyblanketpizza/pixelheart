@@ -1,7 +1,7 @@
 # Paint a place, play it, and come back to improve it
 
-Open **Home & places → Advanced / Game connection**, choose **Add story location**, and give
-the place a name. Choose **Create map from a tilesheet…**. Save the project when
+Open **Home & places**, choose **+ Story place**, and give the place a name.
+Open **Map tools & dependencies → Create map from a tilesheet…**. Save the project when
 prompted so its map and artwork can travel together.
 
 ## Paint the first version
