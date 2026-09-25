@@ -12,6 +12,7 @@
   <ItemGroup>
     <EmbeddedResource Include="ArchitectureRecipes.json" />
     <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" ExcludeAssets="runtime" />
     <None Update="manifest.json.in" CopyToOutputDirectory="PreserveNewest" TargetPath="manifest.json" />
   </ItemGroup>
   <Target Name="GenerateRuntimeManifest" BeforeTargets="PrepareForBuild">

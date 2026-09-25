@@ -168,15 +168,14 @@ class InteriorTests(unittest.TestCase):
 
     def test_spouse_route_must_remain_walkable(self):
         data = self.design("spouse")
-        data["catalog"] = [self.definition(footprint=[6, 1])]
+        data["catalog"] = [self.definition(footprint=[1, 5])]
         draft = InteriorDraft(data)
         with self.assertRaisesRegex(InteriorError, "walkable route"):
-            draft.place_furniture("(F)Example.Chair", 0, 6)
+            draft.place_furniture("(F)Example.Chair", 0, 4)
         self.assertEqual(draft.data["furniture"], [])
-        for x, y in (data["entry"], data["spouse_stand"]):
-            small = self.draft("spouse")
-            with self.assertRaisesRegex(InteriorError, "clear"):
-                small.place_furniture("(F)Example.Chair", x, y)
+        small = self.draft("spouse")
+        with self.assertRaisesRegex(InteriorError, "clear"):
+            small.place_furniture("(F)Example.Chair", *data["spouse_stand"])
 
     def test_malformed_nested_data_raises_domain_error_without_mutation(self):
         good = self.design()
@@ -256,6 +255,41 @@ class InteriorTests(unittest.TestCase):
         self.assertEqual(variants[-1]["enabled_rooms"], sorted(("main", first, second)))
         self.assertTrue(all(patch["FromFile"] in one["files"] for patch in one["patches"] if patch["Action"] == "Load"))
         self.assertTrue(any(patch.get("MapTiles") for patch in one["patches"]))
+
+    def test_native_wall_furniture_has_regions_sheet_and_clear_upper_wall(self):
+        draft = self.draft()
+        draft.add_room("Optional room", 12, 5, 4, 4)
+        compiled = compile_interior(draft.data, "Example_Home", "Example_NPC", self.root, "assets/interior/")
+        for variant in compiled["runtime"]["variants"]:
+            patch = next(p for p in compiled["patches"] if p["Action"] == "EditMap" and p["Target"] == variant["map_asset"])
+            expected = {"Example_Home_" + room for room in variant["enabled_rooms"]}
+            self.assertEqual(set(patch["MapProperties"]["WallIDs"].split(",")), expected)
+            self.assertEqual(set(patch["MapProperties"]["FloorIDs"].split(",")), expected)
+            load = next(p for p in compiled["patches"] if p["Action"] == "Load" and p["Target"] == variant["map_asset"])
+            root = ET.fromstring(compiled["files"][load["FromFile"]])
+            native = root.find("tileset[@name='walls_and_floors']")
+            self.assertEqual(native.find("image").get("source"), "walls_and_floors")
+            ranges = [(int(sheet.get("firstgid")), int(sheet.get("firstgid")) + int(sheet.get("tilecount")))
+                      for sheet in root.findall("tileset")]
+            self.assertTrue(all(a[1] <= b[0] for a, b in zip(ranges, ranges[1:])))
+            buildings = self.gids(root, "Buildings")
+            width = draft.data["width"]
+            # A native window occupies the top and middle rows. The baseboard
+            # must still prevent the player walking into the cleared wall area.
+            for y in (2, 3):
+                self.assertEqual(buildings[y * width + 2], 0)
+            self.assertNotEqual(buildings[4 * width + 2], 0)
+            floor = floor_cells(draft.data, set(variant["enabled_rooms"]))
+            reached, pending = set(), [next(iter(floor))]
+            while pending:
+                x, y = pending.pop()
+                if (x, y) in reached or not (0 <= x < width and 0 <= y < draft.data["height"]):
+                    continue
+                if buildings[y * width + x]:
+                    continue
+                reached.add((x, y))
+                pending.extend(((x-1, y), (x+1, y), (x, y-1), (x, y+1)))
+            self.assertEqual(reached, floor, "Opening the hanging area must not leak across a room boundary.")
 
     def test_compilation_retains_live_item_ids_metadata_and_only_used_dependencies(self):
         draft = self.draft()

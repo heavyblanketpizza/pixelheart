@@ -51,21 +51,13 @@ def architecture_clearance_cells(item, definition):
 
 
 def _geometry(data, enabled):
-    from .interiors import floor_cells, room_cells
-    from .interior_layout import partition_cells, partition_span
-    floor = floor_cells(data, enabled)
+    from .interior_layout import partition_cells, partition_span, shell_floor_cells, shell_wall_regions
+    floor = shell_floor_cells(data, enabled)
     structural = partition_cells(data, enabled)
-    walls, caps = {}, {}
-    for room in data["rooms"]:
-        if room["id"] not in enabled:
-            continue
-        cells = room_cells(room)
-        heads = {(x, y) for x, y in cells if (x, y-1) not in floor}
-        walls[room["id"]] = {(x, y-d) for x, y in heads for d in (1, 2, 3)
-                              if y-d >= 0 and (x, y-d) not in floor}
-        caps[room["id"]] = {(x, y-4) for x, y in heads if y >= 4 and (x, y-4) not in floor}
+    walls, caps = shell_wall_regions(data, enabled)
     for wall in data.get("partitions", []):
-        if wall["room_id"] not in enabled or wall["axis"] != "horizontal":
+        if (wall["room_id"] not in enabled or wall["axis"] != "horizontal"
+                or wall.get("thickness", 1) > 1):
             continue
         gaps = {offset for gap in wall["openings"] for offset in range(gap["offset"], gap["offset"]+gap["width"])}
         for offset, (x, y) in enumerate(partition_span(wall)):
@@ -78,7 +70,7 @@ def _geometry(data, enabled):
 def architecture_rule_issues(data, enabled=None):
     """Return actionable issues without changing data or preventing old loads."""
     from .interior_architecture import architecture_cells, piece_cells
-    from .interiors import placement_cells
+    from .interiors import placement_cells, spouse_entrance_tiles
     active = ({room["id"] for room in data["rooms"] if room["enabled"]}
               if enabled is None else set(enabled))
     definitions = {piece["id"]: piece for piece in data.get("architecture_catalog", [])}
@@ -96,8 +88,8 @@ def architecture_rule_issues(data, enabled=None):
         if definition["kind"] != "rug":
             furniture_blockers.update(cells)
     walkable = floor - structural - fixtures - furniture_blockers
-    entry = tuple(data["entry"])
-    reached = {entry} if entry in walkable else set()
+    entrances = spouse_entrance_tiles(data) if data["kind"] == "spouse" else {tuple(data["entry"])}
+    reached = entrances & walkable
     queue = list(reached)
     while queue:
         x, y = queue.pop()

@@ -176,13 +176,13 @@ class InteriorWorldPageTests(unittest.TestCase):
     def test_empty_places_starts_with_home_actions_and_closed_advanced_tools(self):
         self.assertEqual(self.page.build_home_button.text(), "Build residence…")
         self.assertEqual(self.page.design_spouse_button.text(), "Design spouse room…")
-        self.assertTrue(self.page.place_creation_tools.isHidden())
+        self.assertFalse(self.page.story_place_button.isHidden())
         self.assertTrue(self.page.location_advanced.isHidden())
         self.assertFalse(self.page.tabs.isTabVisible(1))
         self.assertTrue(self.page.location_list.isHidden())
         self.assertFalse(self.page.remove_buttons[self.page.location_panel].isEnabled())
         self.page.place_advanced_toggle.click()
-        self.assertFalse(self.page.place_creation_tools.isHidden())
+        self.assertFalse(self.page.story_place_button.isHidden())
         self.assertFalse(self.page.location_advanced.isHidden())
         self.assertTrue(self.page.tabs.isTabVisible(1))
         self.page.place_advanced_toggle.click()
@@ -232,7 +232,7 @@ class InteriorWorldPageTests(unittest.TestCase):
         self.assertEqual(self.window.identity.dump()["home_x"], 5)
         self.assertEqual(self.window.identity.dump()["home_y"], 10)
 
-    def test_residence_map_and_entry_edits_stay_assigned_to_current_npc(self):
+    def test_residence_map_rename_keeps_assignment_and_protects_designed_entry(self):
         self.page.add_location()
         self.page.world["locations"][0]["interior"] = new_interior()
         self.page.assign_home()
@@ -242,7 +242,9 @@ class InteriorWorldPageTests(unittest.TestCase):
         self.page.location_fields["entry_y"].setValue(6)
         for character in (self.window.document["character"], self.window.identity.dump()):
             self.assertEqual(character["home_map"], "RenamedHome")
-            self.assertEqual((character["home_x"], character["home_y"]), (5, 6))
+            self.assertEqual((character["home_x"], character["home_y"]), (2, 2))
+        self.assertFalse(self.page.location_fields["entry_x"].isEnabled())
+        for character in (self.window.document["character"], self.window.identity.dump()):
             self.assertEqual(character["tagline"], "Unsaved character detail")
 
     def test_removing_residence_restores_valid_base_game_home(self):
@@ -304,7 +306,7 @@ class InteriorWorldPageTests(unittest.TestCase):
         self.assertEqual((record["entry_x"], record["entry_y"]), (6, 10))
         for character in (self.window.document["character"], self.window.identity.dump()):
             self.assertEqual((character["home_x"], character["home_y"]), (9, 8))
-        self.assertTrue(self.page.interior_notice.isHidden())
+        self.assertIn("Save project", self.page.interior_notice.text())
         self.window.document["world"] = self.page.dump()
         save_project(self.window.document, self.window.project_file)
         reopened = load_project(self.window.project_file)
@@ -360,7 +362,7 @@ class InteriorWorldPageTests(unittest.TestCase):
             self.assertEqual(scene["story"]["beats"], [beat])
             self.assertEqual(scene["story"]["stage"], "ready")
             self.assertEqual(scene["custom"], "keep")
-        self.assertEqual(self.page.interior_notice.text(), "Room moved. Review scene blocking and walking routes.")
+        self.assertIn("Room moved: review scene blocking and walking routes.", self.page.interior_notice.text())
         self.assertFalse(self.page.interior_notice.isHidden())
 
     def test_translated_explicit_home_is_not_mistaken_for_old_entry(self):
@@ -406,7 +408,7 @@ class InteriorWorldPageTests(unittest.TestCase):
         self.accept_design(design)
         for entrance in entrances[:2]:
             self.assertEqual((entrance["x"], entrance["y"], entrance["arrival_x"], entrance["arrival_y"]), (9, 8, 10, 9))
-        self.assertEqual(entrances[2], {"map": "Town", "x": 7, "y": 8, "arrival_x": 8, "arrival_y": 9})
+        self.assertEqual(entrances[2], {"map": "Town", "x": 7, "y": 8, "arrival_x": 8, "arrival_y": 9, "confirmed": False})
 
     def test_cancelled_new_home_leaves_no_pending_record_on_disk_or_in_memory(self):
         before = self.page.dump()

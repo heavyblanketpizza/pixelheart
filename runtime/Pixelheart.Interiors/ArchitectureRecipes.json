@@ -35,14 +35,15 @@
       ]
     },
     {
-      "id": "stardew.sink", "name": "Kitchen sink",
+      "id": "stardew.sink", "name": "Kitchen sink & cabinet",
       "category": "Kitchen", "placement": "floor", "rules": "wall_backed",
       "map": "Maps/SeedShop", "map_size": [48, 32],
       "texture": "Maps/townInterior",
-      "width": 1, "height": 2,
+      "width": 1, "height": 3,
       "cells": [
-        {"layer": "Front", "x": 0, "y": 0, "source_x": 38, "source_y": 3, "tile": 601},
-        {"layer": "Buildings", "x": 0, "y": 1, "source_x": 38, "source_y": 4, "tile": 633}
+        {"layer": "Front", "x": 0, "y": 0, "source_x": 38, "source_y": 2, "tile": 569},
+        {"layer": "Front", "x": 0, "y": 1, "source_x": 38, "source_y": 3, "tile": 601},
+        {"layer": "Buildings", "x": 0, "y": 2, "source_x": 38, "source_y": 4, "tile": 633}
       ]
     },
     {
@@ -50,10 +51,11 @@
       "category": "Kitchen", "placement": "floor", "rules": "wall_backed",
       "map": "Maps/SeedShop", "map_size": [48, 32],
       "texture": "Maps/townInterior",
-      "width": 1, "height": 2,
+      "width": 1, "height": 3,
       "cells": [
-        {"layer": "Front", "x": 0, "y": 0, "source_x": 39, "source_y": 3, "tile": 602},
-        {"layer": "Buildings", "x": 0, "y": 1, "source_x": 39, "source_y": 4, "tile": 634}
+        {"layer": "Front", "x": 0, "y": 0, "source_x": 39, "source_y": 2, "tile": 570},
+        {"layer": "Front", "x": 0, "y": 1, "source_x": 39, "source_y": 3, "tile": 602},
+        {"layer": "Buildings", "x": 0, "y": 2, "source_x": 39, "source_y": 4, "tile": 634}
       ]
     },
     {
@@ -67,16 +69,6 @@
         {"layer": "Front", "x": 1, "y": 0, "source_x": 35, "source_y": 1, "tile": 531},
         {"layer": "Front", "x": 0, "y": 1, "source_x": 34, "source_y": 2, "tile": 562},
         {"layer": "Front", "x": 1, "y": 1, "source_x": 35, "source_y": 2, "tile": 563}
-      ]
-    },
-    {
-      "id": "stardew.wall-cabinet", "name": "Wall cabinet",
-      "category": "Wall fixtures", "placement": "wall", "rules": "wall_art",
-      "map": "Maps/SeedShop", "map_size": [48, 32],
-      "texture": "Maps/townInterior",
-      "width": 1, "height": 1,
-      "cells": [
-        {"layer": "Front", "x": 0, "y": 0, "source_x": 38, "source_y": 2, "tile": 569}
       ]
     },
     {

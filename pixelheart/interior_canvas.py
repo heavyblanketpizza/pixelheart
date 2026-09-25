@@ -14,9 +14,11 @@ from PySide6.QtGui import QColor, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QApplication, QWidget
 
 from pixelheart_core.interiors import (
-    footprint, normalize_interior, render_interior, validate_furniture_placement,
+    footprint, normalize_interior, render_interior, validate_furniture_placement, validate_spouse_access,
 )
-from pixelheart_core.interior_furniture import preview_frame, preview_frame_offset, frame_at
+from pixelheart_core.interior_furniture import preview_frame, preview_frame_offset, frame_at, held_item_preview_offset
+from pixelheart_core.interior_layout import partition_rectangle, partition_opening_rectangle
+from pixelheart_core.interior_spouse_context import SPOUSE_CONTEXT_ORIGIN, SPOUSE_CONTEXT_SIZE, spouse_context_layers
 
 
 FURNITURE_MIME = "application/x-pixelheart-interior-furniture"
@@ -48,12 +50,16 @@ class InteriorCanvas(QWidget):
         self.draft = draft
         self.scale = 2
         self.image = QPixmap()
+        self._context_background = QPixmap()
+        self._context_foreground = QPixmap()
+        self._context_key = None
         self.tool = "select"
         self.selected_id = ""
         self.selected_room_id = ""
         self.selected_partition_id = ""
         self.selected_architecture_id = ""
         self.architecture_candidate = None
+        self.furniture_validator = None
         self._architecture_placement = None
         self._pending_architecture_place = None
         self._pending_architecture_move = None
@@ -96,6 +102,7 @@ class InteriorCanvas(QWidget):
         self.room_resize_candidate = None
         self.corridor_candidate = None
         self.partition_candidate = None
+        self.partition_thickness = lambda axis: 1
         self.opening_candidate = None
         self.place_room_drop = None
         self.room_catalogue_drag = None
@@ -118,11 +125,36 @@ class InteriorCanvas(QWidget):
         self.refresh_size()
 
     def refresh_size(self):
-        self.setFixedSize(self.draft.data["width"] * 16 * self.scale,
-                          self.draft.data["height"] * 16 * self.scale)
+        width, height = self.view_size
+        self.setFixedSize(width * 16 * self.scale, height * 16 * self.scale)
         self._update_ghost()
         self._update_architecture_preview()
         self.update()
+
+    @property
+    def view_origin(self):
+        """Offset of editable map tiles within the surrounding preview."""
+        return SPOUSE_CONTEXT_ORIGIN if self.draft.data["kind"] == "spouse" else (0, 0)
+
+    @property
+    def view_size(self):
+        return SPOUSE_CONTEXT_SIZE if self.draft.data["kind"] == "spouse" else (self.draft.data["width"], self.draft.data["height"])
+
+    def _refresh_context(self):
+        key = (self.draft.data["kind"], str(self.project_root), self.draft.data.get("spouse_context"))
+        if key == self._context_key:
+            return
+        self._context_background = QPixmap()
+        self._context_foreground = QPixmap()
+        if self.draft.data["kind"] == "spouse":
+            background, foreground = spouse_context_layers(self.draft.data, self.project_root)
+            try:
+                self._context_background = QPixmap.fromImage(ImageQt(background))
+                self._context_foreground = QPixmap.fromImage(ImageQt(foreground))
+            finally:
+                background.close()
+                foreground.close()
+        self._context_key = deepcopy(key)
 
     def set_scale(self, scale):
         if type(scale) is not int or not 1 <= scale <= 8:
@@ -131,6 +163,7 @@ class InteriorCanvas(QWidget):
         self.refresh_size()
 
     def set_image(self, image):
+        self._refresh_context()
         self.image = QPixmap.fromImage(ImageQt(image))
         if self.drag:
             self._refresh_drag_image()
@@ -432,14 +465,16 @@ class InteriorCanvas(QWidget):
         return False
 
     def _preview_structure_edit(self, kind, *proposal, force=False):
-        key = (id(self.draft.data), kind, self.selected_partition_id, *proposal)
+        thickness = self.partition_thickness(proposal[0]) if kind == "partition" else None
+        key = (id(self.draft.data), kind, self.selected_partition_id, thickness, *proposal)
         if not force and key == self._room_edit_key:
             return self.preview_valid
         self._room_edit_key = key
         self._structure_kind = kind
         if kind == "partition":
             axis, x, y, length = proposal
-            self._room_preview = (x, y-2, length, 3) if axis == "horizontal" else (x, y, 1, length)
+            self._room_preview = partition_rectangle(
+                {"axis": axis, "x": x, "y": y, "length": length, "thickness": thickness}, visual=True)
         elif kind == "opening":
             self._room_preview = (*proposal, 1, 1)
         else:
@@ -455,20 +490,16 @@ class InteriorCanvas(QWidget):
             if kind == "corridor":
                 room = candidate["rooms"][-1]
                 self._room_preview = tuple(room[key] for key in ("x", "y", "width", "height"))
+            elif kind == "partition":
+                self._room_preview = partition_rectangle(candidate["partitions"][-1], visual=True)
             elif kind == "opening":
                 source = self._partition_at(*proposal)
                 wall = next((wall for wall in candidate.get("partitions", [])
                              if wall["id"] == (source["id"] if source else self.selected_partition_id)), None)
                 if wall:
                     for opening in wall["openings"]:
-                        x, y = wall["x"], wall["y"]
-                        if wall["axis"] == "horizontal":
-                            x += opening["offset"]
-                            y -= 2
-                            rectangle = x, y, opening["width"], 3
-                        else:
-                            y += opening["offset"]
-                            rectangle = x, y, 1, opening["width"]
+                        rectangle = partition_opening_rectangle(wall, opening, visual=True)
+                        x, y = rectangle[:2]
                         if x <= proposal[0] < x + rectangle[2] and y <= proposal[1] < y + rectangle[3]:
                             self._room_preview = rectangle
                             break
@@ -647,16 +678,29 @@ class InteriorCanvas(QWidget):
                          if upper["id"] == room.get("upper_room_id") and upper["enabled"]), None)
         return room
 
+    def room_at(self, x, y, *, include_walls=False):
+        """Resolve visible floor before wall strips that can overlap another room."""
+        room = self._room_at(x, y)
+        if room is not None or not include_walls:
+            return room
+        return next((room for room in reversed(self.draft.data["rooms"])
+                     if room["enabled"] and room.get("kind") != "stairway"
+                     and room["x"] <= x < room["x"] + room["width"]
+                     and room["y"] - 3 <= y < room["y"]), None)
+
     def _partition_at(self, x, y):
         active = {room["id"] for room in self.draft.data["rooms"] if room["enabled"]}
         walls = sorted(self.draft.data.get("partitions", []), key=lambda wall: wall["axis"] == "vertical")
-        return next((wall for wall in reversed(walls) if wall["room_id"] in active
-                     and ((wall["axis"] == "horizontal" and wall["y"]-2 <= y <= wall["y"] and wall["x"] <= x < wall["x"] + wall["length"])
-                         or (wall["axis"] == "vertical" and x == wall["x"] and wall["y"] <= y < wall["y"] + wall["length"]))), None)
+        for wall in reversed(walls):
+            left, top, width, height = partition_rectangle(wall, visual=True)
+            if wall["room_id"] in active and left <= x < left + width and top <= y < top + height:
+                return wall
+        return None
 
     def _position(self, event):
         cell = 16 * self.scale
-        return math.floor(event.position().x() / cell), math.floor(event.position().y() / cell)
+        ox, oy = self.view_origin
+        return math.floor(event.position().x() / cell) - ox, math.floor(event.position().y() / cell) - oy
 
     def _resize_handles(self, data=None):
         data = self.draft.data if data is None else data
@@ -719,7 +763,7 @@ class InteriorCanvas(QWidget):
             self.setCursor(Qt.CursorShape.OpenHandCursor)
         elif (handle := self._resize_handle_at(self.cursor_position)) is not None:
             self.setCursor(self._resize_cursor(handle))
-        elif self.tool == "room-select" and self.cursor_tile and self._partition_at(*self.cursor_tile):
+        elif self.tool in ("room-select", "wall-select") and self.cursor_tile and self._partition_at(*self.cursor_tile):
             self.setCursor(Qt.CursorShape.PointingHandCursor)
         elif self.tool == "room-select" and self.cursor_tile and self._room_at(*self.cursor_tile):
             self.setCursor(Qt.CursorShape.OpenHandCursor)
@@ -744,6 +788,7 @@ class InteriorCanvas(QWidget):
                 proposed = normalize_interior(candidate())
                 from pixelheart_core.interior_architecture_rules import validate_architecture_rules
                 validate_architecture_rules(proposed, before=self.draft.data)
+                validate_spouse_access(proposed, before=self.draft.data)
                 result = (True, "")
             except ValueError as exc:
                 result = (False, str(exc))
@@ -764,6 +809,8 @@ class InteriorCanvas(QWidget):
                           "mod_data": deepcopy(definition.get("mod_data", {}))}
                 data["furniture"].append(placed)
             validate_furniture_placement(data, placed, definition)
+            if self.furniture_validator is not None:
+                self.furniture_validator(data)
             return data
         return self._validate(("furniture", definition["id"], rotation, x, y, identity), candidate)
 
@@ -784,6 +831,7 @@ class InteriorCanvas(QWidget):
         data["rooms"] = list(data["rooms"])
         data["furniture"] = [dict(item) for item in data["furniture"]]
         used = {item["item_id"] for item in data["furniture"]}
+        used.update(item["held_item"]["item_id"] for item in data["furniture"] if "held_item" in item)
         if extra_definition:
             used.add(extra_definition["id"])
         data["catalog"] = [item for item in data["catalog"] if item["id"] in used]
@@ -795,6 +843,7 @@ class InteriorCanvas(QWidget):
             return
         x, y = self.cursor_tile
         identity = ""
+        held_definition = None
         if self.drag:
             identity, start_x, start_y, original_x, original_y = self.drag
             placed = next((item for item in self.draft.data["furniture"] if item["id"] == identity), None)
@@ -802,6 +851,9 @@ class InteriorCanvas(QWidget):
                 self.drag = None
                 return
             definition = next(item for item in self.draft.data["catalog"] if item["id"] == placed["item_id"])
+            if "held_item" in placed:
+                held_definition = next(item for item in self.draft.data["catalog"]
+                                       if item["id"] == placed["held_item"]["item_id"])
             rotation = placed.get("rotation", 0)
             x, y = original_x + x - start_x, original_y + y - start_y
         elif self.catalogue_drag:
@@ -817,7 +869,7 @@ class InteriorCanvas(QWidget):
             return
         valid, message = self._validate_furniture(definition, rotation, x, y, identity)
         self.ghost = dict(x=x, y=y, width=width, height=height, definition=definition,
-                          rotation=rotation, valid=valid, message=message)
+                          held_definition=held_definition, rotation=rotation, valid=valid, message=message)
         self._set_preview(valid, message)
 
     def _refresh_drag_image(self):
@@ -848,6 +900,11 @@ class InteriorCanvas(QWidget):
         painter = QPainter(self)
         painter.fillRect(event.rect(), QColor("#292d30"))
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
+        cell = 16 * self.scale
+        if not self._context_background.isNull():
+            painter.drawPixmap(self.rect(), self._context_background)
+        ox, oy = self.view_origin
+        painter.translate(ox * cell, oy * cell)
         base = self._drag_image if self.drag and not self._drag_image.isNull() else self.image
         shown = self._architecture_candidate_data or self._room_candidate_data or self.draft.data
         if not self._architecture_candidate_image.isNull():
@@ -857,17 +914,16 @@ class InteriorCanvas(QWidget):
             painter.drawPixmap(QRect(0, 0, shown["width"] * 16 * self.scale,
                                      shown["height"] * 16 * self.scale), self._room_candidate_image)
         elif not base.isNull():
-            painter.drawPixmap(self.rect(), base)
-        cell = 16 * self.scale
+            painter.drawPixmap(QRect(0, 0, shown["width"] * cell, shown["height"] * cell), base)
         for room in shown["rooms"]:
             if room["id"] == self.selected_room_id or (self.tool in ("room", "room-select") and room["id"] == self._hover_room_id):
                 rect = self._draw_outline(painter, tuple(room[key] for key in ("x", "y", "width", "height")),
                                           "#d6bb7d", 12)
                 painter.drawText(rect.adjusted(7, 4, -7, -4), Qt.AlignmentFlag.AlignTop, room["name"])
-        if self.tool in ("room-select", "corridor", "partition", "opening", "room"):
+        if self.tool in ("room-select", "wall-select", "corridor", "partition", "opening", "room"):
             wall = next((wall for wall in shown.get("partitions", []) if wall["id"] == self.selected_partition_id), None)
             if wall:
-                rectangle = (wall["x"], wall["y"]-2, wall["length"], 3) if wall["axis"] == "horizontal" else (wall["x"], wall["y"], 1, wall["length"])
+                rectangle = partition_rectangle(wall, visual=True)
                 self._draw_outline(painter, rectangle, "#d6bb7d", 16)
         # Arrival is map metadata, not a doorway graphic. The residence's
         # actual opening is already part of the same map image we export.
@@ -901,9 +957,19 @@ class InteriorCanvas(QWidget):
                     painter.drawPixmap(QRect(ghost["x"] * cell + dx * self.scale,
                                               (ghost["y"] + ghost["height"]) * cell + (dy - pixmap.height()) * self.scale,
                                               pixmap.width() * self.scale, pixmap.height() * self.scale), pixmap)
-                    painter.setOpacity(1)
+                    if ghost["held_definition"] is not None:
+                        with preview_frame(ghost["held_definition"], self.project_root, 0, self.elapsed_ms,
+                                           time_of_day=self.time_of_day, lights_on=self.lights_on) as sprite:
+                            dx, dy = held_item_preview_offset(ghost["definition"], ghost["rotation"],
+                                                              sprite_size=sprite.size)
+                            pixmap = QPixmap.fromImage(ImageQt(sprite))
+                        painter.drawPixmap(QRect(ghost["x"] * cell + dx * self.scale,
+                                                  ghost["y"] * cell + dy * self.scale,
+                                                  pixmap.width() * self.scale, pixmap.height() * self.scale), pixmap)
                 except (ValueError, OSError):
                     pass
+                finally:
+                    painter.setOpacity(1)
             color = "#81d2a1" if ghost["valid"] else "#f38a87"
             self._draw_outline(painter, tuple(ghost[key] for key in ("x", "y", "width", "height")), color, 55)
         if self._room_preview:
@@ -932,6 +998,10 @@ class InteriorCanvas(QWidget):
                     painter.setOpacity(1)
                 color = "#81d2a1" if self.preview_valid else "#f38a87"
                 self._draw_outline(painter, self._architecture_preview, color, 35, dashed=True)
+        # The farmhouse's lower Front trim covers the bottom of the insert,
+        # including furniture being dragged. It is never part of map exports.
+        if not self._context_foreground.isNull():
+            painter.drawPixmap(QRect(-ox * cell, -oy * cell, self.width(), self.height()), self._context_foreground)
         painter.setPen(QPen(QColor("#6b8051"), 1))
         painter.setBrush(QColor("#fffdf5"))
         for x, y in self._resize_handles(shown).values():
@@ -987,6 +1057,10 @@ class InteriorCanvas(QWidget):
         x, y = self._position(event)
         self.cursor_tile = x, y
         self.cursor_position = event.position().toPoint()
+        if self.draft.data["kind"] == "spouse" and not (0 <= x < 6 and 0 <= y < 9):
+            self._set_preview(False, "The farmhouse surroundings are preview only. Decorate inside the room.")
+            self.update()
+            return
         if self.tool == "architecture-place":
             if self._architecture_placement is not None:
                 self._pending_architecture_place = self._architecture_placement["id"]
@@ -1012,6 +1086,11 @@ class InteriorCanvas(QWidget):
             room = next(room for room in self.draft.data["rooms"] if room["id"] == self.selected_room_id)
             self._pending_room_resize = (room["id"], handle, room["x"], room["y"],
                                          room["width"], room["height"], event.position().toPoint())
+        elif self.tool == "wall-select":
+            wall = self._partition_at(x, y)
+            self.selected_partition_id = wall["id"] if wall else ""
+            self.selected_room_id = self.selected_id = ""
+            self.partition_selected.emit(self.selected_partition_id)
         elif self.tool == "room-select" and (wall := self._partition_at(x, y)) is not None:
             self.selected_partition_id = wall["id"]
             self.partition_selected.emit(wall["id"])

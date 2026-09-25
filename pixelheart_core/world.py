@@ -160,6 +160,8 @@ def world_structure_issues(world):
                 if not isinstance(entrance, dict):
                     add(field + ".entrance", "The entrance must describe its map and tiles.")
                 else:
+                    if "confirmed" in entrance and type(entrance["confirmed"]) is not bool:
+                        add(field + ".entrance.confirmed", "Entrance confirmation must be true or false.")
                     for name in ("x", "y", "arrival_x", "arrival_y"):
                         if name in entrance and (type(entrance[name]) is not int or not 0 <= entrance[name] <= 1000):
                             add(field + ".entrance." + name, "Entrance tiles must be whole numbers from 0 to 1000.")
@@ -581,6 +583,11 @@ def world_issues(world, character, project_root=None):
         names.add(internal.casefold())
         if internal.casefold() in vanilla_names:
             add("error", prefix + ".internal_name", "Use a new place ID instead of an existing vanilla map name.")
+        # Existing projects predate explicit entrance confirmation. Keep their
+        # saved connections working; new GUI drafts opt in with confirmed=False.
+        # Report this even when missing map artwork also blocks export.
+        if not location["spouse_room"] and not location["entrance"].get("confirmed", True):
+            add("error", prefix + ".entrance", "Choose the entrance in Home & places and select “Use this entrance” before exporting this place.")
         try:
             if "interior" in location:
                 from .interiors import interior_export_issues, reachable_tiles
@@ -617,9 +624,10 @@ def world_issues(world, character, project_root=None):
                 if not IDENTIFIER.fullmatch(entrance["map"]):
                     add("error", prefix + ".entrance.map", "Choose the existing map where the player enters this place.")
                 entrance_key = (entrance["map"], entrance["x"], entrance["y"])
-                if entrance_key in entrances:
-                    add("error", prefix + ".entrance", "Another place uses this entrance tile. Choose a different entrance so both places remain reachable.")
-                entrances.add(entrance_key)
+                if entrance.get("confirmed", True):
+                    if entrance_key in entrances:
+                        add("error", prefix + ".entrance", "Another place uses this entrance tile. Choose a different entrance so both places remain reachable.")
+                    entrances.add(entrance_key)
                 visited = {internal}
                 cursor = entrance["map"]
                 while cursor in locations_by_name:

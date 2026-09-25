@@ -65,6 +65,19 @@ def legacy():
 
 
 class ArchitectureRulesTests(unittest.TestCase):
+    def test_spouse_fixture_approach_uses_west_access_when_bottom_entry_is_blocked(self):
+        result = new_interior("spouse")
+        result["atlas"] = dict(asset="atlas.png", columns=4, tile_count=4)
+        result["catalog"] = data()["catalog"]
+        result["architecture_catalog"] = [piece("stardew.bookcase")]
+        result = architecture_candidate(result, "stardew.bookcase", 2, 2)
+        draft = InteriorDraft(result)
+        draft.place_furniture("(F)chair", 3, 8)
+        for x in range(6):
+            draft.place_furniture("(F)chair", x, 6)
+        self.assertEqual(architecture_rule_issues(draft.data), [])
+        validate_architecture_rules(draft.data)
+
     def test_known_native_identity_cannot_bypass_profile(self):
         for rules in (None, "free", "wall_art"):
             value = piece("stardew.stairs", 2, 2, blocking=False, rules=rules)

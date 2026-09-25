@@ -215,6 +215,8 @@ def validate_definition(value):
     intensity or the default luminance multiplied by alpha. Optional ``blend``
     selects ``illuminate`` (the default) or a literal RGBA ``overlay``; overlays
     require a mask rectangle and ignore ``mask_channel``.
+    Optional ``held_item_offsets`` map rotations to observed pixel positions
+    of a 16 × 16 tabletop decoration, relative to the parent tile origin.
     """
     if not isinstance(value, dict):
         raise FurnitureValidationError("A furniture definition must be an object.")
@@ -259,6 +261,19 @@ def validate_definition(value):
         effects["preview_variants"] = variants
     if "preview_lights" in value:
         effects["preview_lights"] = _preview_lights(value["preview_lights"], rotations)
+    if "held_item_offsets" in value:
+        offsets = value["held_item_offsets"]
+        if not isinstance(offsets, dict) or len(offsets) > rotations:
+            raise FurnitureValidationError("Tabletop preview offsets must map rotation indexes to pixel positions.")
+        normalized_offsets = {}
+        for key, offset in offsets.items():
+            if not isinstance(key, str) or key not in {str(index) for index in range(rotations)}:
+                raise FurnitureValidationError("Each tabletop preview offset needs an available rotation index as text.")
+            if not isinstance(offset, (list, tuple)) or len(offset) != 2:
+                raise FurnitureValidationError("A tabletop preview offset needs x and y in pixels.")
+            normalized_offsets[key] = [_integer(part, "Tabletop preview offset", -MAX_FRAME_PIXELS, MAX_FRAME_PIXELS)
+                                       for part in offset]
+        effects["held_item_offsets"] = normalized_offsets
     mod_data = value.get("mod_data", {})
     if not isinstance(mod_data, dict) or len(mod_data) > 128:
         raise FurnitureValidationError("Furniture mod data must be an object with at most 128 entries.")
@@ -281,6 +296,34 @@ def validate_definition(value):
         "mod_data": mod_data,
         **effects,
     }
+
+
+def validate_held_item(value, parent, definitions):
+    """Validate one native tabletop decoration without adding floor collision.
+
+    Tabletop items are installed furniture IDs, not additional map sprites.
+    The bounded initial contract mirrors the game's one held object per table:
+    an unrotated, one-tile decoration, without nested items or placement fields.
+    """
+    if not isinstance(value, dict) or set(value) - {"item_id", "mod_data"}:
+        raise FurnitureValidationError("A tabletop item needs only an item ID and optional mod data; nested items are unsupported.")
+    if parent["kind"] not in ("table", "long table"):
+        raise FurnitureValidationError("Only tables and long tables can hold a tabletop item.")
+    item_id = qualified_furniture_id(value.get("item_id"))
+    definition = definitions.get(item_id)
+    if definition is None:
+        raise FurnitureValidationError("Every tabletop item must exist in the furniture library.")
+    size = definition.get("rotation_footprints", {}).get("0", definition.get("footprint"))
+    if definition["kind"] != "decor" or size != [1, 1]:
+        raise FurnitureValidationError("A tabletop item must be a one-tile furniture decoration.")
+    if definition.get("placement") == "outdoors":
+        raise FurnitureValidationError("Outdoor-only furniture cannot be placed on an interior table.")
+    mod_data = value.get("mod_data", {})
+    if not isinstance(mod_data, dict) or len(mod_data) > 128:
+        raise FurnitureValidationError("Tabletop mod data must be an object with at most 128 entries.")
+    metadata = {_text(key, "Mod data key", 256): _text(item, "Mod data value", 4096, empty=True)
+                for key, item in mod_data.items()}
+    return {"item_id": item_id, "mod_data": metadata}
 
 
 def validate_surface(value):
@@ -349,6 +392,19 @@ def validate_room_frame(value):
             raise FurnitureValidationError("Room frame tiles must be 16 × 16 pixels.")
         normalized[role] = rect
     return {"preview_asset": preview, "tiles": normalized}
+
+
+def validate_spouse_context(value):
+    """Validate references to the optional farmhouse preview surround.
+
+    The fixed 9 × 11 tile images contain preview-only background and foreground
+    artwork; the authored 6 × 9 spouse insert starts at tile (2, 1).
+    Image dimensions are preflighted with the rest of the imported library.
+    """
+    if not isinstance(value, dict) or set(value) != {"background_asset", "foreground_asset"}:
+        raise FurnitureValidationError("A spouse room context needs background and foreground PNG references.")
+    return {key: _relative(value[key], "Spouse room context asset")
+            for key in ("background_asset", "foreground_asset")}
 
 
 def _read_regular(path, maximum, label):
@@ -544,7 +600,8 @@ def import_furniture_library(path, project_dir):
 
     Resolved libraries use ``format: pixelheart-interior-library``, ``version:
     1``, and a ``definitions`` list in this module's schema. Optional
-    ``surfaces`` and ``room_frame`` provide patterns and structural trim.
+    ``surfaces`` and ``room_frame`` provide patterns and structural trim, and
+    ``spouse_context`` supplies the farmhouse preview surround.
     Referenced preview PNG paths are relative to the JSON's directory. Every
     definition, crop, and PNG is preflighted before any project texture is
     copied. Invalid bundle entries fail the import instead of silently losing
@@ -645,6 +702,19 @@ def import_furniture_library(path, project_dir):
             if x + width > size[0] or y + height > size[1]:
                 raise FurnitureValidationError("A room frame tile extends beyond its PNG atlas.")
         room_frame["preview_asset"] = target
+    spouse_context = None
+    if "spouse_context" in data:
+        spouse_context = validate_spouse_context(data["spouse_context"])
+        for key, reference in spouse_context.items():
+            payload, size, target = prepare_texture(reference)
+            # This preview contract is 9 × 11 native 16-pixel tiles, with a
+            # 6 × 9 authored insert at (2, 1), independent of room map exports.
+            if size != (144, 176):
+                raise FurnitureValidationError("Spouse room context PNGs must be exactly 144 × 176 pixels.")
+            with Image.open(io.BytesIO(payload)) as image:
+                if image.mode != "RGBA":
+                    raise FurnitureValidationError("Spouse room context PNGs must use RGBA transparency.")
+            spouse_context[key] = target
     # Copy only the immutable bytes that were validated. A source file changed
     # after preflight cannot replace those bytes or their recorded dimensions.
     for payload, _size, _target in textures.values():
@@ -652,6 +722,8 @@ def import_furniture_library(path, project_dir):
     result = {"definitions": definitions, "surfaces": surfaces, "architecture": architecture, "warnings": messages}
     if room_frame is not None:
         result["room_frame"] = room_frame
+    if spouse_context is not None:
+        result["spouse_context"] = spouse_context
     return result
 
 
@@ -746,6 +818,24 @@ def preview_frame_offset(definition, rotation=0, elapsed_ms=0, *, time_of_day="d
     """Return the selected frame's pixel shift from its footprint alignment."""
     frame = frame_at(definition, rotation, elapsed_ms, time_of_day=time_of_day, lights_on=lights_on)
     return tuple(frame.get("offset", (0, 0)))
+
+
+def held_item_preview_offset(definition, rotation=0, *, sprite_size=(16, 16)):
+    """Return an observed tabletop sprite offset from the parent tile origin.
+
+    Observations use a 16 × 16 decoration. Native tables center the child's
+    sprite horizontally and align its bottom with that baseline. Table variants
+    can use a lower baseline; an absent observation stays unresolved.
+    """
+    definition = validate_definition(definition)
+    _integer(rotation, "Preview rotation", 0, definition["rotations"] - 1)
+    offset = definition.get("held_item_offsets", {}).get(str(rotation))
+    if offset is None:
+        raise FurnitureValidationError("No observed tabletop preview position exists for this rotation.")
+    if not isinstance(sprite_size, (list, tuple)) or len(sprite_size) != 2:
+        raise FurnitureValidationError("A tabletop preview size needs width and height in pixels.")
+    width, height = [_integer(part, "Tabletop preview size", 1, MAX_FRAME_PIXELS) for part in sprite_size]
+    return offset[0] + (16 - width) // 2, offset[1] + 16 - height
 
 
 def clear_preview_cache():

@@ -17,9 +17,13 @@ public sealed class ModEntry : Mod
     private Dictionary<string, DesignData>? designs;
     private bool libraryQueued;
     private bool libraryAttempted;
+    private FurnitureActivities? furnitureActivities;
+    private FurnitureEffects? furnitureEffects;
 
     public override void Entry(IModHelper helper)
     {
+        furnitureActivities = new FurnitureActivities(helper, Monitor);
+        furnitureEffects = new FurnitureEffects(helper, Monitor);
         helper.Events.Content.AssetRequested += OnAssetRequested;
         helper.Events.Content.AssetsInvalidated += OnAssetsInvalidated;
         helper.Events.GameLoop.SaveLoaded += (_, _) => { InitializeWorld(); libraryQueued = !libraryAttempted; };
@@ -111,7 +115,7 @@ public sealed class ModEntry : Mod
                 if (location.Name == design.Location) yield return (location, Point.Zero);
                 continue;
             }
-            if (location is not FarmHouse house || !house.HasNpcSpouse(design.SpouseNpc)) continue;
+            if (location is not FarmHouse house || !house.HasNpcSpouseOrRoommate(design.SpouseNpc)) continue;
             var layer = location.Map?.GetLayer("Back");
             if (layer == null) continue;
             var markers = new List<Point>();
@@ -153,6 +157,7 @@ public sealed class ModEntry : Mod
             item.SetPlacement(origin.X + placement.X, origin.Y + placement.Y, 0);
             for (int turn = 0; turn < placement.Rotation; turn++) item.rotate();
             foreach ((string key, string value) in placement.ModData) item.modData[key] = value;
+            if (placement.HeldItem != null) PrepareHeldItem(item, placement.HeldItem, location);
             pending.Add((placement, item));
         }
         // Resolve every pending item before mutation. A missing furniture mod never substitutes an error item.
@@ -173,6 +178,27 @@ public sealed class ModEntry : Mod
             // This remains after the player picks up or moves the item, so later loads cannot duplicate it.
             location.modData[PlacementKey(id, placement.Id)] = "1";
         }
+    }
+
+    private static void PrepareHeldItem(Furniture table, HeldItemData data, GameLocation location)
+    {
+        // Prepare the complete table before world mutation. Its normal placement marker
+        // covers both items: taking the decoration later must never refill the table.
+        if (table.furniture_type.Value is not (Furniture.table or Furniture.longTable) || table.heldObject.Value != null)
+            throw new InvalidOperationException("An initial held decoration requires an empty table.");
+        if (!ItemRegistry.Exists(data.ItemId))
+            throw new InvalidOperationException($"Tabletop decoration '{data.ItemId}' is not supplied by the installed mods.");
+        Furniture decoration = ItemRegistry.Create<Furniture>(data.ItemId);
+        if (decoration.QualifiedItemId != data.ItemId || decoration.furniture_type.Value != Furniture.decor
+            || decoration.getTilesWide() != 1 || decoration.getTilesHigh() != 1 || decoration.heldObject.Value != null)
+            throw new InvalidOperationException($"Tabletop item '{data.ItemId}' must be a one-tile decoration.");
+        foreach ((string key, string value) in data.ModData) decoration.modData[key] = value;
+        table.Location = location;
+        // This callback copies the item and applies native tabletop placement behavior.
+        // A null farmer is intentional: supplying a farmer consumes their active item.
+        if (!table.performObjectDropInAction(decoration, true, null, false)
+            || !table.performObjectDropInAction(decoration, false, null, false))
+            throw new InvalidOperationException($"The game rejected tabletop decoration '{data.ItemId}'.");
     }
 
     private static bool PlaceNative(Furniture item, GameLocation location, Point tile, out string reason)
@@ -372,7 +398,9 @@ public sealed class ModEntry : Mod
         foreach (PlacementData placement in design.Furniture)
             if (placement == null || string.IsNullOrWhiteSpace(placement.Id) || !ids.Add(placement.Id)
                 || string.IsNullOrEmpty(placement.ItemId) || !placement.ItemId.StartsWith("(F)", StringComparison.Ordinal) || placement.Rotation < 0 || placement.Rotation > 3
-                || placement.X < 0 || placement.Y < 0 || placement.X >= design.Width || placement.Y >= design.Height || placement.ModData == null) return false;
+                || placement.X < 0 || placement.Y < 0 || placement.X >= design.Width || placement.Y >= design.Height || placement.ModData == null
+                || (placement.HeldItem != null && (string.IsNullOrEmpty(placement.HeldItem.ItemId)
+                    || !placement.HeldItem.ItemId.StartsWith("(F)", StringComparison.Ordinal) || placement.HeldItem.ModData == null))) return false;
         ids.Clear();
         foreach (RoomData room in design.Rooms)
             if (room == null || string.IsNullOrWhiteSpace(room.Id) || !ids.Add(room.Id) || room.X < 0 || room.Y < 0

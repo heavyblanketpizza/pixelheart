@@ -97,7 +97,8 @@ class InteriorDecoratingFlowTests(unittest.TestCase):
     @staticmethod
     def point(dialog, x, y):
         cell = dialog.canvas.scale * 16
-        return QPoint(x * cell + 5, y * cell + 5)
+        ox, oy = dialog.canvas.view_origin
+        return QPoint((x + ox) * cell + 5, (y + oy) * cell + 5)
 
     def move(self, dialog, x, y):
         point = QPointF(self.point(dialog, x, y))

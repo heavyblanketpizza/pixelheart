@@ -57,7 +57,7 @@ Import complete portrait and sprite sheets in **Artwork**. **From my game…** i
 | Nonromance sprite | 64 pixels wide, at least 128 high, in 32-pixel rows |
 | Romance sprite | 64 pixels wide, at least 416 high, including kiss/wedding frames |
 
-In **Home & places**, build or reopen the loaded character's residence or spouse room directly. Saving a new home assigns it to this NPC; cancelling leaves no empty place behind. Existing designs reopen for editing. Connect a local game library to browse furniture, wallpaper, and flooring. Residence entrances and extra story locations are configured under **Advanced / Game connection**. See the [home guide](WORLD_BUILDING.md) for decorating, companion setup, and map connections.
+In **Home & places**, build or reopen the loaded character's residence or spouse room directly. Applying a new home assigns it to this NPC; cancelling leaves no empty place behind. Existing designs reopen for editing. Connect a local game library to browse furniture, wallpaper, and flooring. The page shows unfinished setup. Use **Connect entrance…** to choose the way in and out, **+ Story place** for other locations, and **Save project** to keep applied changes. Technical settings are under **Map tools & dependencies**. See the [home guide](WORLD_BUILDING.md) for decorating, companion setup, and map connections.
 
 ### Export, install, and play their story
 

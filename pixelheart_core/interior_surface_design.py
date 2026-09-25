@@ -234,12 +234,13 @@ def stage_room_frame(data, frame, root):
 
 
 def stage_partition_frame(data, root):
-    """Build inward-facing timber from the design's own structural trim.
+    """Keep portable timber artwork for older, one-tile slim dividers.
 
     Exterior frame tiles include a black outside half. A freestanding divider
     instead joins their two wood-facing halves. The resulting portable atlas
     is shared by previews and game maps; source frame and finish IDs stay fixed.
-    Explicit partition art supplied by a library always takes precedence.
+    Explicit divider art supplied by a library always takes precedence. Room
+    walls use the unmodified exterior frame around a cutaway cavity instead.
     """
     from .interior_furniture import ROOM_FRAME_PARTITIONS
     candidate = normalize_interior(data)

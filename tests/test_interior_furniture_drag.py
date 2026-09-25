@@ -62,7 +62,8 @@ class InteriorFurnitureDragTests(unittest.TestCase):
     @staticmethod
     def point(dialog, x, y):
         cell = dialog.canvas.scale * 16
-        return QPoint(x * cell + 5, y * cell + 5)
+        ox, oy = dialog.canvas.view_origin
+        return QPoint((x + ox) * cell + 5, (y + oy) * cell + 5)
 
     def choose(self, dialog, identity=CHAIR):
         item = next(dialog.catalog_list.item(row) for row in range(dialog.catalog_list.count())
@@ -338,7 +339,7 @@ class InteriorFurnitureDragTests(unittest.TestCase):
             move = self.dispatch(QDragMoveEvent, dialog, source, mime, 6, 7)
             self.assertTrue(move.isAccepted())
             self.assertTrue(dialog.canvas.ghost["valid"])
-            with patch.object(dialog.draft, "place_furniture", side_effect=ValueError("Placement changed while dragging")):
+            with patch("pixelheart.interior_editor.InteriorDraft.place_furniture", side_effect=ValueError("Placement changed while dragging")):
                 drop = self.dispatch(QDropEvent, dialog, source, mime, 6, 7)
             self.assertFalse(drop.isAccepted())
             self.assertEqual(self.state(dialog), before)

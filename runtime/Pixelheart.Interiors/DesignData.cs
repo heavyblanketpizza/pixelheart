@@ -28,6 +28,14 @@ public sealed class PlacementData
     [JsonProperty("y")] public int Y { get; set; }
     [JsonProperty("rotation")] public int Rotation { get; set; }
     [JsonProperty("mod_data")] public Dictionary<string, string> ModData { get; set; } = new();
+    [JsonProperty("held_item")] public HeldItemData? HeldItem { get; set; }
+}
+
+/// <summary>One native tabletop decoration supplied with its initial table placement.</summary>
+public sealed class HeldItemData
+{
+    [JsonProperty("item_id")] public string ItemId { get; set; } = "";
+    [JsonProperty("mod_data")] public Dictionary<string, string> ModData { get; set; } = new();
 }
 
 public sealed class RoomData
