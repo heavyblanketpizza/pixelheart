@@ -37,6 +37,8 @@ Create a character or open their existing project. Every editor works on that ch
 
 Use **Save project** to keep your work and its imported assets together. Keep internal character and map IDs stable after using the pack in a game save.
 
+**Edit → Undo / Redo** follows your changes across the whole character project, including Home. Switching editors keeps that history. Saving successfully starts a fresh history from the saved project; a cancelled or failed save keeps your undo and redo steps.
+
 ### Write a story that changes their life
 
 Start with an introduction in **Dialogue**, then develop the first meeting in **Story & events**. Add the player, your NPC, and any townspeople needed by the scene. Write the dialogue and actions, choose the map and actor positions, and rehearse the sequence. Mark reviewed scenes ready for export; unfinished chapters remain drafts.

@@ -18,9 +18,10 @@ from PySide6.QtWidgets import QApplication
 from pixelheart.interior_editor import InteriorEditor
 from pixelheart_core.interior_furniture import ROOM_FRAME_DOORWAY, ROOM_FRAME_TILES
 from tests.test_interior_decorating_flow import make_library
+from tests.qt_support import QtTestCase
 
 
-class InteriorLibraryUndoTests(unittest.TestCase):
+class InteriorLibraryUndoTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

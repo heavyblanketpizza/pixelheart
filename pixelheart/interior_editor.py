@@ -39,6 +39,7 @@ from pixelheart_core.interior_furniture import (
     attach_texture, preview_frame,
 )
 from pixelheart_core.world import asset_path, _read_asset, _write_new_file
+from pixelheart_core.interior_runtime import INTERIORS_MIN_VERSION, INTERIORS_MIN_GAME_VERSION, INTERIORS_MIN_SMAPI_VERSION
 from .widgets import label, button
 from .game_import import game_import_settings
 from .interior_canvas import FURNITURE_MIME, ROOM_MIME, InteriorCanvas
@@ -371,7 +372,7 @@ class FurnitureDetails(QDialog):
 class InteriorEditor(QDialog):
     draft_changed = Signal()
 
-    def __init__(self, project_file, design=None, kind="residence", parent=None, *, resident_name="", allow_rebase=False, validate_layout=None, embedded=False):
+    def __init__(self, project_file, design=None, kind="residence", parent=None, *, resident_name="", allow_rebase=False, validate_layout=None, embedded=False, asset_roots=(), project_history=False, restore_draft=False):
         super().__init__(parent)
         self.embedded = embedded
         self._disposed = False
@@ -391,14 +392,17 @@ class InteriorEditor(QDialog):
         self.draft = InteriorDraft(deepcopy(design), kind=kind)
         # Upgrade only this staged draft. Cancel leaves saved arrival positions
         # and the source project untouched.
-        self.draft.data = ensure_doorway(self.draft.data)
+        if not restore_draft or design is None:
+            self.draft.data = ensure_doorway(self.draft.data)
         self._temporary = tempfile.TemporaryDirectory(prefix="pixelheart-interior-")
         self.stage_root = Path(self._temporary.name)
         for reference in set(_asset_references(self.draft.data)):
-            source = asset_path(reference, self.project_file.parent)
-            if source.is_file():
-                _write_new_file(asset_path(reference, self.stage_root), _read_asset(source))
-        if self.draft.data.get("room_frame") and self.draft.data["atlas"]["asset"]:
+            for root in (self.project_file.parent, *asset_roots):
+                source = asset_path(reference, root)
+                if source.is_file():
+                    _write_new_file(asset_path(reference, self.stage_root), _read_asset(source))
+                    break
+        if not restore_draft and self.draft.data.get("room_frame") and self.draft.data["atlas"]["asset"]:
             from pixelheart_core.interior_surface_design import stage_partition_frame
             reference = asset_path(self.draft.data["atlas"]["asset"], self.stage_root)
             if reference.is_file():
@@ -462,6 +466,8 @@ class InteriorEditor(QDialog):
         self.redo_button = button("Redo", self.redo)
         toolbar.addWidget(self.undo_button)
         toolbar.addWidget(self.redo_button)
+        self.undo_button.setVisible(not project_history)
+        self.redo_button.setVisible(not project_history)
         toolbar.addStretch()
         self.play = button("Play", lambda: None)
         self.play.setCheckable(True)
@@ -483,6 +489,7 @@ class InteriorEditor(QDialog):
         root.addLayout(toolbar)
 
         self.advanced = QDialog(self)
+        self.advanced.setProperty("projectHistoryLive", project_history)
         self.advanced.setWindowTitle("Advanced interior tools — Pixelheart")
         self.advanced.resize(640, 760)
         advanced_layout = QVBoxLayout(self.advanced)
@@ -613,6 +620,8 @@ class InteriorEditor(QDialog):
         self.timer.timeout.connect(self.advance_animation)
         self.shortcuts = []
         for sequence, callback in ((QKeySequence.StandardKey.Undo, self.undo), (QKeySequence.StandardKey.Redo, self.redo)):
+            if project_history:
+                continue
             shortcut = QShortcut(QKeySequence(sequence), self)
             if embedded:
                 shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
@@ -636,9 +645,9 @@ class InteriorEditor(QDialog):
         self.shortcuts.append(escape)
         self.finished.connect(self._finish)
         self.refresh()
-        if not self.draft.data["catalog"] or (spouse and not self.draft.data.get("spouse_context")) or (self.draft.data["kind"] == "residence"
+        if not restore_draft and (not self.draft.data["catalog"] or (spouse and not self.draft.data.get("spouse_context")) or (self.draft.data["kind"] == "residence"
                 and self.draft.data.get("surfaces")
-                and not {"door_left", "door_right"} <= self.draft.data.get("room_frame", {}).keys()):
+                and not {"door_left", "door_right"} <= self.draft.data.get("room_frame", {}).keys())):
             saved_library = self.remembered_library()
             if isinstance(saved_library, str) and saved_library:
                 candidates = self.remembered_library_candidates()
@@ -1177,7 +1186,7 @@ class InteriorEditor(QDialog):
         layout = QVBoxLayout(guide)
         layout.addWidget(label("Connect your local game artwork", "profileName", True))
         for text in (
-            "Pixelheart Interiors is a separate SMAPI companion. This app includes its source, not a prebuilt companion. You need Stardew Valley 1.6.9 or newer, SMAPI 4.1 or newer, and Content Patcher.",
+            f"Pixelheart Interiors {INTERIORS_MIN_VERSION}+ is a separate SMAPI companion. This app includes its source, not a prebuilt companion. You need Stardew Valley {INTERIORS_MIN_GAME_VERSION} or newer, SMAPI {INTERIORS_MIN_SMAPI_VERSION} or newer, and Content Patcher.",
             "1. From the Pixelheart source folder, build the companion with the .NET SDK on a machine with Stardew Valley and SMAPI installed. Use the command below with your game folder.",
             "2. Put its built DLL and manifest together in a Pixelheart Interiors folder inside your game's Mods folder. Keep your exported NPC pack alongside it.",
             "3. Launch the game through SMAPI and load a save. The companion creates cache/library/library.json in its mod folder.",
@@ -2383,6 +2392,7 @@ class InteriorEditor(QDialog):
         self._disposed = True
         self.timer.stop()
         self._fit_timer.stop()
+        self.advanced.reject()
         self._temporary.cleanup()
 
     def _finish(self, result):

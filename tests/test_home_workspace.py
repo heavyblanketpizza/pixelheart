@@ -17,9 +17,10 @@ from pixelheart.interior_editor import InteriorEditor
 from pixelheart_core.interiors import doorway_exit, ensure_doorway, new_interior
 from pixelheart_core.projects import ProjectError, load_project, new_project, save_project
 from pixelheart_core.world import exported_location_id, new_location, new_world
+from tests.qt_support import QtTestCase
 
 
-class HomeWorkspaceTests(unittest.TestCase):
+class HomeWorkspaceTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

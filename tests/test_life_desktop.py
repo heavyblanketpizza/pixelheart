@@ -12,9 +12,10 @@ from PySide6.QtWidgets import QApplication
 from pixelheart.app import MainWindow
 from pixelheart_core.life import COLLECTIONS, new_life_record, normalize_life
 from pixelheart_core.projects import load_project
+from tests.qt_support import QtTestCase
 
 
-class LifeEditorTests(unittest.TestCase):
+class LifeEditorTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

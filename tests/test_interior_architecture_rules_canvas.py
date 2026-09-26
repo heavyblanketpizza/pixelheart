@@ -18,6 +18,7 @@ from pixelheart_core.interior_architecture import architecture_candidate
 from pixelheart_core.interior_furniture import validate_definition
 from pixelheart_core.interior_levels import raised_room_candidate
 from pixelheart_core.interiors import InteriorDraft, render_interior
+from tests.qt_support import QtTestCase
 
 try:
     from .test_interior_architecture_canvas import architecture_design
@@ -39,7 +40,7 @@ def steps_design(root, *, raised=False):
     return data
 
 
-class ArchitectureClearanceCanvasTests(unittest.TestCase):
+class ArchitectureClearanceCanvasTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

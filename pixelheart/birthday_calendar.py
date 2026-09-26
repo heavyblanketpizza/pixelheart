@@ -10,7 +10,8 @@ from PySide6.QtWidgets import (
 from pixelheart_core.birthdays import (
     DAYS_PER_SEASON, SEASONS, birthdays_on, festivals_on, festivals_for_season,
 )
-from .calendar_art import draw_lettering, draw_motif, draw_wood_frame, lettering_width
+from .calendar_art import MOTIF_SIZE, draw_lettering, draw_motif, draw_wood_frame, lettering_width
+from .calendar_icons import CalendarIconStore
 from .widgets import label
 
 
@@ -23,8 +24,9 @@ class CalendarBoard(QFrame):
 class SeasonPicker(QComboBox):
     """A pixel-lettered plaque with the usual combo box keyboard and popup behavior."""
 
-    def __init__(self):
+    def __init__(self, icons=None):
         super().__init__()
+        self.icons = icons
         self.setFixedSize(234, 48)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
@@ -35,10 +37,10 @@ class SeasonPicker(QComboBox):
             painter.fillRect(self.rect().adjusted(2, 2, -2, -2), QColor("#f9efd9"))
         if season:
             width = lettering_width(season, 3)
-            left = (self.width() - width - 46) // 2
-            draw_motif(painter, season, left, 12)
-            draw_lettering(painter, season, left + 36, 15, 3, "#e2d0ad")
-            draw_lettering(painter, season, left + 36, 13, 3, "#715638")
+            left = (self.width() - width - 54) // 2
+            draw_motif(painter, season, left, 8, icons=self.icons)
+            draw_lettering(painter, season, left + 42, 15, 3, "#e2d0ad")
+            draw_lettering(painter, season, left + 42, 13, 3, "#715638")
         for row in range(3):
             painter.fillRect(self.width() - 16 + row * 2, 22 + row * 2, 10 - row * 4, 2, QColor("#a68b62"))
         if self.hasFocus():
@@ -69,8 +71,9 @@ class CalendarArrow(QPushButton):
 class CalendarDay(QPushButton):
     """Native button semantics, painted as a paper square rather than a form field."""
 
-    def __init__(self, day, parent=None):
+    def __init__(self, day, parent=None, *, icons=None):
         super().__init__(parent)
+        self.icons = icons
         self.day = day
         self.names = ()
         self.festivals = ()
@@ -121,11 +124,11 @@ class CalendarDay(QPushButton):
             painter.drawRect(self.rect().adjusted(4, 4, -5, -5))
         draw_lettering(painter, str(self.day), 9, 8, 3, "#8b7453")
         compact = self.height() < 84
-        motif = "gift" if self.names else "heart" if selected else "flag" if self.festivals else None
+        motif = "gift" if self.names else "heart" if selected else "festival" if self.festivals else None
         if motif:
-            draw_motif(painter, motif, (self.width() - 24) // 2, 24 if compact else 30, 2)
+            draw_motif(painter, motif, (self.width() - MOTIF_SIZE * 2) // 2, 24 if compact else 28, 2, self.icons)
         if self.festivals and (self.names or selected):
-            draw_motif(painter, "flag", self.width() - 18, 6, 1)
+            draw_motif(painter, "festival", self.width() - MOTIF_SIZE - 4, 5, 1, self.icons)
         caption = ", ".join(self.names) if self.names else "Your birthday" if selected else _festival_caption(self.festivals)
         font = QFont(self.font())
         font.setPixelSize(11)
@@ -133,7 +136,7 @@ class CalendarDay(QPushButton):
         painter.setFont(font)
         painter.setPen(QColor("#775e45" if self.names else "#526640" if selected else "#876b44"))
         caption = painter.fontMetrics().elidedText(caption, Qt.TextElideMode.ElideRight, self.width() - 10)
-        painter.drawText(QRect(5, 49 if compact else 62, self.width() - 10, 20), Qt.AlignmentFlag.AlignCenter, caption)
+        painter.drawText(QRect(5, 55 if compact else 62, self.width() - 10, 16 if compact else 20), Qt.AlignmentFlag.AlignCenter, caption)
 
 
 def _festival_caption(festivals):
@@ -150,17 +153,18 @@ def _festival_caption(festivals):
 
 
 class CalendarLegend(QWidget):
-    def __init__(self, motif, text):
+    def __init__(self, motif, text, icons=None):
         super().__init__()
         self.motif = motif
+        self.icons = icons
         row = QHBoxLayout(self)
-        row.setContentsMargins(28, 0, 0, 0)
+        row.setContentsMargins(MOTIF_SIZE * 2 + 6, 0, 0, 0)
         row.addWidget(label(text, "calendarLegend"))
-        self.setMinimumHeight(22)
+        self.setMinimumHeight(MOTIF_SIZE * 2)
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        draw_motif(painter, self.motif, 0, (self.height() - 24) // 2, 2)
+        draw_motif(painter, self.motif, 0, (self.height() - MOTIF_SIZE * 2) // 2, 2, self.icons)
 
 
 class BirthdayCalendar(QWidget):
@@ -170,6 +174,7 @@ class BirthdayCalendar(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.icons = CalendarIconStore()
         self.selected_season = "spring"
         self.selected_day = 1
         self.setAccessibleName("Birthday calendar")
@@ -213,7 +218,7 @@ class BirthdayCalendar(QWidget):
         self.next_button = CalendarArrow(1, lambda: self._browse(1))
         self.next_button.setAccessibleName("Next season")
         self.next_button.setToolTip("Next season")
-        self.season_picker = SeasonPicker()
+        self.season_picker = SeasonPicker(self.icons)
         self.season_picker.setObjectName("calendarSeason")
         self.season_picker.setAccessibleName("Calendar season to view")
         for season in SEASONS:
@@ -237,7 +242,7 @@ class BirthdayCalendar(QWidget):
             grid.setColumnStretch(column, 1)
         self.day_buttons = {}
         for day in range(1, DAYS_PER_SEASON + 1):
-            day_button = CalendarDay(day)
+            day_button = CalendarDay(day, icons=self.icons)
             day_button.clicked.connect(lambda checked=False, d=day: self._select(d))
             day_button.installEventFilter(self)
             grid.addWidget(day_button, 1 + (day - 1) // 7, (day - 1) % 7)
@@ -247,13 +252,15 @@ class BirthdayCalendar(QWidget):
         legend = QHBoxLayout()
         legend.setContentsMargins(5, 0, 5, 0)
         legend.setSpacing(18)
-        for motif, text in (("gift", "NPC birthday"), ("heart", "Your birthday"), ("flag", "Festival")):
-            legend.addWidget(CalendarLegend(motif, text))
+        for motif, text in (("gift", "NPC birthday"), ("heart", "Your birthday"), ("festival", "Festival")):
+            legend.addWidget(CalendarLegend(motif, text, self.icons))
         legend.addStretch()
         left_layout.addLayout(legend)
         self.content_layout.addWidget(left, 1, Qt.AlignmentFlag.AlignTop)
 
         self.details = QWidget()
+        # Keep longer festival notes from squeezing the fixed-height day cells.
+        self.details.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         details_layout = QBoxLayout(QBoxLayout.Direction.LeftToRight, self.details)
         self.details_layout = details_layout
         details_layout.setContentsMargins(0, 0, 0, 0)
@@ -315,6 +322,7 @@ class BirthdayCalendar(QWidget):
             self.date_changed.emit(season, day)
 
     def _render(self):
+        self._refresh_icons()
         season = self.season_picker.currentData()
         for day, day_button in self.day_buttons.items():
             selected = (season, day) == (self.selected_season, self.selected_day)
@@ -331,6 +339,16 @@ class BirthdayCalendar(QWidget):
         else:
             self.conflict_label.setText("An open day — no existing NPC birthday.")
         self._render_festivals(season)
+
+    def _refresh_icons(self):
+        if self.icons.reload():
+            self.season_picker.update()
+            for widget in (*self.day_buttons.values(), *self.findChildren(CalendarLegend)):
+                widget.update()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._refresh_icons()
 
     def _render_festivals(self, season):
         if self._shown_festivals == season:

@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 
 from pixelheart_core.world import (
     WorldError, new_world, new_location, normalize_world,
-    import_map, asset_path, exported_location_id, render_map_preview,
+    import_map, asset_path, exported_location_id, render_map_preview, _read_asset, _write_new_file,
 )
 from pixelheart_core.projects import new_project
 from .editors import line, number, value, set_value, connect_change
@@ -157,8 +157,12 @@ class WorldPage(QWidget):
         self._removed_places = []
         self.interior_editor = None
         self._draft_project = None
+        self._history_asset_fingerprints = set()
         self._editor_record_id = None
         self._editor_baseline = None
+        self._editor_pending_record = None
+        self._restore_drafts = False
+        self._history_advanced_view = None
         self._room_kind = "residence"
         self._room_views = {}
         root = QVBoxLayout(self)
@@ -224,9 +228,111 @@ class WorldPage(QWidget):
     def _interior_project_file(self):
         if self.window.project_file:
             return self.window.project_file
+        return self._history_project_file()
+
+    def _history_project_file(self):
         if self._draft_project is None:
             self._draft_project = tempfile.TemporaryDirectory(prefix="pixelheart-home-")
         return self.draft_project_file
+
+    def reset_history_resources(self):
+        """Release undo artwork after a successful save or a project change."""
+        self._history_asset_fingerprints.clear()
+        if self._draft_project is not None:
+            self._draft_project.cleanup()
+            self._draft_project = None
+
+    def publish_history_assets(self):
+        """Make restored artwork portable before committing a project save."""
+        if self.draft_project_file is None:
+            return True
+        from pixelheart_core.interiors import interior_asset_references
+        source_root = self.draft_project_file.parent
+        target_root = self._interior_project_file().parent
+        if source_root == target_root:
+            return True
+        created = []
+        try:
+            references = {reference for record in self.world["locations"] if record.get("interior")
+                          for reference in interior_asset_references(record["interior"])}
+            for reference in references:
+                source = asset_path(reference, source_root)
+                if source.is_file():
+                    destination = asset_path(reference, target_root)
+                    existed = destination.exists()
+                    _write_new_file(destination, _read_asset(source))
+                    if not existed:
+                        created.append(destination)
+            return True
+        except (ValueError, OSError) as exc:
+            for destination in created:
+                destination.unlink(missing_ok=True)
+            self.window.show_error("Could not save project", str(exc))
+            return False
+
+    def history_snapshot(self, document):
+        """Project the live room into a document without changing its editors.
+
+        Room moves and their destinations share one project undo step. Export
+        validation remains in flush_editor: an unfinished room is still a
+        useful, reversible edit.
+        """
+        result = deepcopy(document)
+        editor = self.interior_editor
+        if editor is None or editor.draft.data == self._editor_baseline:
+            return result
+        from pixelheart_core.interiors import interior_asset_references, doorway_exit, reachable_tiles
+        design = editor.draft.snapshot()
+        references = set(interior_asset_references(design))
+        if references:
+            root = self._history_project_file().parent
+            for reference in references:
+                source = asset_path(reference, editor.stage_root)
+                if source.is_file():
+                    status = source.stat()
+                    fingerprint = (source, status.st_mtime_ns, status.st_size)
+                    if fingerprint not in self._history_asset_fingerprints:
+                        _write_new_file(asset_path(reference, root), _read_asset(source))
+                        self._history_asset_fingerprints.add(fingerprint)
+        world, character = result["world"], result["character"]
+        record = next((item for item in world["locations"] if item["id"] == self._editor_record_id), None)
+        pending = record is None and self._editor_record_id is None
+        if pending:
+            record = deepcopy(self._editor_pending_record)
+            world["locations"].append(record)
+        if record is None:
+            return result
+        previous_entry = record["entry_x"], record["entry_y"]
+        maps = {record["internal_name"], exported_location_id(record, character)}
+        residence = not record["spouse_room"] and (pending or character.get("home_map") in maps)
+        translations = _room_translations(self._editor_initial_design, design, editor._room_offsets)
+        if translations and not record["spouse_room"]:
+            _translate_character_rooms(character, maps, translations)
+            for bundled in world["characters"]:
+                _translate_character_rooms(bundled["character"], maps, translations)
+            for location in world["locations"]:
+                entrance = location["entrance"]
+                if location is not record and entrance["map"] in maps:
+                    for x, y in (("x", "y"), ("arrival_x", "arrival_y")):
+                        entrance[x], entrance[y] = _translate_room_point(entrance[x], entrance[y], translations)
+        entry = tuple(design["entry"])
+        exit_position = record["exit_x"], record["exit_y"]
+        if "doorway" in design:
+            exit_position = doorway_exit(design)
+        elif not record["spouse_room"]:
+            exit_position = _translate_room_point(*exit_position, translations)
+        if not record["spouse_room"]:
+            floors = reachable_tiles(design)
+            if (exit_position not in floors or exit_position == entry) and floors - {entry}:
+                exit_position = min(floors - {entry}, key=lambda p: (abs(p[0]-entry[0])+abs(p[1]-entry[1]), p[1], p[0]))
+        record.update(interior=design, map=None, room_x=0, room_y=0,
+                      entry_x=entry[0], entry_y=entry[1], exit_x=exit_position[0], exit_y=exit_position[1])
+        if residence:
+            standing = character["home_x"], character["home_y"]
+            if pending or standing == _translate_room_point(*previous_entry, translations):
+                standing = entry
+            character.update(home_map=record["internal_name"], home_x=standing[0], home_y=standing[1])
+        return result
 
     def dispose_editor(self):
         if self.interior_editor is not None:
@@ -247,6 +353,7 @@ class WorldPage(QWidget):
                 item.widget().hide()
                 item.widget().deleteLater()
         self._editor_record_id = self._editor_baseline = None
+        self._editor_pending_record = None
 
     def reset_workspace(self):
         self.settings_dialog.hide()
@@ -257,9 +364,9 @@ class WorldPage(QWidget):
         self.home_stack.setCurrentIndex(0)
         self.dispose_editor()
         self._room_views.clear()
-        if self._draft_project is not None:
-            self._draft_project.cleanup()
-            self._draft_project = None
+        self._restore_drafts = False
+        self._history_advanced_view = None
+        self.reset_history_resources()
         self._room_kind = "residence"
         self.room_switch.blockSignals(True)
         self.room_switch.setCurrentIndex(0)
@@ -289,6 +396,11 @@ class WorldPage(QWidget):
                                "Their home before marriage. Shape the rooms and make it their own.")
         self.entrance_action.setVisible(not spouse)
         self.entrance_action.setText("Entrance…" if record and record["entrance"].get("confirmed", True) else "Connect entrance…")
+        if record is None and len(self.world["locations"]) >= 32:
+            self.editor_layout.addWidget(label("All 32 places are in use. Remove an unused place in Room settings before creating this room.", "notice", True))
+            self.editor_layout.addWidget(button("Open room settings…", self.open_settings))
+            self.editor_layout.addStretch()
+            return
         if record and record["map"] and not record.get("interior"):
             # Imported TMX is not a structured interior. Never replace it just
             # because its role is selected in the decorating workspace.
@@ -305,11 +417,16 @@ class WorldPage(QWidget):
             if protected:
                 options["validate_layout"] = lambda candidate, offsets: self._validate_room_points(
                     candidate, protected, _room_translations(initial, candidate, offsets))
+            if self.draft_project_file:
+                options["asset_roots"] = (self.draft_project_file.parent,)
             editor = InteriorEditor(self._interior_project_file(), initial or None, self._room_kind,
                                     self.editor_host, resident_name=self._character().get("name", ""),
-                                    allow_rebase=record is None, embedded=True, **options)
+                                    allow_rebase=record is None, embedded=True,
+                                    project_history=hasattr(self.window, "project_history"),
+                                    restore_draft=self._restore_drafts, **options)
             self.interior_editor = editor
             self._editor_record_id = record["id"] if record else None
+            self._editor_pending_record = self._new_interior_record(spouse=spouse) if record is None else None
             self._editor_initial_design = initial
             self._editor_baseline = editor.draft.snapshot()
             editor.draft_changed.connect(self.draft_changed)
@@ -324,6 +441,12 @@ class WorldPage(QWidget):
                     editor.zoom.setCurrentIndex(view["zoom"])
                     editor._auto_fit = False
             editor.show()
+            if self._history_advanced_view is not None:
+                kind, tab = self._history_advanced_view
+                self._history_advanced_view = None
+                if kind == self._room_kind:
+                    editor.advanced_tabs.setCurrentIndex(tab)
+                    editor.advanced.open()
         except (ValueError, OSError) as exc:
             self.editor_layout.addWidget(label("This interior needs attention: " + str(exc), "notice", True))
             self.editor_layout.addWidget(button("Open room settings…", self.open_settings))
@@ -367,7 +490,7 @@ class WorldPage(QWidget):
         if not editor.prepare_design(self._interior_project_file()):
             return False
         pending = index is None
-        record = self._new_interior_record(spouse=self._room_kind == "spouse") if pending else self.world["locations"][index]
+        record = deepcopy(self._editor_pending_record) if pending else self.world["locations"][index]
         try:
             self._apply_interior_result(record, editor.result_design, self._editor_initial_design,
                                         editor.result_room_translations)
@@ -598,8 +721,13 @@ class WorldPage(QWidget):
             connect_change(widget, self.edit_dependency)
         self.tabs.addTab(page, "Advanced: mod dependencies")
 
-    def load(self, world=None, *, preserve_history=False):
+    def load(self, world=None, *, preserve_history=False, from_history=False):
+        editor = self.interior_editor
+        advanced = ((self._room_kind, editor.advanced_tabs.currentIndex())
+                    if from_history and editor is not None and editor.advanced.isVisible() else None)
         self.dispose_editor()
+        self._history_advanced_view = advanced
+        self._restore_drafts = from_history or (preserve_history and self._restore_drafts)
         if not preserve_history:
             self._removed_places.clear()
             self.undo_remove_button.hide()
@@ -608,7 +736,10 @@ class WorldPage(QWidget):
             if 0 <= index < len(self.world[collection]):
                 selected_ids[collection] = self.world[collection][index]["id"]
         self.loading = True
-        self.world = normalize_world(world)
+        # In-memory history includes unfinished form input such as "1." while
+        # typing a dependency version. Validate files on load and save, while
+        # restoring the exact authored draft between those boundaries.
+        self.world = deepcopy(world) if from_history else normalize_world(world)
         self._refresh_lists()
         for collection, listing in (("locations", self.location_list), ("dependencies", self.dependency_list)):
             index = next((index for index, entry in enumerate(self.world[collection]) if entry["id"] == selected_ids.get(collection)),
@@ -783,7 +914,7 @@ class WorldPage(QWidget):
             self._reset_home()
         del self.world["locations"][self.location_index]
         self.load(self.world, preserve_history=True)
-        self.undo_remove_button.show()
+        self.undo_remove_button.setVisible(not hasattr(self.window, "project_history"))
         self.undo_remove_button.setToolTip("Restore the removed place. Available until you save or open a project.")
         self.changed.emit()
 
@@ -804,7 +935,7 @@ class WorldPage(QWidget):
             self._update_home(*home)
         self.load(self.world, preserve_history=True)
         self.location_list.setCurrentRow(next(i for i, item in enumerate(self.world["locations"]) if item["id"] == record["id"]))
-        self.undo_remove_button.setVisible(bool(self._removed_places))
+        self.undo_remove_button.setVisible(bool(self._removed_places) and not hasattr(self.window, "project_history"))
         self.changed.emit()
 
     def show_connection(self, visible):

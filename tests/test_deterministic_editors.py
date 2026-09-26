@@ -13,6 +13,7 @@ from pixelheart.editors import IdentityPage, SchedulePage
 from pixelheart.location_picker import MapSelector
 from pixelheart.schedule_time import ScheduleTime, game_minutes
 from pixelheart_core.projects import new_project
+from tests.qt_support import QtTestCase
 
 
 def stop(time="600", location="Town"):
@@ -20,7 +21,7 @@ def stop(time="600", location="Town"):
             "x": 32, "y": 62, "facing": "down", "activity": "Read a book"}
 
 
-class DeterministicEditorTests(unittest.TestCase):
+class DeterministicEditorTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

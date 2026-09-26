@@ -16,6 +16,7 @@ from PySide6.QtWidgets import QApplication
 from pixelheart.interior_canvas import InteriorCanvas
 from pixelheart_core.interiors import InteriorDraft, new_interior, render_interior
 from pixelheart_core.interior_architecture import architecture_candidate
+from tests.qt_support import QtTestCase
 
 
 def architecture_design(root):
@@ -36,7 +37,7 @@ def architecture_design(root):
     return data
 
 
-class ArchitectureCanvasTests(unittest.TestCase):
+class ArchitectureCanvasTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

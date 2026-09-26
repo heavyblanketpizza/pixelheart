@@ -24,9 +24,10 @@ from pixelheart.artwork_page import PreparationDialog
 from pixelheart.theme import apply_theme
 from pixelheart_core.artwork import inspect_artwork
 from pixelheart_core.projects import ProjectError, load_project, resolve_artwork
+from tests.qt_support import QtTestCase
 
 
-class DesktopTests(unittest.TestCase):
+class DesktopTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])

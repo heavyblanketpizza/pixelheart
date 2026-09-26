@@ -13,15 +13,17 @@ from PySide6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDragMoveEvent, QDro
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
+from pixelheart.interior_canvas import FURNITURE_MIME
 from pixelheart.interior_editor import InteriorEditor
 from tests.test_interior_decorating_flow import make_library
+from tests.qt_support import QtTestCase
 
 
 CHAIR = "(F)Test.Chair"
 RUG = "(F)Test.Rug"
 
 
-class InteriorFurnitureDragTests(unittest.TestCase):
+class InteriorFurnitureDragTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
@@ -35,11 +37,19 @@ class InteriorFurnitureDragTests(unittest.TestCase):
         self.dialogs = []
 
     def tearDown(self):
+        self.finish_native_drags()
         for dialog in reversed(self.dialogs):
             dialog.reject()
             dialog.deleteLater()
         self.app.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         self.app.processEvents()
+
+    def finish_native_drags(self):
+        # A mocked QDrag.exec does not send the platform's final DragLeave on
+        # cancellation. Balance accepted enters before destroying their target;
+        # QApplication routes later drag events through its shared drag manager.
+        for dialog in self.dialogs:
+            self.app.sendEvent(dialog.canvas, QDragLeaveEvent())
 
     def editor(self, kind="residence"):
         dialog = InteriorEditor(self.root / f"project-{len(self.dialogs)}" / "character.json", kind=kind,
@@ -293,6 +303,30 @@ class InteriorFurnitureDragTests(unittest.TestCase):
             return Qt.DropAction.IgnoreAction
 
         self.gesture(dialog, reject)
+        self.assertEqual((self.state(dialog), self.state(other)), before)
+        self.assertIsNone(dialog.canvas.ghost)
+        self.assertIsNone(other.canvas.ghost)
+
+    def test_cancelled_native_drag_cannot_capture_a_later_editors_events(self):
+        dialog = self.editor()
+        other = self.editor()
+        before = self.state(dialog), self.state(other)
+        mime = QMimeData()
+        mime.setData(FURNITURE_MIME, CHAIR.encode("utf-8"))
+        entered = self.dispatch(QDragEnterEvent, dialog, dialog.catalog_list, mime, 6, 7)
+        self.assertTrue(entered.isAccepted())
+
+        self.finish_native_drags()
+
+        # Keep the old target alive here: without a final DragLeave Qt would
+        # route the new editor's move/drop back to it after rejecting its enter.
+        with patch.object(dialog.canvas, "dragMoveEvent", wraps=dialog.canvas.dragMoveEvent) as old_moves, \
+                patch.object(dialog.canvas, "dropEvent", wraps=dialog.canvas.dropEvent) as old_drops:
+            for event_type in (QDragEnterEvent, QDragMoveEvent, QDropEvent):
+                event = self.dispatch(event_type, other, dialog.catalog_list, mime, 6, 7)
+                self.assertFalse(event.isAccepted())
+            old_moves.assert_not_called()
+            old_drops.assert_not_called()
         self.assertEqual((self.state(dialog), self.state(other)), before)
         self.assertIsNone(dialog.canvas.ghost)
         self.assertIsNone(other.canvas.ghost)

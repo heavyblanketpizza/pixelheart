@@ -20,9 +20,10 @@ from pixelheart.app import MainWindow
 from pixelheart.theme import apply_theme
 from pixelheart_core.projects import load_project
 from pixelheart_core.story import event_game_id
+from tests.qt_support import QtTestCase
 
 
-class StoryDesktopTests(unittest.TestCase):
+class StoryDesktopTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])

@@ -16,12 +16,13 @@ from PySide6.QtWidgets import QApplication
 
 from pixelheart.gifts_page import GIFT_MIME, GiftsPage
 from pixelheart.item_icons import ItemIconStore
+from tests.qt_support import QtTestCase
 
 
 TULIP = "(O)591"
 
 
-class GiftDragTests(unittest.TestCase):
+class GiftDragTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

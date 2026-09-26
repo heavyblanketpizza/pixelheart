@@ -15,9 +15,10 @@ from PySide6.QtWidgets import QApplication
 from pixelheart.interior_canvas import InteriorCanvas
 from pixelheart_core.interior_furniture import validate_definition
 from pixelheart_core.interiors import InteriorDraft, new_interior, render_interior
+from tests.qt_support import QtTestCase
 
 
-class InteriorTabletopCanvasTests(unittest.TestCase):
+class InteriorTabletopCanvasTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

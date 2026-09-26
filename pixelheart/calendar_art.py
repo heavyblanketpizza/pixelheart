@@ -1,4 +1,4 @@
-"""Original, code-drawn calendar decorations; no game textures or fonts.
+"""Calendar decorations and offline fallbacks; no bundled game textures or fonts.
 
 The small glyphs and motifs here are purpose-built for Pixelheart's calendar.
 Keep coordinates integral so the artwork stays crisp at desktop display scales.
@@ -50,8 +50,16 @@ def draw_lettering(painter, text, x, y, scale=2, color="#654023"):
         x += (len(glyph[0]) + 1) * scale
 
 
-def draw_motif(painter, kind, x, y, scale=2):
-    """Paint a 12 × 12 original motif with a transparent background."""
+MOTIF_SIZE = 16
+
+
+def draw_motif(painter, kind, x, y, scale=2, icons=None):
+    """Prefer a local game icon; center the existing fallback when unavailable."""
+    if icons is not None and icons.paint(painter, kind, QRect(x, y, MOTIF_SIZE * scale, MOTIF_SIZE * scale)):
+        return
+    x += 2 * scale
+    y += 2 * scale
+
     def block(left, top, width, height, color):
         painter.fillRect(x + left * scale, y + top * scale, width * scale, height * scale, QColor(color))
 
@@ -72,7 +80,7 @@ def draw_motif(painter, kind, x, y, scale=2):
                     block(col + 2, row + 2, 1, 1, "#a6443e" if row > 3 else "#d26b56")
         block(3, 3, 1, 2, "#f5ad7d")
         block(4, 3, 1, 1, "#f5ad7d")
-    elif kind == "flag":
+    elif kind == "festival":
         block(2, 1, 1, 10, "#755039")
         block(3, 2, 7, 5, "#9b4339")
         block(3, 2, 6, 2, "#d27651")

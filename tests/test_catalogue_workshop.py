@@ -17,9 +17,10 @@ from pixelheart.app import MainWindow
 from pixelheart.catalogue_workshop import CatalogueWorkshop
 from pixelheart_core.projects import new_project
 from tests.test_catalogue_development import make_pack
+from tests.qt_support import QtTestCase
 
 
-class CatalogueWorkshopTests(unittest.TestCase):
+class CatalogueWorkshopTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

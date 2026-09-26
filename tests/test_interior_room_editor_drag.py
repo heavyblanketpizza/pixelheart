@@ -15,9 +15,10 @@ from PySide6.QtWidgets import QApplication, QPushButton
 
 from pixelheart.interior_editor import InteriorEditor
 from tests.test_interior_decorating_flow import make_library
+from tests.qt_support import QtTestCase
 
 
-class RoomEditorDragTests(unittest.TestCase):
+class RoomEditorDragTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

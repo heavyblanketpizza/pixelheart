@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication
 from pixelheart.interior_canvas import InteriorCanvas
 from pixelheart_core.interior_furniture import validate_definition
 from pixelheart_core.interiors import InteriorDraft, InteriorError, new_interior, normalize_interior
+from tests.qt_support import QtTestCase
 
 
 def window(**changes):
@@ -178,7 +179,7 @@ class InteriorWindowPlacementTests(unittest.TestCase):
         self.assertEqual(draft.snapshot(), data)
 
 
-class InteriorWindowPreviewTests(unittest.TestCase):
+class InteriorWindowPreviewTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

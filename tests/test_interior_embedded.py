@@ -14,9 +14,10 @@ from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget
 
 from pixelheart.interior_editor import InteriorEditor
+from tests.qt_support import QtTestCase
 
 
-class EmbeddedInteriorTests(unittest.TestCase):
+class EmbeddedInteriorTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

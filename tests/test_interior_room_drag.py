@@ -15,9 +15,10 @@ from PySide6.QtWidgets import QApplication, QWidget
 from pixelheart.interior_canvas import InteriorCanvas, ROOM_MIME
 from pixelheart_core.interior_furniture import validate_definition
 from pixelheart_core.interiors import InteriorDraft, new_interior, room_edit_candidate
+from tests.qt_support import QtTestCase
 
 
-class InteriorRoomDragTests(unittest.TestCase):
+class InteriorRoomDragTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
@@ -42,6 +43,9 @@ class InteriorRoomDragTests(unittest.TestCase):
         self.app.processEvents()
 
     def tearDown(self):
+        # An accepted enter may finish with Esc instead of a drop. Complete the
+        # native drag dispatch before deleting its process-wide current target.
+        self.app.sendEvent(self.canvas, QDragLeaveEvent())
         for widget in (self.canvas, self.source):
             widget.close()
             widget.deleteLater()

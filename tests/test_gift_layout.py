@@ -17,9 +17,10 @@ from PySide6.QtWidgets import QApplication
 from pixelheart.app import MainWindow
 from pixelheart.item_icons import ItemIconStore
 from pixelheart.theme import apply_theme
+from tests.qt_support import QtTestCase
 
 
-class GiftLayoutTests(unittest.TestCase):
+class GiftLayoutTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

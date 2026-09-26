@@ -15,9 +15,10 @@ from pixelheart.app import MainWindow
 from pixelheart_core.projects import load_project
 from pixelheart_core.story import new_event, new_beat, new_actor, new_relationship
 from pixelheart_core.world import new_companion, new_location, cast_actor_id
+from tests.qt_support import QtTestCase
 
 
-class StagingTests(unittest.TestCase):
+class StagingTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

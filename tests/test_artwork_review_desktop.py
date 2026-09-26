@@ -18,9 +18,10 @@ from shiboken6 import isValid
 from pixelheart.app import MainWindow
 from pixelheart.theme import apply_theme
 from pixelheart_core.projects import import_artwork, new_project
+from tests.qt_support import QtTestCase
 
 
-class ArtworkReviewDesktopTests(unittest.TestCase):
+class ArtworkReviewDesktopTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])

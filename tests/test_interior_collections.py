@@ -17,6 +17,7 @@ from pixelheart_core.interior_furniture import (
     FurnitureValidationError, import_furniture_library, interaction_layouts, validate_definition,
 )
 from pixelheart_core.interiors import new_interior, normalize_interior
+from tests.qt_support import QtTestCase
 
 
 def activity_piece():
@@ -91,7 +92,7 @@ class FurnitureCollectionValidationTests(unittest.TestCase):
             self.assertEqual(reopened["catalog"], imported["definitions"])
 
 
-class FurnitureCollectionEditorTests(unittest.TestCase):
+class FurnitureCollectionEditorTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

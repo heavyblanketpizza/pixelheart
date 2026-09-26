@@ -16,9 +16,10 @@ from PySide6.QtWidgets import QApplication
 from pixelheart.interior_editor import InteriorEditor
 from pixelheart_core.interiors import new_interior, reachable_tiles
 from pixelheart_core.interior_furniture import validate_definition
+from tests.qt_support import QtTestCase
 
 
-class FloorplanEditorTests(unittest.TestCase):
+class FloorplanEditorTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

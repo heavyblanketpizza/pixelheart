@@ -18,9 +18,10 @@ from pixelheart.app import MainWindow, SECTION_INDEX
 from pixelheart.theme import apply_theme
 from pixelheart_core.birthdays import SEASONS, birthdays_for_season
 from pixelheart_core.projects import load_project
+from tests.qt_support import QtTestCase
 
 
-class BirthdayCalendarTests(unittest.TestCase):
+class BirthdayCalendarTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])
@@ -265,6 +266,32 @@ class BirthdayCalendarTests(unittest.TestCase):
         QTest.keyClick(self.calendar.day_buttons[5], Qt.Key.Key_Space)
         self.assertTrue(self.calendar.day_buttons[5].isChecked())
         self.assertEqual(signals.count(), 1)
+
+    def test_rendered_calendar_keyboard_edits_and_history_have_no_callback_errors(self):
+        with patch("sys.excepthook") as callback_errors:
+            self.window.show()
+            self.application.processEvents()
+            self.browse("spring")
+            self.calendar.day_buttons[3].setFocus()
+            QTest.keyClick(self.calendar.day_buttons[3], Qt.Key.Key_Right)
+            QTest.keyClick(self.calendar.day_buttons[5], Qt.Key.Key_Space)
+            self.assertEqual(self.selected_date(), ("spring", 5))
+            for season in SEASONS:
+                self.browse(season)
+                day = next(day for day, button in self.calendar.day_buttons.items()
+                           if button.isEnabled() and not button.isChecked())
+                button = self.calendar.day_buttons[day]
+                button.setFocus()
+                QTest.keyClick(button, Qt.Key.Key_Space)
+                self.assertEqual(self.selected_date(), (season, day))
+                self.assertFalse(self.calendar.grab().isNull())
+                self.assertTrue(self.window.project_history.undo())
+                self.assertFalse(self.calendar.grab().isNull())
+                self.assertTrue(self.window.project_history.redo())
+                self.assertEqual(self.selected_date(), (season, day))
+                self.assertFalse(self.calendar.grab().isNull())
+                self.application.processEvents()
+            callback_errors.assert_not_called()
 
 
 if __name__ == "__main__":

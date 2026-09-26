@@ -16,6 +16,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QPushButton
 
 from pixelheart.interior_editor import InteriorEditor
+from tests.qt_support import QtTestCase
 
 
 def make_library(root):
@@ -62,7 +63,7 @@ def make_library(root):
     return path
 
 
-class InteriorDecoratingFlowTests(unittest.TestCase):
+class InteriorDecoratingFlowTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

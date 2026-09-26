@@ -173,9 +173,10 @@ class PlaytestPage(QWidget):
     def save_test(self, status):
         if self.current_test:
             try:
+                self.window.project_history.close_group()
                 self.window.document = record_playtest(self.window.document, self.current_test, status, self.test_notes.toPlainText())
-                self.window.dirty = True
-                self.window.update_title()
+                self.window.project_history.record_current()
+                self.window.project_history.close_group()
                 self.refresh_testing()
             except ValueError as exc:
                 self.window.show_error("Cannot record this playtest", str(exc))
@@ -189,8 +190,7 @@ class PlaytestPage(QWidget):
                 try:
                     self.window.document = record_playtest(self.window.document, self.current_test, status, self.test_notes.toPlainText())
                     case["notes"] = self.test_notes.toPlainText()
-                    self.window.dirty = True
-                    self.window.update_title()
+                    self.window.project_history.record_current()
                 except ValueError as exc:
                     self.window.statusBar().showMessage(str(exc), 8000)
 
@@ -246,8 +246,7 @@ class PlaytestPage(QWidget):
             with zipfile.ZipFile(io.BytesIO(payload)) as archive:
                 manifest = json.loads(archive.read(f"[CP] {character['internal_name']}/manifest.json"))
             self.window.document["creator"]["last_install"]["dependencies"] = dependency_report(directory, manifest)
-            self.window.dirty = True
-            self.window.update_title()
+            self.window.external_project_changed()
             self.refresh_testing()
             self.window.statusBar().showMessage("Installed. Launch the game through SMAPI, then follow the playtest steps here.", 15000)
         except (ValueError, OSError) as exc:

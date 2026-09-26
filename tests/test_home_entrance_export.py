@@ -123,7 +123,8 @@ class HomeEntranceExportTests(unittest.TestCase):
         self.assertNotIn("Example.Optional", message)
         self.assertIn("DLL is not included", message)
         self.assertIn("WORLD_BUILDING.md", message)
-        self.assertIn("Stardew Valley 1.6.9+", message)
+        self.assertIn("Stardew Valley 1.6.14+", message)
+        self.assertIn("SMAPI 4.3.2+", message)
 
     def test_designed_home_automatically_produces_companion_install_guidance(self):
         sheet = self.root / "interior.png"
@@ -135,8 +136,9 @@ class HomeEntranceExportTests(unittest.TestCase):
         self.location["exit_x"], self.location["exit_y"] = doorway_exit(design)
         self.assertFalse(self.document["world"]["dependencies"])
         message = _export_completion_message("Mira.zip", self.manifest())
-        self.assertIn("Pixelheart.Interiors 0.1.0+", message)
+        self.assertIn("Pixelheart.Interiors 0.2.0+", message)
         self.assertIn("DLL is not included", message)
+        self.assertIn("SMAPI 4.3.2+", message)
 
     def test_export_without_required_companion_does_not_claim_it_is_needed(self):
         self.document["world"]["dependencies"] = [

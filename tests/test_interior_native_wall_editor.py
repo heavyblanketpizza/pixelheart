@@ -16,9 +16,10 @@ from pixelheart.interior_editor import InteriorEditor
 from pixelheart_core.interiors import new_interior
 from pixelheart_core.interior_furniture import validate_definition
 from pixelheart_core.interior_layout import partition_candidate
+from tests.qt_support import QtTestCase
 
 
-class NativeWallEditorTests(unittest.TestCase):
+class NativeWallEditorTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

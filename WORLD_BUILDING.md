@@ -141,7 +141,7 @@ architectural catalogue is empty, open a save with the updated companion, then
 use **Refresh game library…**. Artwork is read from your installed game and
 stored privately with the design.
 
-Use **Undo** and **Redo** while experimenting. **Grid**, zoom, and **Fit room**
+Use **Edit → Undo / Redo** while experimenting. **Grid**, zoom, and **Fit room**
 help with placement, and **Play** previews available animations. The layout
 protects occupied rooms, the doorway, and the spouse's standing spot.
 
@@ -159,15 +159,15 @@ and [Nintendo's decorating manual](https://www.nintendo.com/eu/media/downloads/g
 Spouse rooms use the same finish-and-furniture approach demonstrated by
 [Spouse Room Renovation](https://www.nexusmods.com/stardewvalley/mods/23529).
 
-Use **Undo** and **Redo** while editing the current room. Switching rooms,
-opening room settings, or leaving Home keeps valid edits in the project;
-**Save project** writes them to disk. Incomplete artwork can stay in a draft,
-but export remains blocked until the required setup is ready. The first save
-and **Save As** carry the private tilesheets and preview textures with the
-project.
+Undo and redo follow changes across the whole character project. Switching
+rooms, opening room settings, or leaving Home preserves that history and keeps
+valid edits in the project. **Save project** writes the project and its private
+tilesheets and preview textures to disk, then starts a fresh undo history.
+A cancelled or failed save keeps the history. Incomplete artwork can stay in a
+draft, but export remains blocked until the required setup is ready.
 
-Designed interiors require the separate **Pixelheart Interiors** SMAPI companion,
-Stardew Valley 1.6.9+, SMAPI 4.1+, and Content Patcher. The companion source is in
+Designed interiors require the separate **Pixelheart Interiors 0.2.0+** SMAPI companion,
+Stardew Valley 1.6.14+, SMAPI 4.3.2+, and Content Patcher. The companion source is in
 `runtime/Pixelheart.Interiors`; it is not a bundled, verified binary. On a
 development machine with the .NET SDK and Stardew/SMAPI installed, build with:
 
@@ -230,8 +230,8 @@ entrance**:
 
 In **Room settings… → Map tools & dependencies**, **Remove place** is blocked while routes, scenes,
 bundled characters, or other entrances still use it. The settings list those
-references so you can update them. **Undo removal** restores an unreferenced
-place until the next project save.
+references so you can update them. **Edit → Undo** can restore a removed place
+until the next successful project save.
 
 The export creates the location and both game warps. Other project locations can
 be connected, provided the chain eventually leads to an existing outside map.
@@ -285,7 +285,8 @@ selectors:
   parent traversal, and missing dependencies are rejected.
 
 The map and its dependencies are copied together into `world_assets/maps/`.
-The exporter preserves their bytes, and **Save As** copies the complete bundle.
+The exporter preserves their bytes. Keep the complete project folder together
+when moving or backing up a character.
 The preview draws supplied tile artwork. It cannot certify collision, actions,
 or walking paths. Rich imported maps that the simple painter cannot preserve
 must be edited in Tiled and imported again.

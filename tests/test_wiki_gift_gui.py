@@ -22,9 +22,10 @@ from pixelheart.app import MainWindow
 from pixelheart.gifts_page import GiftsPage, vanilla_catalog
 from pixelheart.item_icons import ItemIconStore, export_filename
 from pixelheart_core.wiki_items import WikiItemError, download_item_icons, wiki_image_sources
+from tests.qt_support import QtTestCase
 
 
-class WikiGiftGuiTests(unittest.TestCase):
+class WikiGiftGuiTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])

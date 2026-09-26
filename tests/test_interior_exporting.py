@@ -14,6 +14,7 @@ from PIL import Image
 from pixelheart_core.exporting import ExportValidationError, build_mod_archive
 from pixelheart_core.interior_furniture import attach_texture, validate_definition
 from pixelheart_core.interiors import InteriorDraft, import_atlas, interior_asset_references, new_interior
+from pixelheart_core.installation import dependency_report
 from pixelheart_core.projects import ProjectError, copy_project, load_project, new_project, save_project
 from pixelheart_core.world import (
     WorldError, compile_world, exported_location_id, exported_npc_id, new_location,
@@ -201,7 +202,7 @@ class InteriorExportTests(unittest.TestCase):
             manifest = json.loads(archive.read("[CP] Mira/manifest.json"))
             dependencies = {entry["UniqueID"]: entry for entry in manifest["Dependencies"]}
             self.assertTrue(dependencies["Pixelheart.Interiors"]["IsRequired"])
-            self.assertEqual(dependencies["Pixelheart.Interiors"]["MinimumVersion"], "0.1.0")
+            self.assertEqual(dependencies["Pixelheart.Interiors"]["MinimumVersion"], "0.2.0")
             self.assertTrue(dependencies["Example.Furniture"]["IsRequired"])
             self.assertNotIn("Unused.Furniture", dependencies)
             self.assertFalse(any(name.endswith(".dll") for name in archive.namelist()))
@@ -213,9 +214,43 @@ class InteriorExportTests(unittest.TestCase):
         ]
         dependencies = {entry["UniqueID"]: entry for entry in self.compile()["dependencies"]}
         self.assertTrue(dependencies["Pixelheart.Interiors"]["IsRequired"])
-        self.assertEqual(dependencies["Pixelheart.Interiors"]["MinimumVersion"], "0.1.0")
+        self.assertEqual(dependencies["Pixelheart.Interiors"]["MinimumVersion"], "0.2.0")
         self.assertTrue(dependencies["Example.Furniture"]["IsRequired"])
         self.assertEqual(dependencies["Example.Furniture"]["MinimumVersion"], "2.0.0")
+
+    def test_case_insensitive_companion_dependency_preserves_valid_authored_minima(self):
+        for specified, expected in ((None, "0.2.0"), ("", "0.2.0"), ("0.2.0-beta.1", "0.2.0"),
+                                    ("0.2", "0.2"), ("0.3.0-beta", "0.3.0-beta"),
+                                    ("0.2.0+build-with-hyphen", "0.2.0+build-with-hyphen")):
+            with self.subTest(specified=specified):
+                dependency = {"id": "pixelheart.INTERIORS", "required": False}
+                if specified is not None:
+                    dependency["minimum_version"] = specified
+                self.document["world"]["dependencies"] = [dependency]
+                original = deepcopy(self.document)
+                compiled = self.compile()
+                dependencies = [entry for entry in compiled["dependencies"]
+                                if entry["UniqueID"].casefold() == "pixelheart.interiors"]
+                self.assertEqual(dependencies, [{"UniqueID": "pixelheart.INTERIORS", "IsRequired": True,
+                                                 "MinimumVersion": expected}])
+                self.assertIn(f"Pixelheart.Interiors {expected}+", compiled["files"]["INTERIOR_TESTING.txt"].decode("utf-8"))
+                self.assertEqual(self.document, original)
+
+    def test_archive_reports_old_installed_companion_and_explains_current_requirements(self):
+        installed = self.root / "Mods/Interiors"
+        installed.mkdir(parents=True)
+        (installed / "manifest.json").write_text(json.dumps({
+            "UniqueID": "pixelheart.interiors", "Version": "0.1.0",
+        }), encoding="utf-8")
+        with self.archive() as archive:
+            manifest = json.loads(archive.read("[CP] Mira/manifest.json"))
+            guide = archive.read("[CP] Mira/INTERIOR_TESTING.txt").decode("utf-8")
+        report = next(entry for entry in dependency_report(installed.parent, manifest)
+                      if entry["id"] == "Pixelheart.Interiors")
+        self.assertEqual(report["status"], "old")
+        self.assertEqual(report["minimum_version"], "0.2.0")
+        self.assertIn("Pixelheart.Interiors 0.2.0+", guide)
+        self.assertIn("SMAPI 4.3.2+", guide)
 
     def test_extracted_editable_backup_reexports_without_original_asset_folder(self):
         original = deepcopy(self.document)

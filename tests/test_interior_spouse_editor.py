@@ -17,9 +17,10 @@ from PySide6.QtWidgets import QApplication, QDialog
 from pixelheart.interior_editor import InteriorEditor
 from pixelheart_core.interiors import interior_asset_references, interior_tmx, render_interior
 from tests.test_interior_spouse_access import blocked_legacy, design
+from tests.qt_support import QtTestCase
 
 
-class SpouseEditorTests(unittest.TestCase):
+class SpouseEditorTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

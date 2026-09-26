@@ -18,9 +18,10 @@ from pixelheart_core.life import new_life_record
 from pixelheart_core.projects import load_project, new_project
 from pixelheart_core.story import new_event
 from pixelheart_core.world import exported_location_id, new_companion, new_location, new_world, world_issues
+from tests.qt_support import QtTestCase
 
 
-class HomePlacesWorkflowTests(unittest.TestCase):
+class HomePlacesWorkflowTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
@@ -154,10 +155,12 @@ class HomePlacesWorkflowTests(unittest.TestCase):
     def test_save_finishes_removal_and_clears_undo_history(self):
         self.open_places(self.place())
         self.page.remove_location()
-        self.assertFalse(self.page.undo_remove_button.isHidden())
+        self.assertTrue(self.page.undo_remove_button.isHidden())
+        self.assertTrue(self.window.project_history.undo_action.isEnabled())
         self.assertTrue(self.window.save())
         self.assertEqual(load_project(self.window.project_file)["world"]["locations"], [])
         self.assertTrue(self.page.undo_remove_button.isHidden())
+        self.assertFalse(self.window.project_history.undo_action.isEnabled())
         self.page.undo_remove_location()
         self.assertEqual(self.page.dump()["locations"], [])
 

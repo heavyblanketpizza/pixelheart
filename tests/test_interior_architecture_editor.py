@@ -16,6 +16,7 @@ from PySide6.QtWidgets import QApplication
 
 from pixelheart.interior_editor import InteriorEditor
 from pixelheart_core.interiors import new_interior, reachable_tiles
+from tests.qt_support import QtTestCase
 
 try:
     from .test_interior_architecture_canvas import architecture_design
@@ -23,7 +24,7 @@ except ImportError:
     from test_interior_architecture_canvas import architecture_design
 
 
-class ArchitectureEditorTests(unittest.TestCase):
+class ArchitectureEditorTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

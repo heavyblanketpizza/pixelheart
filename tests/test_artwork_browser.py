@@ -17,9 +17,10 @@ from shiboken6 import isValid
 
 from pixelheart.artwork_browser import DIRECTIONS, SheetBrowser
 from pixelheart_core.artwork import ArtworkValidationError
+from tests.qt_support import QtTestCase
 
 
-class SheetBrowserTests(unittest.TestCase):
+class SheetBrowserTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])

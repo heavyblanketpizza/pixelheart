@@ -22,6 +22,7 @@ from pixelheart.dialogue_templates import DialogueTemplateDialog
 from pixelheart.editors import DialoguePage
 from pixelheart_core.projects import load_project, save_project
 from pixelheart_core.local_templates import load_project_dialogue
+from tests.qt_support import QtTestCase
 
 
 def example_payload():
@@ -51,7 +52,7 @@ def full_dialogue_payload(count):
     return {"examples": rows}
 
 
-class DialogueTemplateDesktopTests(unittest.TestCase):
+class DialogueTemplateDesktopTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

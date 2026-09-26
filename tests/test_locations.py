@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication
 
 from pixelheart.location_picker import MapSelector
 from pixelheart_core.locations import LOCATIONS_BY_ID, VANILLA_LOCATIONS, location_name, location_note
+from tests.qt_support import QtTestCase
 
 
 class LocationCatalogTests(unittest.TestCase):
@@ -31,7 +32,7 @@ class LocationCatalogTests(unittest.TestCase):
         self.assertIn("does not create", location_note("Custom_Alcove"))
 
 
-class MapSelectorTests(unittest.TestCase):
+class MapSelectorTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
