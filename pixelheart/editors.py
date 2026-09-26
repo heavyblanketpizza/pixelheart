@@ -16,6 +16,7 @@ from .location_picker import MapSelector
 from .schedule_time import ScheduleTime, game_minutes, game_time
 from .dialogue_templates import DialogueTemplateDialog
 from pixelheart_core.dialogue_templates import MAX_DIALOGUES, dialogue_preview
+from pixelheart_core.local_templates import LocalTemplateError, project_dialogue_folder
 from pixelheart_core.validation import infer_legacy_gender
 
 
@@ -230,8 +231,10 @@ class DialoguePage(QWidget):
     """List/detail editor keeps entry identities stable while reordering or editing."""
     changed = Signal()
 
-    def __init__(self):
+    def __init__(self, project_window=None):
         super().__init__()
+        self.project_window = project_window
+        self.project_file = None
         self.records = []
         self.loading = False
         self.current = -1
@@ -241,6 +244,10 @@ class DialoguePage(QWidget):
         root.setSpacing(16)
         self.example_prompt = label("Load Abigail’s or Elliott’s full dialogue from your game, then edit the conversations in your character’s voice.", "notice", True)
         root.addWidget(self.example_prompt)
+        self.project_location = label("Save your NPC project to create its dialogue template folder.", "hint", True)
+        self.project_location.setTextFormat(Qt.TextFormat.PlainText)
+        self.project_location.setAccessibleName("Dialogue project location")
+        root.addWidget(self.project_location)
         row = QHBoxLayout()
         row.addWidget(button("+ Add dialogue", self.add, "primary"))
         self.examples_button = button("Load dialogue template…", self.open_examples)
@@ -334,8 +341,23 @@ class DialoguePage(QWidget):
         text = dialogue_preview(value(self.fields["text"]))
         self.preview.setText(text or "Your dialogue preview will appear here.")
 
+    def set_project_file(self, project_file):
+        self.project_file = project_file
+        if project_file is None:
+            self.project_location.setText("Save your NPC project to create its dialogue template folder.")
+            return
+        try:
+            folder = project_dialogue_folder(project_file, create=True)
+            self.project_location.setText(f"Dialogue templates: {folder}")
+        except (LocalTemplateError, OSError) as exc:
+            self.project_location.setText(str(exc))
+
     def open_examples(self):
-        dialog = DialogueTemplateDialog(self.records, self)
+        if self.project_window is not None:
+            if not self.project_window.ensure_saved():
+                return
+            self.set_project_file(self.project_window.project_file)
+        dialog = DialogueTemplateDialog(self.records, self, project_file=self.project_file)
         try:
             if dialog.exec() != QDialog.DialogCode.Accepted or dialog.imported_records is None:
                 return

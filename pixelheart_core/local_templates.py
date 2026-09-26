@@ -16,6 +16,7 @@ import stat
 
 from .artwork import ArtworkValidationError, MAX_ARTWORK_BYTES, inspect_artwork
 from .dialogue_templates import MAX_DIALOGUES
+from .projects import project_path
 from .wiki_dialogue import _annotated_entries
 
 
@@ -27,6 +28,7 @@ LOCAL_TEMPLATES = {
     "abigail": {"name": "Abigail"},
     "elliott": {"name": "Elliott"},
 }
+PROJECT_DIALOGUE_DIRECTORY = "dialogue"
 MAX_DIALOGUE_BYTES = 8 * 1024 * 1024
 MAX_DIALOGUE_ENTRIES = MAX_DIALOGUES
 MAX_TEXT_LENGTH = 8000
@@ -69,6 +71,61 @@ def export_commands(template_id, kind="all") -> str:
 def _check_cancelled(cancelled):
     if cancelled is not None and cancelled():
         raise LocalTemplateError("Reference loading was cancelled.")
+
+
+def project_dialogue_folder(project_file, *, create=False) -> Path:
+    """Return the NPC project's fixed reference folder without choosing a path.
+
+    A missing folder is returned without side effects unless ``create`` is true.
+    The project root must already exist; reference loading never creates a project.
+    """
+    try:
+        if not project_file or "\x00" in str(project_file):
+            raise ValueError("missing project")
+        root = project_path(project_file).parent
+        if not root.is_dir():
+            raise ValueError("missing project folder")
+        folder = root / PROJECT_DIALOGUE_DIRECTORY
+        try:
+            details = folder.lstat()
+        except FileNotFoundError:
+            if not create:
+                return folder
+            folder.mkdir(exist_ok=True)
+            details = folder.lstat()
+        if stat.S_ISLNK(details.st_mode):
+            raise LocalTemplateError("The project's dialogue folder must not be a linked folder. Replace the link with a regular dialogue folder.")
+        if not stat.S_ISDIR(details.st_mode):
+            raise LocalTemplateError("The project's dialogue folder must be a regular folder. Move the file named dialogue, then create a dialogue folder.")
+        return folder
+    except LocalTemplateError:
+        raise
+    except (OSError, ValueError, TypeError, RuntimeError) as exc:
+        raise LocalTemplateError("Open or save an NPC project in a writable project folder before loading dialogue.") from exc
+
+
+def load_project_dialogue(template_id, project_file, *, cancelled=None) -> dict:
+    """Read a complete template only from this NPC project's dialogue folder."""
+    _check_cancelled(cancelled)
+    name = _template(template_id)["name"]
+    folder = project_dialogue_folder(project_file)
+    guidance = (
+        f"Place Characters_Dialogue_{name}.json in your NPC project's "
+        f"{PROJECT_DIALOGUE_DIRECTORY} folder, then load the dialogue again."
+    )
+    if not folder.exists():
+        raise LocalTemplateError(guidance)
+    try:
+        return _load_dialogue_from_root(template_id, folder.resolve(strict=True), cancelled=cancelled)
+    except LocalTemplateError as exc:
+        message = str(exc)
+        if message.startswith("Missing "):
+            raise LocalTemplateError(guidance) from exc
+        if "Choose" in message or "choose" in message:
+            raise LocalTemplateError("The project's dialogue folder could not be read. " + guidance) from exc
+        raise
+    except (OSError, ValueError, RuntimeError) as exc:
+        raise LocalTemplateError("The project's dialogue folder could not be read. " + guidance) from exc
 
 
 def _safe_path(root, relative, *, directory=False):
@@ -184,8 +241,15 @@ def _source(asset, payload):
 def load_local_dialogue(template_id, export_root, *, cancelled=None) -> dict:
     """Load every exported dialogue entry, keeping its text and source order."""
     _check_cancelled(cancelled)
-    name = _template(template_id)["name"]
+    _template(template_id)
     root = resolve_export_folder(export_root)
+    return _load_dialogue_from_root(template_id, root, cancelled=cancelled)
+
+
+def _load_dialogue_from_root(template_id, root, *, cancelled=None) -> dict:
+    """Read the requested dialogue directly from an already resolved root."""
+    _check_cancelled(cancelled)
+    name = _template(template_id)["name"]
     asset = f"Characters/Dialogue/{name}"
     path = _asset_path(root, asset, ".json")
     payload = _read_bounded(root, path, MAX_DIALOGUE_BYTES, cancelled)

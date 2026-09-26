@@ -20,7 +20,6 @@ public sealed class ModEntry : Mod
     private FurnitureActivities? furnitureActivities;
     private FurnitureEffects? furnitureEffects;
     private FurnitureCatalogues? furnitureCatalogues;
-    private PatioPoses? patioPoses;
 
     public override void Entry(IModHelper helper)
     {
@@ -28,7 +27,6 @@ public sealed class ModEntry : Mod
         furnitureActivities = new FurnitureActivities(helper, Monitor);
         furnitureEffects = new FurnitureEffects(helper, Monitor);
         furnitureCatalogues = new FurnitureCatalogues(helper, Monitor);
-        patioPoses = new PatioPoses(helper, Monitor);
         helper.Events.Content.AssetRequested += OnAssetRequested;
         helper.Events.Content.AssetsInvalidated += OnAssetsInvalidated;
         helper.Events.GameLoop.SaveLoaded += (_, _) => { InitializeWorld(); libraryQueued = !libraryAttempted; };

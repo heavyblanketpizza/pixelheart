@@ -14,14 +14,14 @@ from unittest.mock import patch
 
 from PySide6.QtCore import QCoreApplication, QEvent, QSettings, Qt
 from PySide6.QtTest import QSignalSpy, QTest
-from PySide6.QtWidgets import QApplication, QDialog
+from PySide6.QtWidgets import QApplication, QDialog, QLabel, QLineEdit, QPushButton
 from shiboken6 import isValid
 
 from pixelheart.app import MainWindow
 from pixelheart.dialogue_templates import DialogueTemplateDialog
 from pixelheart.editors import DialoguePage
-from pixelheart_core.projects import load_project
-from pixelheart_core.local_templates import load_local_dialogue
+from pixelheart_core.projects import load_project, save_project
+from pixelheart_core.local_templates import load_project_dialogue
 
 
 def example_payload():
@@ -59,11 +59,12 @@ class DialogueTemplateDesktopTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-dialogue-examples-")
         self.root = Path(self.temporary.name)
+        self.project_file = self.root / "character.json"
         self.widgets = []
         self.cache_patch = patch("pixelheart.game_import.game_import_settings", side_effect=lambda: QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat))
         self.cache_patch.start()
-        self.download_patch = patch("pixelheart.dialogue_templates.load_local_dialogue", return_value=example_payload())
-        self.download = self.download_patch.start()
+        self.load_patch = patch("pixelheart.dialogue_templates.load_project_dialogue", return_value=example_payload())
+        self.read_template = self.load_patch.start()
         self.records = [{"id": "my-introduction", "trigger": " Introduction ", "text": "My own introduction.",
                          "extension": {"notes": ["Keep this metadata."]}}]
 
@@ -81,7 +82,7 @@ class DialogueTemplateDesktopTests(unittest.TestCase):
             widget.deleteLater()
         self.app.processEvents()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
-        self.download_patch.stop()
+        self.load_patch.stop()
         self.cache_patch.stop()
         self.temporary.cleanup()
 
@@ -90,7 +91,8 @@ class DialogueTemplateDesktopTests(unittest.TestCase):
         return widget
 
     def dialog(self, records=None):
-        return self.keep(DialogueTemplateDialog(self.records if records is None else records))
+        return self.keep(DialogueTemplateDialog(self.records if records is None else records,
+                                                project_file=self.project_file))
 
     def wait_until(self, predicate, message="Qt work did not finish"):
         deadline = time.monotonic() + 3
@@ -103,46 +105,28 @@ class DialogueTemplateDesktopTests(unittest.TestCase):
         self.wait_until(lambda: dialog.worker is None)
         self.assertEqual(len(dialog.examples), count)
 
-    @staticmethod
-    def check(dialog, index, checked=True):
-        dialog.list.item(index).setCheckState(Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked)
-
-    @staticmethod
-    def choose(dialog, index, decision):
-        dialog.list.setCurrentRow(index)
-        dialog.conflict_choice.setCurrentIndex(dialog.conflict_choice.findData(decision))
-
-    @staticmethod
-    def select_only(dialog, *indices):
-        dialog.select_none_button.click()
-        for index in indices:
-            dialog.list.item(index).setCheckState(Qt.CheckState.Checked)
-
-    @staticmethod
-    def choose_bulk(dialog, decision):
-        dialog.bulk_conflict_choice.setCurrentIndex(dialog.bulk_conflict_choice.findData(decision))
-
     def visit_page_dialog(self, page, action, payload=None):
-        # Exercise the real browser and page commit boundary without a nested,
-        # user-blocking modal loop. Async downloads are tested separately below.
+        # Exercise the real browser and commit boundary without a nested modal loop.
         def interact(dialog):
-            dialog.receive_examples(payload or example_payload())
+            self.assertEqual(dialog.project_file, page.project_file)
+            dialog.receive_examples(payload if payload is not None else example_payload())
             action(dialog)
             return dialog.result()
         with patch.object(DialogueTemplateDialog, "exec", interact):
             page.open_examples()
 
-    def test_open_and_browse_are_read_only_and_never_fetch_until_requested(self):
+    def test_open_and_browse_are_read_only_and_never_load_until_requested(self):
         original = deepcopy(self.records)
         dialog = self.dialog()
-        self.download.assert_not_called()
+        self.read_template.assert_not_called()
         self.assertEqual(dialog.examples, [])
         self.assertFalse(dialog.use_button.isEnabled())
         self.load(dialog)
-        self.download.assert_called_once()
+        self.read_template.assert_called_once()
+        self.assertEqual(self.read_template.call_args.args, (dialog.character.currentData(), self.project_file))
         self.assertEqual(dialog.preview.text(), "Hello, Farmer.\nNice to meet you.")
         self.assertEqual(dialog.raw_text.toPlainText(), example_payload()["examples"][0]["text"])
-        self.assertTrue(all(dialog.list.item(i).checkState() == Qt.CheckState.Checked for i in range(4)))
+        self.assertTrue(all(dialog.list.item(i).data(Qt.ItemDataRole.CheckStateRole) is None for i in range(4)))
         self.assertEqual(dialog.use_button.text(), "Use full dialogue")
         dialog.list.setCurrentRow(2)
         self.assertEqual(dialog.preview.text(), "Summer is here.\n\nBring some water.")
@@ -154,83 +138,102 @@ class DialogueTemplateDesktopTests(unittest.TestCase):
         dialog.reject()
         self.assertEqual(dialog.result(), QDialog.DialogCode.Rejected)
 
-    def test_selected_conflict_requires_choice_and_unselected_conflict_does_not_block(self):
-        dialog = self.dialog()
+    def test_warning_replaces_matching_lines_without_conflict_choices_or_second_modal(self):
+        records = deepcopy(self.records) + [{"id": "custom", "trigger": "MyCustomKey", "text": "Keep my writing."}]
+        dialog = self.dialog(records)
+        self.assertFalse(dialog.overwrite_warning.isHidden())
+        self.assertIn("matching", dialog.overwrite_warning.text())
         dialog.receive_examples(example_payload())
-        self.assertFalse(dialog.use_button.isEnabled())
-        self.assertIn("Introduction", dialog.summary.text())
-        dialog.accept()
-        self.assertIsNone(dialog.imported_records)
-        self.select_only(dialog, 2)
         self.assertTrue(dialog.use_button.isEnabled())
-        self.assertEqual(dialog.use_button.text(), "Use selected dialogue")
-        dialog.accept()
+        self.assertFalse(dialog.overwrite_warning.isHidden())
+        self.assertIn("1 matching dialogue entry", dialog.overwrite_warning.text())
+        self.assertIn("3 to add", dialog.summary.text())
+        self.assertIn("1 to overwrite", dialog.summary.text())
+        self.assertIn("1 other entries kept", dialog.summary.text())
+        self.assertFalse(hasattr(dialog, "conflict_choice"))
+        self.assertFalse(hasattr(dialog, "bulk_conflict_choice"))
+        self.assertFalse(hasattr(dialog, "select_none_button"))
+        with patch("PySide6.QtWidgets.QMessageBox.question") as question, patch("PySide6.QtWidgets.QMessageBox.warning") as warning:
+            dialog.accept()
+        question.assert_not_called()
+        warning.assert_not_called()
         self.assertEqual(dialog.result(), QDialog.DialogCode.Accepted)
-        self.assertEqual(dialog.imported_records[0], self.records[0])
-        self.assertEqual([row["trigger"] for row in dialog.imported_records], [" Introduction ", "summer_Mon"])
-        self.assertEqual(set(dialog.imported_records[1]), {"id", "trigger", "text"})
-
-    def test_explicit_keep_and_replace_preserve_entry_identity_and_unknown_metadata(self):
-        for decision in ("keep", "replace"):
-            with self.subTest(decision=decision):
-                dialog = self.dialog()
-                dialog.receive_examples(example_payload())
-                self.select_only(dialog, 0, 1)
-                self.choose(dialog, 0, decision)
-                self.assertTrue(dialog.use_button.isEnabled())
-                dialog.accept()
-                imported = dialog.imported_records
-                self.assertEqual(len(imported), 2)
-                expected = deepcopy(self.records[0])
-                if decision == "replace":
-                    expected["text"] = example_payload()["examples"][0]["text"]
-                self.assertEqual(imported[0], expected)
-                self.assertNotEqual(imported[1]["id"], self.records[0]["id"])
-                self.assertEqual(imported[1]["trigger"], "Mon")
+        imported = dialog.imported_records
+        self.assertEqual(len(imported), 5)
+        self.assertEqual(imported[0]["id"], records[0]["id"])
+        self.assertEqual(imported[0]["extension"], records[0]["extension"])
+        self.assertEqual(imported[0]["text"], example_payload()["examples"][0]["text"])
+        self.assertEqual(imported[1], records[1])
+        self.assertEqual([row["trigger"] for row in imported[2:]], ["Mon", "summer_Mon", "Mon2"])
+        self.assertEqual(len({row["id"] for row in imported}), 5)
+        self.assertEqual(dialog.records, records)
         self.assertEqual(self.records[0]["text"], "My own introduction.")
 
-    def test_duplicate_existing_trigger_is_preserved_and_cannot_be_replaced(self):
-        records = self.records + [{"id": "second-intro", "trigger": "Introduction", "text": "Second draft."}]
+    def test_warning_is_hidden_when_loaded_template_has_no_matches(self):
+        dialog = self.dialog([{"id": "custom", "trigger": "MyCustomKey", "text": "My own writing."}])
+        self.assertFalse(dialog.overwrite_warning.isHidden())
+        dialog.receive_examples(example_payload())
+        self.assertTrue(dialog.overwrite_warning.isHidden())
+        self.assertIn("4 to add", dialog.summary.text())
+        self.assertIn("0 to overwrite", dialog.summary.text())
+        self.assertIn("1 other entries kept", dialog.summary.text())
+        self.assertTrue(dialog.use_button.isEnabled())
+        empty = self.dialog([])
+        self.assertTrue(empty.overwrite_warning.isHidden())
+        empty.receive_examples(example_payload())
+        self.assertTrue(empty.overwrite_warning.isHidden())
+
+    def test_duplicate_matching_rows_are_overwritten_without_losing_identity_or_metadata(self):
+        records = deepcopy(self.records) + [
+            {"id": "second-intro", "trigger": "Introduction", "text": "Second draft.", "extension": {"draft": 2}},
+            {"id": "custom", "trigger": "Custom", "text": "My own unrelated line."},
+        ]
         dialog = self.dialog(records)
         dialog.receive_examples(example_payload())
-        self.select_only(dialog, 0)
-        self.assertEqual(dialog.conflict_choice.findData("replace"), -1)
-        self.assertIn("more than once", dialog.conflict_help.text())
+        self.assertIn("2 matching dialogue entries", dialog.overwrite_warning.text())
+        self.assertIn("3 to add", dialog.summary.text())
+        self.assertIn("2 to overwrite", dialog.summary.text())
+        self.assertTrue(dialog.use_button.isEnabled())
         dialog.accept()
-        self.assertEqual(dialog.imported_records, records)
+        imported = dialog.imported_records
+        self.assertEqual(len(imported), 6)
+        for index in (0, 1):
+            self.assertEqual(imported[index]["id"], records[index]["id"])
+            self.assertEqual(imported[index]["extension"], records[index]["extension"])
+            self.assertEqual(imported[index]["text"], example_payload()["examples"][0]["text"])
+        self.assertEqual(imported[2], records[2])
 
-    def test_switching_character_clears_loaded_examples_selections_and_decisions(self):
+    def test_switching_character_clears_loaded_data_and_updates_project_instructions(self):
         dialog = self.dialog()
         self.load(dialog)
-        self.choose_bulk(dialog, "replace")
         dialog.search.setText("Monday")
         self.assertTrue(dialog.use_button.isEnabled())
         dialog.character.setCurrentIndex(1)
         self.assertEqual(dialog.examples, [])
         self.assertEqual(dialog.list.count(), 0)
-        self.assertEqual(dialog.decisions, {})
         self.assertEqual(dialog.conflicts, {})
         self.assertEqual(dialog.search.text(), "")
-        self.assertEqual(dialog.bulk_conflict_choice.currentData(), "")
         self.assertIsNone(dialog.imported_records)
         self.assertFalse(dialog.use_button.isEnabled())
         self.assertTrue(dialog.detail.isHidden())
-        self.assertEqual(self.download.call_count, 1)
+        self.assertIn("Characters/Dialogue/Elliott", dialog.game_source.commands.toPlainText())
+        self.assertIn("Characters_Dialogue_Elliott.json", dialog.game_source.instructions.text())
+        self.assertEqual(dialog.game_source.folder.text(), str(self.root / "dialogue"))
+        self.assertEqual(self.read_template.call_count, 1)
         self.load(dialog)
-        self.assertEqual(self.download.call_args.args[0], dialog.character.currentData())
-        self.assertEqual(dialog.selected_examples(), example_payload()["examples"])
-        self.assertFalse(dialog.use_button.isEnabled())
+        self.assertEqual(self.read_template.call_args.args, (dialog.character.currentData(), self.project_file))
+        self.assertTrue(dialog.use_button.isEnabled())
 
-    def test_full_exports_are_checked_by_default_and_import_every_raw_entry(self):
+    def test_full_exports_import_every_raw_entry_without_individual_selection(self):
         for character_index, count in enumerate((318, 274)):
             with self.subTest(count=count):
                 payload = full_dialogue_payload(count)
-                self.download.return_value = payload
+                self.read_template.return_value = payload
                 dialog = self.dialog([])
                 dialog.character.setCurrentIndex(character_index)
                 self.load(dialog, count)
                 self.assertEqual(dialog.list.count(), count)
-                self.assertEqual(dialog.selected_examples(), payload["examples"])
+                self.assertTrue(all(dialog.list.item(i).data(Qt.ItemDataRole.CheckStateRole) is None for i in range(count)))
                 self.assertEqual(dialog.use_button.text(), "Use full dialogue")
                 self.assertTrue(dialog.use_button.isEnabled())
                 dialog.list.setCurrentRow(4)
@@ -245,7 +248,7 @@ class DialogueTemplateDesktopTests(unittest.TestCase):
                 self.assertEqual(len({row["id"] for row in imported}), count)
                 self.assertTrue(all(set(row) == {"id", "trigger", "text"} for row in imported))
 
-    def test_search_hides_rows_without_deselecting_and_select_all_none_cover_whole_archive(self):
+    def test_search_filters_preview_without_removing_entries_from_import(self):
         payload = full_dialogue_payload(118)
         dialog = self.dialog([])
         dialog.receive_examples(payload)
@@ -253,63 +256,17 @@ class DialogueTemplateDesktopTests(unittest.TestCase):
         visible = [i for i in range(dialog.list.count()) if not dialog.list.item(i).isHidden()]
         self.assertEqual(len(visible), 1)
         self.assertEqual(dialog.examples[visible[0]]["trigger"], "Archive_Key_020")
-        self.assertEqual(len(dialog.selected_examples()), 118)
+        self.assertIn("Showing 1 of 118", dialog.match_count.text())
+        dialog.search.setText("No possible matching entry")
+        self.assertTrue(dialog.detail.isHidden())
+        self.assertTrue(dialog.use_button.isEnabled())
         self.assertEqual(dialog.use_button.text(), "Use full dialogue")
-        dialog.select_none_button.click()
-        self.assertEqual(dialog.selected_examples(), [])
-        self.assertFalse(dialog.use_button.isEnabled())
-        self.check(dialog, visible[0])
-        self.assertEqual(len(dialog.selected_examples()), 1)
-        self.assertEqual(dialog.use_button.text(), "Use selected dialogue")
-        dialog.select_all_button.click()
-        self.assertEqual(len(dialog.selected_examples()), 118)
         dialog.accept()
         self.assertEqual(len(dialog.imported_records), 118)
         self.assertEqual(dialog.imported_records[0]["trigger"], "Introduction")
 
-    def test_bulk_keep_or_replace_retains_other_writing_and_duplicate_conflicts(self):
-        payload = full_dialogue_payload(74)
-        records = deepcopy(self.records) + [
-            {"id": "my-monday", "trigger": "Mon", "text": "My Monday.", "extension": {"reviewed": True}},
-            {"id": "my-two-hearts-a", "trigger": "Mon2", "text": "First friendship draft."},
-            {"id": "my-two-hearts-b", "trigger": "Mon2", "text": "Second friendship draft."},
-            {"id": "my-custom-line", "trigger": "CustomTrigger", "text": "Keep this unrelated writing."},
-        ]
-        for decision in ("keep", "replace"):
-            with self.subTest(decision=decision):
-                dialog = self.dialog(records)
-                dialog.receive_examples(payload)
-                self.assertFalse(dialog.use_button.isEnabled())
-                self.choose_bulk(dialog, decision)
-                self.assertEqual(dialog.decisions["Introduction"], decision)
-                self.assertEqual(dialog.decisions["Mon"], decision)
-                self.assertEqual(dialog.decisions["Mon2"], "keep")
-                self.assertTrue(dialog.use_button.isEnabled())
-                dialog.accept()
-                imported = dialog.imported_records
-                self.assertEqual(len(imported), 76)
-                for index in (0, 1):
-                    expected = deepcopy(records[index])
-                    if decision == "replace":
-                        expected["text"] = payload["examples"][index]["text"]
-                    self.assertEqual(imported[index], expected)
-                self.assertEqual(imported[2:5], records[2:5])
-
-    def test_bulk_choice_only_resolves_selected_conflicts(self):
-        records = deepcopy(self.records) + [{"id": "my-monday", "trigger": "Mon", "text": "Mine."}]
-        dialog = self.dialog(records)
-        dialog.receive_examples(example_payload())
-        self.select_only(dialog, 0, 2)
-        self.choose_bulk(dialog, "keep")
-        self.assertEqual(dialog.decisions["Introduction"], "keep")
-        self.assertNotIn("Mon", dialog.decisions)
-        self.assertTrue(dialog.use_button.isEnabled())
-        dialog.accept()
-        self.assertEqual(dialog.imported_records[:2], records)
-        self.assertEqual(dialog.imported_records[2]["trigger"], "summer_Mon")
-
     def test_failed_local_load_can_retry_without_leaving_stale_records_or_worker(self):
-        self.download.side_effect = [OSError("Export file unavailable."), example_payload()]
+        self.read_template.side_effect = [OSError("Export file unavailable."), example_payload()]
         dialog = self.dialog()
         dialog.load_button.click()
         self.wait_until(lambda: dialog.worker is None)
@@ -319,21 +276,21 @@ class DialogueTemplateDesktopTests(unittest.TestCase):
         self.assertFalse(dialog.use_button.isEnabled())
         self.assertEqual(dialog.examples, [])
         self.load(dialog)
-        self.assertEqual(self.download.call_count, 2)
+        self.assertEqual(self.read_template.call_count, 2)
         self.assertNotIn("unavailable", dialog.status.text())
         self.assertEqual(dialog.records, self.records)
 
     def test_cancel_running_local_load_waits_for_worker_and_discards_late_result(self):
         started = threading.Event()
 
-        def cooperative_download(template_id, cache_root, cancelled):
+        def cooperative_load(template_id, project_file, cancelled):
             started.set()
             deadline = time.monotonic() + 2
             while not cancelled() and time.monotonic() < deadline:
                 time.sleep(0.002)
             return example_payload()
 
-        self.download.side_effect = cooperative_download
+        self.read_template.side_effect = cooperative_load
         dialog = self.dialog()
         rejected = QSignalSpy(dialog.rejected)
         dialog.load_button.click()
@@ -348,76 +305,128 @@ class DialogueTemplateDesktopTests(unittest.TestCase):
         self.assertIsNone(dialog.imported_records)
         self.assertEqual(dialog.records, self.records)
 
-    def test_capacity_blocks_whole_selection_and_still_allows_replacement(self):
+    def test_capacity_counts_retained_rows_and_allows_matching_replacements_at_limit(self):
         records = deepcopy(self.records) + [
             {"id": f"line-{i}", "trigger": f"Tue{i}", "text": "An existing line."}
             for i in range(1999)
         ]
         dialog = self.dialog(records)
         dialog.receive_examples(example_payload())
-        self.select_only(dialog, 0, 1)
-        self.choose(dialog, 0, "replace")
         self.assertFalse(dialog.use_button.isEnabled())
         self.assertIn("2000", dialog.summary.text())
         dialog.accept()
         self.assertIsNone(dialog.imported_records)
         self.assertEqual(dialog.records, records)
-        self.check(dialog, 1, False)
-        self.assertTrue(dialog.use_button.isEnabled())
-        dialog.accept()
-        self.assertEqual(len(dialog.imported_records), 2000)
-        self.assertEqual(dialog.imported_records[0]["id"], records[0]["id"])
-        self.assertEqual(dialog.imported_records[0]["text"], example_payload()["examples"][0]["text"])
+        replacement = self.dialog(records)
+        replacement.receive_examples({"examples": example_payload()["examples"][:1]})
+        self.assertTrue(replacement.use_button.isEnabled())
+        replacement.accept()
+        self.assertEqual(len(replacement.imported_records), 2000)
+        self.assertEqual(replacement.imported_records[0]["id"], records[0]["id"])
+        self.assertEqual(replacement.imported_records[0]["text"], example_payload()["examples"][0]["text"])
+        self.assertEqual(replacement.imported_records[1:], records[1:])
 
     def test_records_page_only_emits_changed_when_an_import_changes_records(self):
         page = self.keep(DialoguePage())
+        page.set_project_file(self.project_file)
         page.load(self.records)
         changed = QSignalSpy(page.changed)
         self.visit_page_dialog(page, lambda dialog: dialog.reject())
         self.assertEqual(changed.count(), 0)
-
-        def keep_intro(dialog):
-            self.select_only(dialog, 0)
-            self.choose(dialog, 0, "keep")
-            dialog.accept()
-
-        self.visit_page_dialog(page, keep_intro)
+        unchanged = example_payload()
+        unchanged["examples"] = unchanged["examples"][:1]
+        unchanged["examples"][0]["text"] = self.records[0]["text"]
+        self.visit_page_dialog(page, lambda dialog: dialog.accept(), unchanged)
         self.assertEqual(changed.count(), 0)
         self.assertEqual(page.dump(), self.records)
-
-        def import_monday(dialog):
-            self.select_only(dialog, 1)
-            dialog.accept()
-
-        self.visit_page_dialog(page, import_monday)
+        self.visit_page_dialog(page, lambda dialog: dialog.accept())
         self.assertEqual(changed.count(), 1)
-        self.assertEqual(page.dump()[0], self.records[0])
-        self.assertEqual(page.current, 1)
-        self.assertEqual(page.fields["trigger"].text(), "Mon")
-        self.assertEqual(page.preview.text(), "Another Monday.")
+        self.assertEqual(page.dump()[0]["id"], self.records[0]["id"])
+        self.assertEqual(page.current, 0)
+        self.assertEqual(page.preview.text(), "Hello, Farmer.\nNice to meet you.")
         self.assertTrue(page.example_prompt.isHidden())
 
-    def test_changing_local_folder_discards_loaded_data_and_conflict_choices(self):
-        dialog = self.dialog()
-        self.load(dialog)
-        self.choose_bulk(dialog, "replace")
-        dialog.game_source.folder.setText(str(self.root / "another export"))
-        self.assertEqual(dialog.examples, [])
-        self.assertEqual(dialog.decisions, {})
-        self.assertFalse(dialog.use_button.isEnabled())
-        self.assertIn('Characters/Dialogue/Abigail', dialog.game_source.commands.toPlainText())
-        dialog.character.setCurrentIndex(1)
-        self.assertIn('Characters/Dialogue/Elliott', dialog.game_source.commands.toPlainText())
+    def test_project_source_ignores_remembered_artwork_folder_and_has_no_folder_picker(self):
+        settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
+        remembered = self.root / "old artwork exports"
+        settings.setValue("localGame/contentPatcherExportFolder", str(remembered))
+        settings.sync()
+        with patch("pixelheart.game_import.QFileDialog.getExistingDirectory") as picker, patch("pixelheart.game_import.game_import_settings") as read_settings:
+            dialog = self.dialog()
+            self.assertIsInstance(dialog.game_source.folder, QLabel)
+            self.assertEqual(dialog.game_source.findChildren(QLineEdit), [])
+            self.assertFalse(hasattr(dialog.game_source, "browse_button"))
+            self.assertEqual(dialog.game_source.folder.text(), str(self.root / "dialogue"))
+            self.assertTrue((self.root / "dialogue").is_dir())
+            with patch("pixelheart.game_import.QDesktopServices.openUrl", return_value=True) as open_url:
+                dialog.game_source.open_button.click()
+            open_url.assert_called_once()
+            self.assertEqual(open_url.call_args.args[0].toLocalFile(), str(self.root / "dialogue"))
+            picker.assert_not_called()
+            read_settings.assert_not_called()
+        self.assertEqual(settings.value("localGame/contentPatcherExportFolder"), str(remembered))
+        self.assertEqual([button.text() for button in dialog.game_source.findChildren(QPushButton)],
+                         ["Copy command", "Open dialogue folder"])
 
-    def test_real_local_full_dialogue_import_and_save_preserve_source_without_folder_path(self):
-        exports = self.root / "patch export"
-        exports.mkdir()
+    def test_unsaved_dialog_disables_load_and_folder_open(self):
+        dialog = self.keep(DialogueTemplateDialog(self.records))
+        self.assertFalse(dialog.load_button.isEnabled())
+        self.assertFalse(dialog.game_source.open_button.isEnabled())
+        self.assertFalse(dialog.use_button.isEnabled())
+        self.assertIn("Save", dialog.game_source.folder.text())
+        dialog.load_examples()
+        self.read_template.assert_not_called()
+        self.assertIsNone(dialog.worker)
+        self.assertFalse((self.root / "dialogue").exists())
+
+    def test_dialogue_folder_is_created_on_save_open_and_project_switch(self):
+        window = self.keep(MainWindow())
+        first = self.root / "first NPC" / "character.json"
+        self.assertTrue(window.save_to(first))
+        self.assertTrue((first.parent / "dialogue").is_dir())
+        self.assertEqual(window.dialogue.project_file, first)
+        self.assertIn(str(first.parent / "dialogue"), window.dialogue.project_location.text())
+        (first.parent / "dialogue").rmdir()
+        reopened = self.keep(MainWindow())
+        self.assertTrue(reopened.open_path(first))
+        self.assertTrue((first.parent / "dialogue").is_dir())
+        second = self.root / "second NPC" / "character.json"
+        save_project(deepcopy(reopened.document), second)
+        self.assertFalse((second.parent / "dialogue").exists())
+        self.assertTrue(reopened.open_path(second))
+        self.assertTrue((second.parent / "dialogue").is_dir())
+        self.assertEqual(reopened.dialogue.project_file, second)
+        self.assertIn(str(second.parent / "dialogue"), reopened.dialogue.project_location.text())
+        self.assertNotIn(str(first.parent), reopened.dialogue.project_location.text())
+        reopened.load_document(deepcopy(reopened.document))
+        self.assertIsNone(reopened.dialogue.project_file)
+        self.assertIn("Save", reopened.dialogue.project_location.text())
+
+    def test_cancelled_initial_save_does_not_open_template_or_change_dialogue(self):
+        window = self.keep(MainWindow())
+        document = deepcopy(window.document)
+        document["character"]["dialogues"] = deepcopy(self.records)
+        window.load_document(document)
+        original = deepcopy(window.document)
+        changed = QSignalSpy(window.dialogue.changed)
+        with patch("pixelheart.app.QFileDialog.getSaveFileName", return_value=("", "")) as save_dialog, patch.object(DialogueTemplateDialog, "exec") as browse:
+            window.dialogue.open_examples()
+        save_dialog.assert_called_once()
+        browse.assert_not_called()
+        self.read_template.assert_not_called()
+        self.assertEqual(window.document, original)
+        self.assertEqual(window.dialogue.dump(), self.records)
+        self.assertIsNone(window.project_file)
+        self.assertFalse(window.dirty)
+        self.assertEqual(changed.count(), 0)
+
+    def test_real_project_full_dialogue_import_and_save_preserve_source_without_folder_path(self):
+        dialog = self.dialog([])
+        exports = self.root / "dialogue"
         data = {row["trigger"]: row["text"] for row in full_dialogue_payload(301)["examples"]}
         (exports / "Characters_Dialogue_Abigail.json").write_text(json.dumps(data), encoding="utf-8")
-        self.download.side_effect = load_local_dialogue
-        dialog = self.dialog([])
-        dialog.game_source.folder.setText(str(exports))
-        with patch("urllib.request.OpenerDirector.open", side_effect=AssertionError("Local import must not access the network")):
+        self.read_template.side_effect = load_project_dialogue
+        with patch("urllib.request.OpenerDirector.open", side_effect=AssertionError("Project import must not access the network")):
             self.load(dialog, 301)
             dialog.accept()
         imported = dialog.imported_records
@@ -427,51 +436,55 @@ class DialogueTemplateDesktopTests(unittest.TestCase):
         window = self.keep(MainWindow())
         window.document["character"]["dialogues"] = deepcopy(imported)
         window.load_document(window.document)
-        path = self.root / "local-template-project.json"
-        self.assertTrue(window.save_to(path))
-        self.assertEqual(load_project(path)["character"]["dialogues"], imported)
-        self.assertNotIn(str(self.root), path.read_text(encoding="utf-8"))
+        self.assertTrue(window.save_to(self.project_file))
+        self.assertEqual(load_project(self.project_file)["character"]["dialogues"], imported)
+        self.assertNotIn(str(self.root), self.project_file.read_text(encoding="utf-8"))
+
+    def test_missing_project_template_does_not_fall_back_to_remembered_folder(self):
+        dialog = self.dialog([])
+        remembered = self.root / "patch export"
+        remembered.mkdir()
+        (remembered / "Characters_Dialogue_Abigail.json").write_text('{"Mon": "An unrelated project reference."}', encoding="utf-8")
+        settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
+        settings.setValue("localGame/contentPatcherExportFolder", str(remembered))
+        settings.sync()
+        self.read_template.side_effect = load_project_dialogue
+        dialog.load_button.click()
+        self.wait_until(lambda: dialog.worker is None)
+        self.assertEqual(dialog.examples, [])
+        self.assertFalse(dialog.use_button.isEnabled())
+        self.assertIn("Characters_Dialogue_Abigail.json", dialog.status.text())
+        self.assertIn("dialogue folder", dialog.status.text())
+        self.assertNotIn("choose", dialog.status.text().lower())
 
     def test_main_window_import_dirties_once_and_survives_save_reopen_with_metadata(self):
         window = self.keep(MainWindow())
         document = deepcopy(window.document)
-        document["character"]["dialogues"] = deepcopy(self.records)
+        document["character"]["dialogues"] = deepcopy(self.records) + [
+            {"id": "custom-line", "trigger": "MyCustomKey", "text": "My unrelated writing."},
+        ]
         window.load_document(document)
+        self.assertTrue(window.save_to(self.project_file))
         changed = QSignalSpy(window.dialogue.changed)
         self.visit_page_dialog(window.dialogue, lambda dialog: dialog.reject())
         self.assertFalse(window.dirty)
-
-        def preserve_intro(dialog):
-            self.select_only(dialog, 0)
-            self.choose(dialog, 0, "keep")
-            dialog.accept()
-
-        self.visit_page_dialog(window.dialogue, preserve_intro)
-        self.assertFalse(window.dirty)
         self.assertEqual(changed.count(), 0)
-
         full_payload = full_dialogue_payload(118)
-
-        def import_all(dialog):
-            self.choose_bulk(dialog, "replace")
-            self.assertEqual(dialog.use_button.text(), "Use full dialogue")
-            dialog.accept()
-
-        self.visit_page_dialog(window.dialogue, import_all, full_payload)
+        self.visit_page_dialog(window.dialogue, lambda dialog: dialog.accept(), full_payload)
         self.assertTrue(window.dirty)
         self.assertEqual(changed.count(), 1)
         imported = window.dialogue.dump()
-        self.assertEqual(len(imported), 118)
-        self.assertEqual({row["trigger"].strip(): row["text"] for row in imported},
-                         {row["trigger"]: row["text"] for row in full_payload["examples"]})
+        self.assertEqual(len(imported), 119)
+        expected = {row["trigger"]: row["text"] for row in full_payload["examples"]}
+        expected["MyCustomKey"] = "My unrelated writing."
+        self.assertEqual({row["trigger"].strip(): row["text"] for row in imported}, expected)
         self.assertEqual(window.document["character"]["dialogues"], imported)
         self.assertEqual(imported[0]["extension"], self.records[0]["extension"])
-        path = self.root / "with-examples.json"
-        self.assertTrue(window.save_to(path))
+        self.assertTrue(window.save_to(self.project_file))
         self.assertFalse(window.dirty)
-        self.assertEqual(load_project(path)["character"]["dialogues"], imported)
+        self.assertEqual(load_project(self.project_file)["character"]["dialogues"], imported)
         reopened = self.keep(MainWindow())
-        self.assertTrue(reopened.open_path(path))
+        self.assertTrue(reopened.open_path(self.project_file))
         self.assertEqual(reopened.dialogue.dump(), imported)
         self.assertFalse(reopened.dirty)
 

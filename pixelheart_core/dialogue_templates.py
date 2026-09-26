@@ -127,3 +127,39 @@ def apply_dialogue_examples(records, examples, decisions=None) -> list[dict]:
             used_ids.add(entry_id)
             result.append({"id": entry_id, **copy.deepcopy(example)})
     return result
+
+
+def overwrite_dialogue_examples(records, examples) -> list[dict]:
+    """Import a complete template, overwriting matches and keeping other lines.
+
+    Every matching trimmed trigger receives the imported text and provenance,
+    retaining its identity, spelling, order, and metadata. Missing triggers are
+    appended in template order. Validation is atomic and all data is detached.
+    """
+    selected = _selected_examples(examples)
+    indexed = _existing_by_trigger(records)
+    if not selected:
+        raise ValueError("Choose a dialogue template with at least one entry.")
+    additions = sum(example["trigger"] not in indexed for example in selected)
+    if len(records) + additions > MAX_DIALOGUES:
+        raise ValueError(f"A character can have up to {MAX_DIALOGUES} dialogue entries. Remove entries or choose a smaller template.")
+
+    result = copy.deepcopy(list(records))
+    used_ids = {row.get("id") for row in records if isinstance(row.get("id"), str)}
+    for example in selected:
+        matches = indexed.get(example["trigger"])
+        if matches:
+            for index in matches:
+                row = result[index]
+                row["text"] = example["text"]
+                row.pop("source", None)
+                row.pop("source_history", None)
+                if "source" in example:
+                    row["source"] = copy.deepcopy(example["source"])
+        else:
+            entry_id = str(uuid.uuid4())
+            while entry_id in used_ids:
+                entry_id = str(uuid.uuid4())
+            used_ids.add(entry_id)
+            result.append({"id": entry_id, **copy.deepcopy(example)})
+    return result

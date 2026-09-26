@@ -72,6 +72,118 @@ class LocalTemplateTests(unittest.TestCase):
         self.assertEqual(self.dialogue.read_bytes(), before)
         self.assertEqual(list(self.exports.iterdir()), [self.dialogue])
 
+    def test_project_dialogue_folder_has_one_location_and_explicit_creation(self):
+        project_file = self.root / "character.json"
+        expected = self.root / "dialogue"
+        self.assertEqual(local.project_dialogue_folder(project_file), expected)
+        self.assertEqual(local.project_dialogue_folder(self.root), expected)
+        self.assertFalse(expected.exists())
+        self.assertEqual(local.project_dialogue_folder(project_file, create=True), expected)
+        self.assertTrue(expected.is_dir())
+        self.assertEqual(local.project_dialogue_folder(project_file, create=True), expected)
+        self.assertFalse(project_file.exists())
+
+    def test_project_dialogue_uses_both_character_filenames_offline_and_read_only(self):
+        project_file = self.root / "character.json"
+        folder = local.project_dialogue_folder(project_file, create=True)
+        for template_id, name in (("abigail", "Abigail"), ("elliott", "Elliott")):
+            with self.subTest(template_id=template_id):
+                source = folder / f"Characters_Dialogue_{name}.json"
+                source.write_bytes(self.dialogue.read_bytes())
+                before = source.read_bytes()
+                with patch("urllib.request.urlopen", side_effect=AssertionError("Network forbidden")), \
+                        patch("urllib.request.build_opener", side_effect=AssertionError("Network forbidden")):
+                    result = local.load_project_dialogue(template_id, project_file)
+                self.assertEqual(result["name"], name)
+                self.assertEqual([(row["trigger"], row["text"]) for row in result["examples"]], list(self.data.items()))
+                self.assertEqual(result["source"]["asset"], f"Characters/Dialogue/{name}")
+                self.assertNotIn(str(self.root), json.dumps(result))
+                self.assertEqual(source.read_bytes(), before)
+        self.assertEqual(sorted(path.name for path in folder.iterdir()), ["Characters_Dialogue_Abigail.json", "Characters_Dialogue_Elliott.json"])
+        self.assertFalse(project_file.exists())
+
+    def test_missing_project_dialogue_gives_fixed_location_without_creating_folder(self):
+        project_file = self.root / "character.json"
+        for template_id, name in (("abigail", "Abigail"), ("elliott", "Elliott")):
+            with self.subTest(template_id=template_id):
+                with self.assertRaises(local.LocalTemplateError) as caught:
+                    local.load_project_dialogue(template_id, project_file)
+                message = str(caught.exception)
+                self.assertIn(f"Characters_Dialogue_{name}.json", message)
+                self.assertIn("NPC project's dialogue folder", message)
+                self.assertNotIn("choose", message.lower())
+                self.assertNotIn("browse", message.lower())
+        self.assertFalse((self.root / "dialogue").exists())
+        local.project_dialogue_folder(project_file, create=True)
+        with self.assertRaisesRegex(local.LocalTemplateError, "Place Characters_Dialogue_Abigail.json"):
+            local.load_project_dialogue("abigail", project_file)
+
+    def test_project_dialogue_never_falls_back_to_other_projects_or_game_exports(self):
+        projects = [self.root / name for name in ("npc-one", "npc-two")]
+        for project in projects:
+            project.mkdir()
+        first = local.project_dialogue_folder(projects[0], create=True)
+        (first / self.dialogue.name).write_text('{"Mon": "First NPC reference."}', encoding="utf-8")
+        result = local.load_project_dialogue("abigail", projects[0])
+        self.assertEqual(result["examples"][0]["text"], "First NPC reference.")
+        with self.assertRaisesRegex(local.LocalTemplateError, "NPC project's dialogue folder"):
+            local.load_project_dialogue("abigail", projects[1])
+        with self.assertRaisesRegex(local.LocalTemplateError, "NPC project's dialogue folder"):
+            local.load_project_dialogue("abigail", self.root / "character.json")
+
+    def test_project_dialogue_never_auto_resolves_game_export_subfolders(self):
+        folder = local.project_dialogue_folder(self.root, create=True)
+        source = folder / self.dialogue.name
+        for relative in ("patch export", "Contents/MacOS/patch export", "Content (unpacked)"):
+            nested = folder / relative
+            nested.mkdir(parents=True)
+            (nested / self.dialogue.name).write_text('{"Mon": "Stale nested export."}', encoding="utf-8")
+        source.write_text('{"Mon": "Current designated file."}', encoding="utf-8")
+        result = local.load_project_dialogue("abigail", self.root)
+        self.assertEqual(result["examples"][0]["text"], "Current designated file.")
+        source.unlink()
+        with self.assertRaisesRegex(local.LocalTemplateError, "Place Characters_Dialogue_Abigail.json"):
+            local.load_project_dialogue("abigail", self.root)
+        self.assertEqual(local.load_local_dialogue("abigail", folder)["examples"][0]["text"], "Stale nested export.")
+
+    def test_project_dialogue_rejects_linked_or_non_directory_folders(self):
+        folder = self.root / "dialogue"
+        for create in (False, True):
+            for linked in (False, True):
+                with self.subTest(create=create, linked=linked):
+                    if linked:
+                        folder.symlink_to(self.exports, target_is_directory=True)
+                    else:
+                        folder.write_text("not a folder", encoding="utf-8")
+                    with self.assertRaisesRegex(local.LocalTemplateError, "linked|regular folder"):
+                        local.project_dialogue_folder(self.root, create=create)
+                    with self.assertRaises(local.LocalTemplateError):
+                        local.load_project_dialogue("abigail", self.root)
+                    folder.unlink()
+
+    def test_project_dialogue_validation_preserves_bad_files_and_rejects_links(self):
+        folder = local.project_dialogue_folder(self.root, create=True)
+        source = folder / self.dialogue.name
+        source.write_bytes(b'{"Mon": "One", "Mon": "Duplicate"}')
+        before = source.read_bytes()
+        with self.assertRaisesRegex(local.LocalTemplateError, "unique trigger"):
+            local.load_project_dialogue("abigail", self.root)
+        self.assertEqual(source.read_bytes(), before)
+        source.unlink()
+        source.symlink_to(self.dialogue)
+        with self.assertRaisesRegex(local.LocalTemplateError, "linked"):
+            local.load_project_dialogue("abigail", self.root)
+        self.assertTrue(source.is_symlink())
+
+    def test_project_dialogue_invalid_project_and_cancellation_have_no_side_effects(self):
+        for project in (None, "", self.root / "missing" / "character.json", "bad\x00project"):
+            with self.subTest(project=project):
+                with self.assertRaisesRegex(local.LocalTemplateError, "Open or save an NPC project"):
+                    local.project_dialogue_folder(project, create=True)
+        with self.assertRaisesRegex(local.LocalTemplateError, "cancelled"):
+            local.load_project_dialogue("abigail", self.root, cancelled=lambda: True)
+        self.assertFalse((self.root / "dialogue").exists())
+
     def test_more_than_old_250_entry_limit_is_imported_without_truncation(self):
         data = {f"Custom_{i}": f"Synthetic line {i}." for i in range(local.MAX_DIALOGUE_ENTRIES)}
         self.dialogue.write_text(json.dumps(data), encoding="utf-8")

@@ -1,7 +1,7 @@
 {
   "Name": "Pixelheart Interiors",
   "Author": "Pixelheart",
-  "Version": "0.2.1",
+  "Version": "0.2.0",
   "Description": "Applies authored residence and spouse-room interiors while preserving in-game furniture changes.",
   "UniqueID": "Pixelheart.Interiors",
   "EntryDll": "Pixelheart.Interiors.dll",
