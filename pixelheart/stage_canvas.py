@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from PySide6.QtCore import Qt, Signal, QPointF, QRectF
+from PySide6.QtCore import QEvent, Qt, Signal, QPointF, QRectF
 from PySide6.QtGui import QColor, QPainter, QPen, QPolygonF, QImage
 from PySide6.QtWidgets import QWidget
 
@@ -10,6 +10,8 @@ from PySide6.QtWidgets import QWidget
 class StageCanvas(QWidget):
     actorSelected = Signal(int)
     actorMoved = Signal(int, int, int)
+    gestureStarted = Signal()
+    gestureFinished = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -102,17 +104,19 @@ class StageCanvas(QWidget):
     def mousePressEvent(self, event):
         if event.button() != Qt.MouseButton.LeftButton:
             return
+        self._finish_gesture()
         self.setFocus()
         tile = self.tile_at(event.position())
-        if tile is None:
+        if tile is None or not self.actors:
             return
         matches = [index for index, actor in enumerate(self.actors) if (actor.get("x"), actor.get("y")) == tile]
         if matches:
             self.selected = matches[0]
             self.actorSelected.emit(self.selected)
-        else:
-            self.move_selected(*tile)
         self.dragging = True
+        self.gestureStarted.emit()
+        if not matches:
+            self.move_selected(*tile)
         self.update()
 
     def mouseMoveEvent(self, event):
@@ -120,9 +124,32 @@ class StageCanvas(QWidget):
             self.move_selected(*tile)
 
     def mouseReleaseEvent(self, event):
-        self.dragging = False
+        self._finish_gesture()
+
+    def _finish_gesture(self):
+        if self.dragging:
+            self.dragging = False
+            self.gestureFinished.emit()
+
+    def focusOutEvent(self, event):
+        self._finish_gesture()
+        super().focusOutEvent(event)
+
+    def hideEvent(self, event):
+        self._finish_gesture()
+        super().hideEvent(event)
+
+    def event(self, event):
+        if event.type() == QEvent.Type.UngrabMouse and getattr(self, "dragging", False):
+            self._finish_gesture()
+        return super().event(event)
 
     def keyPressEvent(self, event):
+        was_dragging = self.dragging
+        self._finish_gesture()
+        if was_dragging and event.key() == Qt.Key.Key_Escape:
+            event.accept()
+            return
         delta = {Qt.Key.Key_Left: (-1, 0), Qt.Key.Key_Right: (1, 0), Qt.Key.Key_Up: (0, -1), Qt.Key.Key_Down: (0, 1)}.get(event.key())
         if delta and self.actors:
             actor = self.actors[self.selected]

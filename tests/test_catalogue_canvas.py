@@ -13,6 +13,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from pixelheart.catalogue_canvas import CataloguePreviewCanvas
+from tests.qt_support import QtTestCase
 
 
 def solid(width, height, color):
@@ -21,7 +22,7 @@ def solid(width, height, color):
     return image
 
 
-class CatalogueCanvasTests(unittest.TestCase):
+class CatalogueCanvasTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

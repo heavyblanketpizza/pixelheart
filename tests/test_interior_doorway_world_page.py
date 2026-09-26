@@ -9,9 +9,10 @@ from PySide6.QtWidgets import QApplication, QDialog
 
 from pixelheart_core.interiors import ensure_doorway, new_interior, place_doorway
 from tests import test_interior_world_page as world_fixture
+from tests.qt_support import QtTestCase
 
 
-class DoorwayWorldPageTests(unittest.TestCase):
+class DoorwayWorldPageTests(QtTestCase):
     setUp = world_fixture.InteriorWorldPageTests.setUp
     tearDown = world_fixture.InteriorWorldPageTests.tearDown
 

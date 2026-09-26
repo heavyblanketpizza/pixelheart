@@ -23,9 +23,10 @@ from pixelheart_core.gift_presets import (
     GIFT_PRESETS, RECOMMENDED_GIFT_PRESET_ID, get_gift_preset,
 )
 from pixelheart_core.projects import load_project
+from tests.qt_support import QtTestCase
 
 
-class GiftPresetDesktopTests(unittest.TestCase):
+class GiftPresetDesktopTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])

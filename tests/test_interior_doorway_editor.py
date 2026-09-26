@@ -15,9 +15,10 @@ from PySide6.QtWidgets import QApplication
 
 from pixelheart.interior_editor import InteriorEditor
 from pixelheart_core.interiors import doorway_exit, new_interior
+from tests.qt_support import QtTestCase
 
 
-class DoorwayEditorTests(unittest.TestCase):
+class DoorwayEditorTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

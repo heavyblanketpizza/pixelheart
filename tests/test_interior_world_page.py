@@ -20,6 +20,7 @@ from pixelheart_core.projects import new_project, save_project, load_project
 from pixelheart_core.world import new_location, new_companion, exported_location_id
 from pixelheart_core.life import new_life_record
 from pixelheart_core.story import new_event, new_actor, new_beat
+from tests.qt_support import QtTestCase
 
 try:
     from .test_world import make_map
@@ -27,7 +28,7 @@ except ImportError:
     from test_world import make_map
 
 
-class InteriorWorldPageTests(unittest.TestCase):
+class InteriorWorldPageTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

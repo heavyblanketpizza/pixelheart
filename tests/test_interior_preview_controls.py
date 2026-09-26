@@ -16,9 +16,10 @@ from PySide6.QtWidgets import QApplication
 from pixelheart.interior_editor import InteriorEditor, FurnitureDetails
 from pixelheart_core.interior_furniture import preview_frame, validate_definition
 from pixelheart_core.interiors import InteriorDraft, render_interior
+from tests.qt_support import QtTestCase
 
 
-class InteriorPreviewControlsTests(unittest.TestCase):
+class InteriorPreviewControlsTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

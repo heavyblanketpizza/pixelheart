@@ -24,6 +24,7 @@ from pixelheart_core.catalog import load_catalog
 from pixelheart_core.exporting import build_mod_archive, validate_character
 from pixelheart_core.projects import load_project
 from pixelheart_core.validation import validate_draft
+from tests.qt_support import QtTestCase
 
 
 MOD_ITEM = "Example.Orchard_Moonfruit"
@@ -58,7 +59,7 @@ class GiftDrop:
         self.accepted = False
 
 
-class GiftEditorTests(unittest.TestCase):
+class GiftEditorTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])

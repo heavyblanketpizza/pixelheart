@@ -15,6 +15,7 @@ from PySide6.QtWidgets import QApplication, QDialog
 from pixelheart.map_workshop import TileMapDraft, MapWorkshop, inspect_tilesheet, read_painted_map, LAYERS
 from pixelheart_core.world import WorldError, map_bundle
 from pixelheart.theme import apply_theme
+from tests.qt_support import QtTestCase
 
 
 class _MapFiles:
@@ -152,7 +153,7 @@ class MapDraftTests(_MapFiles, unittest.TestCase):
         self.assertEqual(path.read_bytes(), before)
 
 
-class MapWorkshopTests(_MapFiles, unittest.TestCase):
+class MapWorkshopTests(_MapFiles, QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

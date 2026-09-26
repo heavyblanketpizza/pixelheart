@@ -16,6 +16,7 @@ from PySide6.QtWidgets import QApplication
 from pixelheart.interior_editor import InteriorEditor
 from tests.test_interior_decorating_flow import make_library
 from tests import test_interior_furniture_drag as furniture_drag
+from tests.qt_support import QtTestCase
 
 
 WINDOW = "(F)Test.Window"
@@ -25,7 +26,7 @@ PAINTING = "(F)Test.Painting"
 CHAIR = "(F)Test.Chair"
 
 
-class InteriorWindowCatalogueTests(unittest.TestCase):
+class InteriorWindowCatalogueTests(QtTestCase):
     # Reuse native Qt dispatch helpers without inheriting unrelated test cases.
     point = staticmethod(furniture_drag.InteriorFurnitureDragTests.point)
     state = staticmethod(furniture_drag.InteriorFurnitureDragTests.state)

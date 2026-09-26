@@ -16,9 +16,10 @@ from PySide6.QtWidgets import QApplication, QDialog, QListWidget, QPushButton
 
 from pixelheart.gifts_page import GIFT_MIME, GiftsPage, ItemIconsDialog
 from pixelheart.item_icons import ItemIconStore, export_filename
+from tests.qt_support import QtTestCase
 
 
-class GiftIconUITests(unittest.TestCase):
+class GiftIconUITests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

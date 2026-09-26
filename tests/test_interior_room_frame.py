@@ -23,6 +23,7 @@ from pixelheart_core.interiors import (
     normalize_interior, render_interior,
 )
 from pixelheart_core.world import asset_path
+from tests.qt_support import QtTestCase
 
 
 ROLES = ("top_left", "top", "top_right", "left", "right",
@@ -30,7 +31,7 @@ ROLES = ("top_left", "top", "top_right", "left", "right",
          "bottom_right_inner", "bottom_right_outer")
 
 
-class InteriorRoomFrameTests(unittest.TestCase):
+class InteriorRoomFrameTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

@@ -13,9 +13,10 @@ from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication
 
 from pixelheart.game_import import LocalGameSourceWidget
+from tests.qt_support import QtTestCase
 
 
-class LocalGameSourceTests(unittest.TestCase):
+class LocalGameSourceTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

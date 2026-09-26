@@ -17,9 +17,10 @@ from PySide6.QtWidgets import QApplication, QDialog, QTableWidgetItem
 from pixelheart.interior_editor import InteriorEditor, FurnitureDetails
 from pixelheart_core.interiors import new_interior
 from pixelheart_core.interior_furniture import validate_definition, attach_texture
+from tests.qt_support import QtTestCase
 
 
-class InteriorEditorTests(unittest.TestCase):
+class InteriorEditorTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
@@ -39,7 +40,8 @@ class InteriorEditorTests(unittest.TestCase):
 
     def tearDown(self):
         for dialog in self.dialogs:
-            dialog.close()
+            # Hidden dialogs do not finish on close(); reject releases staging.
+            dialog.reject()
             dialog.deleteLater()
         self.app.processEvents()
 

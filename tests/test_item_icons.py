@@ -17,9 +17,10 @@ from pixelheart.item_icons import (
 )
 from pixelheart_core.catalog import validate_catalog
 from pixelheart_core.wiki_items import WikiItemError
+from tests.qt_support import QtTestCase
 
 
-class ItemIconTests(unittest.TestCase):
+class ItemIconTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

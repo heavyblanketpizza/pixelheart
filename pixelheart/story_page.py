@@ -67,6 +67,7 @@ class CastEditor(QWidget):
         super().__init__()
         self.records = []
         self.loading = False
+        self.project_history = None
         self.removed = None
         self.options = [("Your character", "$npc"), ("Farmer", "farmer"), *[(name, name) for name in vanilla_actors()]]
         layout = QVBoxLayout(self)
@@ -100,11 +101,21 @@ class CastEditor(QWidget):
         layout.addLayout(actions)
 
     def load(self, records):
+        self.canvas._finish_gesture()
         self.records = deepcopy(records)
         self.removed = None
         self.undo_button.hide()
         self.render()
         self.canvas.load(self.records, fit=True)
+
+    def set_project_history(self, controller):
+        self.project_history = controller
+        self._connect_history_gesture(self.canvas)
+
+    def _connect_history_gesture(self, canvas):
+        if self.project_history is not None:
+            canvas.gestureStarted.connect(lambda: self.project_history.begin_gesture(("cast", id(canvas))))
+            canvas.gestureFinished.connect(self.project_history.end_gesture)
 
     def render(self):
         self.loading = True
@@ -146,6 +157,7 @@ class CastEditor(QWidget):
 
     def open_staging(self):
         dialog = QDialog(self)
+        dialog.setProperty("projectHistoryLive", True)
         dialog.setWindowTitle("Place the scene's cast")
         dialog.resize(1000, 700)
         layout = QVBoxLayout(dialog)
@@ -155,6 +167,7 @@ class CastEditor(QWidget):
         picker.setAccessibleName("Character to place on the staging board")
         layout.addWidget(picker)
         canvas = StageCanvas()
+        self._connect_history_gesture(canvas)
         canvas.setMaximumHeight(16777215)
         canvas.setMinimumHeight(350)
         canvas.load(self.records, self.canvas.names, fit=True)
@@ -162,6 +175,19 @@ class CastEditor(QWidget):
         canvas.actorSelected.connect(picker.setCurrentIndex)
         picker.currentIndexChanged.connect(canvas.select_actor)
         canvas.actorMoved.connect(self.move_actor)
+        def refresh_staging():
+            canvas._finish_gesture()
+            selected = picker.currentIndex()
+            picker.blockSignals(True)
+            picker.clear()
+            for index, actor in enumerate(self.records):
+                picker.addItem(f"{index + 1}. {self.canvas.names.get(actor['name'], actor['name'])}", index)
+            picker.setCurrentIndex(min(selected, len(self.records) - 1))
+            picker.blockSignals(False)
+            canvas.load(self.records, self.canvas.names)
+            canvas.set_map(self.canvas.background_key)
+            canvas.select_actor(picker.currentIndex())
+        dialog.refresh_project_history = refresh_staging
         layout.addWidget(canvas, 1)
         row = QHBoxLayout()
         row.addWidget(button("Fit cast in view", canvas.fit, "quiet"))
@@ -169,6 +195,7 @@ class CastEditor(QWidget):
         row.addWidget(button("Done", dialog.accept, "primary"))
         layout.addLayout(row)
         dialog.exec()
+        dialog.deleteLater()
 
     def edit(self, row, key, widget):
         if not self.loading:

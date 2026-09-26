@@ -17,9 +17,10 @@ from pixelheart.theme import apply_theme
 from pixelheart_core.playtesting import content_fingerprint, export_is_current, playtest_cases
 from pixelheart_core.projects import new_project
 from pixelheart_core.story import new_beat, new_event
+from tests.qt_support import QtTestCase
 
 
-class PlaytestDesktopTests(unittest.TestCase):
+class PlaytestDesktopTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])

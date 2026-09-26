@@ -18,9 +18,10 @@ from pixelheart.world_page import WorldPage
 from pixelheart_core.interiors import new_interior
 from pixelheart_core.interior_furniture import validate_definition
 from tests.test_interior_decorating_flow import make_library
+from tests.qt_support import QtTestCase
 
 
-class InteriorInteractionRegressionTests(unittest.TestCase):
+class InteriorInteractionRegressionTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

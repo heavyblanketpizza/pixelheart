@@ -21,9 +21,10 @@ from pixelheart.app import MainWindow
 from pixelheart.artwork_templates import ArtworkTemplateDialog
 from pixelheart.theme import apply_theme
 from pixelheart_core.projects import ProjectError, import_artwork, load_project, resolve_artwork
+from tests.qt_support import QtTestCase
 
 
-class ArtworkTemplateTests(unittest.TestCase):
+class ArtworkTemplateTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])

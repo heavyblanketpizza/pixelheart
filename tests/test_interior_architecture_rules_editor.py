@@ -14,6 +14,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from pixelheart.interior_editor import InteriorEditor
+from tests.qt_support import QtTestCase
 
 try:
     from .test_interior_architecture_rules_canvas import steps_design
@@ -21,7 +22,7 @@ except ImportError:
     from test_interior_architecture_rules_canvas import steps_design
 
 
-class ArchitectureRulesEditorTests(unittest.TestCase):
+class ArchitectureRulesEditorTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

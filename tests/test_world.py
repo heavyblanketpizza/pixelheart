@@ -16,6 +16,7 @@ from pixelheart_core.world import (
     asset_path, exported_location_id, exported_mod_id, world_character,
     world_issues, install_archive, render_map_preview, cast_actor_id,
 )
+from tests.qt_support import QtTestCase
 
 
 def make_map(root, name="room.tmx", width=8, height=10, external=True):
@@ -175,7 +176,7 @@ class WorldAssetTests(unittest.TestCase):
         self.assertTrue({"home_x", "schedule.0.x", "events.0.story.actors.0.x", "events.0.story.beats.0.x", "life.routines.0.stops.0.x"} <= fields)
 
 
-class WorldPageTests(unittest.TestCase):
+class WorldPageTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         import os

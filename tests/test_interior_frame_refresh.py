@@ -18,9 +18,10 @@ from pixelheart_core.interior_furniture import ROOM_FRAME_DOORWAY, ROOM_FRAME_TI
 from pixelheart_core.interior_surface_design import stage_room_frame, stage_surface_library
 from pixelheart_core.interiors import new_interior
 from pixelheart_core.world import asset_path
+from tests.qt_support import QtTestCase
 
 
-class InteriorFrameRefreshTests(unittest.TestCase):
+class InteriorFrameRefreshTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

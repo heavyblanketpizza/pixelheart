@@ -18,9 +18,10 @@ from pixelheart.gifts_page import GiftsPage, TASTES
 from pixelheart.item_icons import ItemIconStore
 from pixelheart_core.projects import load_project
 from tests.test_gifts import GiftDrop
+from tests.qt_support import QtTestCase
 
 
-class GiftDefaultsDesktopTests(unittest.TestCase):
+class GiftDefaultsDesktopTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

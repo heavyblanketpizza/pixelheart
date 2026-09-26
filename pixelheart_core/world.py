@@ -26,6 +26,10 @@ from PIL import Image
 
 from .story import exported_npc_id, story_repeat_events
 from .locations import VANILLA_LOCATIONS
+from .interior_runtime import (
+    INTERIORS_MOD_ID, INTERIORS_MIN_VERSION,
+    INTERIORS_MIN_GAME_VERSION, INTERIORS_MIN_SMAPI_VERSION, minimum_interiors_version,
+)
 
 
 MAX_ASSET_BYTES = 16 * 1024 * 1024
@@ -603,7 +607,7 @@ def world_issues(world, character, project_root=None):
                         raise WorldError("The place's arrival must match its designed interior entry.")
                     if (location["exit_x"], location["exit_y"]) not in reachable_tiles(design):
                         raise WorldError("Keep an unobstructed route from the interior entry to its exit.")
-                add("warning", prefix + ".interior", "Designed interiors require the separately built Pixelheart Interiors SMAPI companion and Stardew Valley 1.6.9 or later. Game behavior has to be playtested.")
+                add("warning", prefix + ".interior", f"Designed interiors require the separately built Pixelheart Interiors {INTERIORS_MIN_VERSION}+ companion, Stardew Valley {INTERIORS_MIN_GAME_VERSION}+, and SMAPI {INTERIORS_MIN_SMAPI_VERSION}+. Game behavior has to be playtested.")
             else:
                 if not location["map"] or project_root is None:
                     raise WorldError("Import this place's TMX map and its local tilesheets before exporting.")
@@ -827,20 +831,21 @@ def compile_world(world, character, project_root):
                     for item in world["dependencies"]]
     if runtime_designs:
         patches.append({"Action": "EditData", "Target": "Pixelheart.Interiors/Designs", "Entries": runtime_designs})
-        for identity in sorted(interior_dependencies | {"Pixelheart.Interiors"}):
+        for identity in sorted(interior_dependencies | {INTERIORS_MOD_ID}):
             existing = next((d for d in dependencies if d["UniqueID"].casefold() == identity.casefold()), None)
+            is_companion = identity.casefold() == INTERIORS_MOD_ID.casefold()
             if existing is None:
                 dependencies.append({"UniqueID": identity, "IsRequired": True,
-                                     **({"MinimumVersion": "0.1.0"} if identity == "Pixelheart.Interiors" else {})})
+                                     **({"MinimumVersion": INTERIORS_MIN_VERSION} if is_companion else {})})
             else:
                 existing["IsRequired"] = True
-                if identity == "Pixelheart.Interiors":
-                    specified = existing.get("MinimumVersion", "0.0.0")
-                    version = tuple(map(int, specified.split("-")[0].split("+")[0].split(".")))
-                    if version < (0, 1, 0) or (version == (0, 1, 0) and "-" in specified):
-                        existing["MinimumVersion"] = "0.1.0"
+                if is_companion:
+                    existing["MinimumVersion"] = minimum_interiors_version(existing.get("MinimumVersion", ""))
+        companion_version = next(d["MinimumVersion"] for d in dependencies
+                                 if d["UniqueID"].casefold() == INTERIORS_MOD_ID.casefold())
         files["INTERIOR_TESTING.txt"] = ("PIXELHEART INTERIORS — PLAYTEST REQUIRED\n\n"
-            "Install the separately built Pixelheart.Interiors 0.1.0+ companion, Stardew Valley 1.6.9+, SMAPI 4.1+, "
+            f"Install the separately built {INTERIORS_MOD_ID} {companion_version}+ companion, "
+            f"Stardew Valley {INTERIORS_MIN_GAME_VERSION}+, SMAPI {INTERIORS_MIN_SMAPI_VERSION}+, "
             "Content Patcher, and every furniture provider declared by this pack. This archive does not include the companion DLL.\n\n"
             "On a disposable test save:\n"
             "1. Enter each residence and check floor/wall appearance, collision, entry, and return warp.\n"

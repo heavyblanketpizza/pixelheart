@@ -9,9 +9,10 @@ from PySide6.QtWidgets import QApplication, QDialog
 from pixelheart_core.interior_layout import partition_candidate, resize_room_candidate
 from pixelheart_core.world import WorldError, exported_location_id, new_companion
 from tests import test_interior_world_page as world_tests
+from tests.qt_support import QtTestCase
 
 
-class InteriorFloorplanWorldTests(unittest.TestCase):
+class InteriorFloorplanWorldTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

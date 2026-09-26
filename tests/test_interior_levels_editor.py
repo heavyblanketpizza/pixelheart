@@ -15,6 +15,7 @@ from PySide6.QtWidgets import QApplication
 
 from pixelheart.interior_editor import InteriorEditor
 from pixelheart.interior_canvas import ROOM_MIME
+from tests.qt_support import QtTestCase
 
 try:
     from .test_interior_architecture_canvas import architecture_design
@@ -35,7 +36,7 @@ def level_design(root):
     return data
 
 
-class InteriorLevelsEditorTests(unittest.TestCase):
+class InteriorLevelsEditorTests(QtTestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])

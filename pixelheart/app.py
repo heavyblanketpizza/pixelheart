@@ -11,7 +11,9 @@ from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QScrollArea,
     QListWidget, QListWidgetItem, QFrame, QFileDialog, QMessageBox, QTabWidget,
+    QApplication, QLineEdit, QPlainTextEdit, QTextEdit, QAbstractScrollArea, QDialog,
 )
+from shiboken6 import isValid
 
 from pixelheart_core.projects import (
     new_project, load_project, save_project, copy_project, project_path,
@@ -20,6 +22,7 @@ from pixelheart_core.projects import (
 from pixelheart_core.validation import validate_draft, DraftValidationError, EDITABLE_FIELDS
 from pixelheart_core.exporting import validate_character, build_mod_archive, ExportValidationError
 from pixelheart_core.artwork import inspect_artwork, ArtworkValidationError
+from pixelheart_core.interior_runtime import INTERIORS_MOD_ID, INTERIORS_MIN_GAME_VERSION, INTERIORS_MIN_SMAPI_VERSION
 from . import __version__
 from .artwork_page import ArtworkPage
 from .editors import IdentityPage, DialoguePage, SchedulePage
@@ -33,6 +36,7 @@ from pixelheart_core.playtesting import record_export
 from .theme import heart_icon
 from .navigation_icons import navigation_icon
 from .widgets import label, button, card
+from .project_history import ProjectHistoryController
 
 
 # Stable keys keep issue links and editor actions independent of sidebar order.
@@ -47,6 +51,10 @@ SECTIONS = [
     ("export", "Review & export", "Bring them into Stardew Valley.", "Check the project, export and install the pack, then playtest their story."),
 ]
 SECTION_INDEX = {section[0]: index for index, section in enumerate(SECTIONS)}
+
+# These describe actions already performed outside the editor. Undoing authored
+# content must not claim that an older pack is still installed or exported.
+EXTERNAL_HISTORY_FIELDS = {"exports", "installation", "installations", "last_export", "last_install", "updated_at"}
 
 
 def scroll_page(page):
@@ -65,10 +73,10 @@ def _export_completion_message(filename, manifest):
         requirements = [entry["UniqueID"] + (f" {entry['MinimumVersion']}+" if entry.get("MinimumVersion") else "")
                         for entry in required]
         message += "\n\nInstall these required mods separately:\n" + "\n".join("• " + name for name in requirements)
-    if any(entry["UniqueID"].casefold() == "pixelheart.interiors" for entry in required):
+    if any(entry["UniqueID"].casefold() == INTERIORS_MOD_ID.casefold() for entry in required):
         message += ("\n\nPixelheart Interiors is the required companion for designed homes and spouse rooms. "
                     "Its DLL is not included in this ZIP. Follow the companion build and installation steps in WORLD_BUILDING.md. "
-                    "Designed interiors need Stardew Valley 1.6.9+ and SMAPI 4.1+.")
+                    f"Designed interiors need Stardew Valley {INTERIORS_MIN_GAME_VERSION}+ and SMAPI {INTERIORS_MIN_SMAPI_VERSION}+.")
     return message + "\n\nLaunch through SMAPI and test this version in-game before sharing it."
 
 
@@ -176,7 +184,9 @@ class MainWindow(QMainWindow):
         self.document = new_project()
         self.project_file = None
         self.dirty = False
+        self._external_dirty = False
         self.loading = True
+        self.project_history = ProjectHistoryController(self)
         self.setWindowIcon(heart_icon())
         self.setMinimumSize(1020, 700)
         self.resize(1360, 900)
@@ -276,9 +286,11 @@ class MainWindow(QMainWindow):
         self.story = StoryPage(self)
         self.events = self.story.events
         self.relationships = self.story.relationships
+        self.events.actors.set_project_history(self.project_history)
         self.artwork = ArtworkPage(self)
         self.life = LifePage(self)
         self.world = WorldPage(self)
+        self.world.settings_dialog.setProperty("projectHistoryLive", True)
         self.world.draft_changed.connect(self.interior_draft_changed)
         self.export_page = ExportPage(self)
         self.playtest = self.export_page.playtest
@@ -308,6 +320,16 @@ class MainWindow(QMainWindow):
         self.navigation.currentRowChanged.connect(self.navigate)
         self.navigation.setCurrentRow(0)
         self.statusBar().addPermanentWidget(label("PIXELHEART  " + __version__, "hint"))
+        for tabs in self.findChildren(QTabWidget):
+            tabs.currentChanged.connect(self.project_history.close_group)
+        for editor in self.history_record_editors():
+            editor.list.currentRowChanged.connect(self.project_history.close_group)
+        self.playtest.tests.currentRowChanged.connect(self.project_history.close_group)
+        self.schedule.table.currentCellChanged.connect(self.project_history.close_group)
+        self.life.editors["routines"].schedule.table.currentCellChanged.connect(self.project_history.close_group)
+        self.events.actors.table.currentCellChanged.connect(self.project_history.close_group)
+        self.world.location_list.currentRowChanged.connect(self.project_history.close_group)
+        self.world.dependency_list.currentRowChanged.connect(self.project_history.close_group)
 
     def build_menus(self):
         file_menu = self.menuBar().addMenu("&File")
@@ -315,7 +337,6 @@ class MainWindow(QMainWindow):
             ("&New character", QKeySequence.StandardKey.New, self.new_character),
             ("&Open project…", QKeySequence.StandardKey.Open, self.open_dialog),
             ("&Save project", QKeySequence.StandardKey.Save, self.save),
-            ("Save project &as…", QKeySequence.StandardKey.SaveAs, self.save_as),
             ("&Review and export…", "Ctrl+Shift+E", lambda: self.open_section("export")),
         ]
         for name, shortcut, callback in actions:
@@ -328,6 +349,7 @@ class MainWindow(QMainWindow):
         close.setShortcut(QKeySequence.StandardKey.Close)
         close.triggered.connect(self.close)
         file_menu.addAction(close)
+        self.project_history.install_actions(self.menuBar().addMenu("&Edit"))
         help_menu = self.menuBar().addMenu("&Help")
         about = QAction("About Pixelheart", self)
         about.triggered.connect(self.about)
@@ -348,6 +370,7 @@ class MainWindow(QMainWindow):
     def navigate(self, index):
         if index < 0:
             return
+        self.project_history.close_group()
         if (not self.loading and self.stack.currentIndex() == SECTION_INDEX["home"]
                 and index != SECTION_INDEX["home"] and not self.world.flush_editor()):
             self.navigation.blockSignals(True)
@@ -376,8 +399,7 @@ class MainWindow(QMainWindow):
 
     def interior_draft_changed(self):
         if not self.loading:
-            self.dirty = True
-            self.update_title()
+            self.project_history.record_current()
 
     def collect(self):
         self.document["character"].update(self.identity.dump())
@@ -399,8 +421,163 @@ class MainWindow(QMainWindow):
         self.collect()
         self.refresh_locations()
         self.world.refresh_home_actions()
-        self.dirty = True
-        self.update_title()
+        self.project_history.record_current()
+
+    def history_record_editors(self):
+        return (self.dialogue, self.events, self.relationships, *self.life.editors.values(), self.events.beats)
+
+    def project_history_context(self):
+        selected = []
+        for editor in self.history_record_editors():
+            index = editor.current
+            selected.append(editor.records[index].get("id", index) if 0 <= index < len(editor.records) else None)
+        return (self.stack.currentIndex(), self.dialogue_tabs.currentIndex(), self.schedule_tabs.currentIndex(),
+                self.story.tabs.currentIndex(), *selected, self.schedule.table.currentRow(),
+                self.schedule.table.currentColumn(), self.playtest.current_test)
+
+    def project_snapshot(self):
+        """Read all editors, including the uncommitted Home draft, without closing it."""
+        self.collect()
+        snapshot = self.world.history_snapshot(self.document)
+        creator = snapshot.get("creator", {})
+        for key in EXTERNAL_HISTORY_FIELDS:
+            creator.pop(key, None)
+        if not creator:
+            snapshot.pop("creator", None)
+        return snapshot
+
+    def external_project_changed(self):
+        self._external_dirty = True
+        self.project_history.close_group()
+        self.project_history.sync()
+
+    def restore_project_snapshot(self, snapshot):
+        """Restore authored content in place, retaining the user's workspace."""
+        selections = []
+        for editor in self.history_record_editors():
+            index = editor.current
+            identity = editor.records[index].get("id") if 0 <= index < len(editor.records) else None
+            selections.append((editor, identity, index))
+        tabs = [(widget, widget.currentIndex()) for widget in self.findChildren(QTabWidget)]
+        scrolls = [(widget, widget.horizontalScrollBar().value(), widget.verticalScrollBar().value())
+                   for widget in self.findChildren(QAbstractScrollArea)]
+        schedules = []
+        for editor in (self.schedule, self.life.editors["routines"].schedule):
+            row, column = editor.table.currentRow(), editor.table.currentColumn()
+            identity = editor.records[row].get("id") if 0 <= row < len(editor.records) else None
+            schedules.append((editor, row, column, identity))
+        story_filters = [(editor, editor.search.text(), editor.filter.currentIndex())
+                         for editor in (self.events, self.relationships)]
+        actor_cell = (self.events.actors.table.currentRow(), self.events.actors.table.currentColumn())
+        focus = QApplication.focusWidget()
+        if focus not in self.findChildren(QWidget):
+            focus = None
+        focus_owner = focus
+        while focus_owner is not None and not focus_owner.accessibleName():
+            focus_owner = focus_owner.parentWidget()
+        focus_name = focus_owner.accessibleName() if focus_owner else ""
+        cursor = focus.cursorPosition() if isinstance(focus, QLineEdit) else None
+        text_position = focus.textCursor().position() if isinstance(focus, (QPlainTextEdit, QTextEdit)) else None
+        external = {key: deepcopy(value) for key, value in self.document.get("creator", {}).items()
+                    if key in EXTERNAL_HISTORY_FIELDS}
+        self.loading = True
+        try:
+            self.document = deepcopy(snapshot)
+            if external:
+                self.document.setdefault("creator", {}).update(external)
+            character = self.document["character"]
+            self.identity.load(character)
+            self.dialogue.load(character["dialogues"])
+            self.schedule.load(character["schedule"])
+            self.gifts.load_catalog_snapshot(self.document.get("item_catalog"))
+            self.gifts.load(character["gifts"])
+            self.story.load(character)
+            self.life.load(character)
+            self.world.load(self.document.get("world", {}), from_history=True)
+            self.refresh_locations()
+            for editor, identity, index in selections:
+                selected = next((row for row, record in enumerate(editor.records)
+                                 if identity is not None and record.get("id") == identity),
+                                min(index, len(editor.records) - 1))
+                editor.list.setCurrentRow(selected)
+            for editor, query, index in story_filters:
+                editor.search.blockSignals(True)
+                editor.filter.blockSignals(True)
+                editor.search.setText(query)
+                editor.filter.setCurrentIndex(index)
+                editor.search.blockSignals(False)
+                editor.filter.blockSignals(False)
+                editor.loading = True
+                try:
+                    editor.apply_filter()
+                    # Keep the record being edited visible even if its restored
+                    # name no longer matches the search, as ordinary typing does.
+                    if editor.list.currentItem() is not None:
+                        editor.list.currentItem().setHidden(False)
+                        editor.no_matches.hide()
+                finally:
+                    editor.loading = False
+            cells = [(self.events.actors.table, actor_cell)]
+            for editor, row, column, identity in schedules:
+                if identity is not None:
+                    row = next((index for index, record in enumerate(editor.records)
+                                if record.get("id") == identity), row)
+                cells.append((editor.table, (row, column)))
+            for table, cell in cells:
+                if cell[0] >= 0 and table.rowCount():
+                    table.setCurrentCell(min(cell[0], table.rowCount() - 1), max(0, cell[1]))
+            for widget, index in tabs:
+                if isValid(widget):
+                    widget.setCurrentIndex(index)
+            self.artwork.refresh()
+            self.update_portrait()
+            self.playtest.refresh()
+            for dialog in self.findChildren(QDialog):
+                refresh = getattr(dialog, "refresh_project_history", None)
+                if dialog.isVisible() and callable(refresh):
+                    refresh()
+        finally:
+            self.loading = False
+        if self.stack.currentIndex() == SECTION_INDEX["home"]:
+            self.world.activate_workspace()
+        elif self.stack.currentIndex() == SECTION_INDEX["export"] and self.export_page.tabs.currentIndex() == 0:
+            self.export_page.refresh()
+        for widget, horizontal, vertical in scrolls:
+            if isValid(widget):
+                widget.horizontalScrollBar().setValue(horizontal)
+                widget.verticalScrollBar().setValue(vertical)
+        if focus is not None:
+            target = focus if isValid(focus) and focus in self.findChildren(QWidget) and focus.isVisible() else None
+            if target is None and focus_name:
+                owner = next((widget for widget in self.findChildren(QWidget)
+                              if widget.accessibleName() == focus_name and widget.isVisible()), None)
+                if owner is not None:
+                    target = owner if isinstance(owner, type(focus)) else owner.findChild(type(focus))
+            if target is not None:
+                target.setFocus(Qt.FocusReason.OtherFocusReason)
+                if cursor is not None and isinstance(target, QLineEdit):
+                    target.setCursorPosition(min(cursor, len(target.text())))
+                elif text_position is not None and isinstance(target, (QPlainTextEdit, QTextEdit)):
+                    current = target.textCursor()
+                    current.setPosition(min(text_position, target.document().characterCount() - 1))
+                    target.setTextCursor(current)
+
+    def clear_text_history(self):
+        for widget in self.findChildren(QWidget):
+            if isinstance(widget, QLineEdit):
+                cursor = widget.cursorPosition()
+                selection = widget.selectionStart()
+                selected_length = len(widget.selectedText())
+                blocked = widget.blockSignals(True)
+                widget.setText(widget.text())
+                if selection >= 0:
+                    anchor = selection + selected_length if cursor == selection else selection
+                    widget.setSelection(anchor, cursor - anchor)
+                else:
+                    widget.setCursorPosition(cursor)
+                widget.blockSignals(blocked)
+            elif isinstance(widget, (QPlainTextEdit, QTextEdit)):
+                widget.document().clearUndoRedoStacks()
 
     def refresh_locations(self):
         locations = {location.get("internal_name", ""): location.get("name") or "Untitled place"
@@ -451,6 +628,9 @@ class MainWindow(QMainWindow):
         self.open_section("identity")
         self.navigate(SECTION_INDEX["identity"])
         self.playtest.refresh()
+        self._external_dirty = False
+        self.project_history.reset(self.project_snapshot())
+        self.clear_text_history()
         self.statusBar().showMessage("Develop this character's dialogue, story, daily life, and home using the editors on the left.", 12000)
 
     def update_portrait(self):
@@ -510,7 +690,12 @@ class MainWindow(QMainWindow):
         return self.save_to(path)
 
     def save_to(self, path):
+        self.project_history.close_group()
         if not self.world.flush_editor():
+            return False
+        if not self.world.publish_history_assets():
+            if self.navigation.currentRow() == SECTION_INDEX["home"]:
+                self.world.activate_workspace()
             return False
         self.collect()
         document = deepcopy(self.document)
@@ -528,9 +713,11 @@ class MainWindow(QMainWindow):
             self.document = document
             self.loading = True
             self.world.load(document.get("world", {}))
+            self.world.reset_history_resources()
             self.loading = False
-            self.dirty = False
-            self.update_title()
+            self._external_dirty = False
+            self.project_history.reset(self.project_snapshot())
+            self.clear_text_history()
             self.artwork.refresh()
             if self.navigation.currentRow() == SECTION_INDEX["home"]:
                 self.world.activate_workspace()
@@ -627,8 +814,7 @@ class MainWindow(QMainWindow):
                 raise OSError(output.errorString())
             self.document = record_export(self.document, path, payload)
             self.playtest.refresh()
-            self.dirty = True
-            self.update_title()
+            self.external_project_changed()
             self.statusBar().showMessage(f"Exported · {path}", 15000)
             import io
             import json
