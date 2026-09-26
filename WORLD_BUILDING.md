@@ -1,47 +1,31 @@
-# Give your character a home and places for their story
+# Give your character a home
 
-Open **Home & places** to design the loaded NPC's residence and spouse room.
-Save the project before importing files so the assets travel together. Use **+ Story place** for additional locations. External mod dependencies and
-import settings are under **Map tools & dependencies**.
+Open **Home** to go straight to the interior editor. The two tabs above the
+canvas are **Pre-spouse residence**, their home before marriage, and **Spouse
+room**, their room in the farmhouse after marriage. Existing designs open in
+place; an empty tab lets you start decorating immediately.
+
+You can begin before saving the project for the first time. Edits stay with the
+project when you switch rooms or leave Home; use **Save project** to write them
+to disk. There is no separate Apply step. Simply visiting an empty room does not
+add it to the project. If an edit needs correction, the editor explains the
+problem and keeps the room open before switching or saving.
+
+Use **Room settings…** to rename the selected home or change its entrance.
+Advanced map imports, dependencies, and any locations retained from older
+projects are under **Room settings… → Map tools & dependencies**.
 
 Each project authors one custom NPC. Scene casts can include townspeople and
 other installed characters. Older projects retain any previously bundled
-supporting characters and their assets; this page no longer creates or edits
-separate NPC projects inside the current one. For older projects only, **Map tools & dependencies → Legacy bundled characters…** can repair missing artwork or remove an old bundled character after confirmation. Review scenes that referenced a removed character before exporting.
-
-## Create or import a place
-
-For an NPC home, start with **Build residence…**. To
-import a map or create another kind of place, choose **+ Story place** and give
-it a display name. **Map tools & dependencies** contains the **Stable map ID**
-and import tools. Renaming an ID updates references in this project; keep IDs
-stable after using the pack in a game save. Places appear by name in location selectors:
-
-- **Create map from a tilesheet…** opens the simple painter for a 20×20 location
-  or 6×9 spouse room, using your own 16×16 PNG tiles. **Edit painted map…** reopens
-  those layers without changing earlier revisions. See [MAP_WORKSHOP.md](MAP_WORKSHOP.md).
-- **Import Tiled map…** copies a supplied finite, orthogonal TMX map. It must use
-  16×16 tiles and contain Back, Buildings, and Front layers. Keep all referenced
-  TSX files and PNG sheets in its folder or subfolders. External references,
-  parent traversal, and missing dependencies are rejected.
-
-The map and its dependencies are copied together into `world_assets/maps/`.
-The exporter preserves their bytes, and Save As copies the complete bundle.
-The preview draws supplied tile artwork. It cannot certify collision, actions,
-or walking paths. Rich imported maps that the simple painter cannot preserve
-must be edited in Tiled and imported again.
+supporting characters and their assets. For older projects only, **Room
+settings… → Map tools & dependencies → Legacy bundled characters…** can repair
+missing artwork or remove an old bundled character after confirmation. Review
+scenes that referenced a removed character before exporting.
 
 ## Design an interior
 
-In **Home & places**, choose **Build residence…** to start decorating a new
-home for your character. Pixelheart names the place and creates its game ID for
-you. **Apply home** assigns the design as their residence; cancelling leaves no
-empty place behind. Choose **Design spouse room…** for their farmhouse room.
-Once a place exists, select it and use its **Edit interior…** action. The creation
-actions are hidden when that residence or spouse room already exists.
-
-Select an existing place and **Design interior…** or **Edit interior…** to work
-on it again. The spouse canvas stays 6×9 tiles. A residence can contain connected
+Choose **Pre-spouse residence** or **Spouse room** and work directly on the
+canvas. The spouse canvas stays 6×9 tiles. A residence can contain connected
 floor regions and up to four optional rooms.
 
 The room stays visible beside a picture catalogue. Start with **Connect game
@@ -99,7 +83,7 @@ resized lower wall follows that edge. Review scene walking paths after moving
 rooms, since authored movement beats are preserved.
 
 The outside doorway is an opening in the lower wall. Drag the passage to move
-it, or choose **Move the doorway** and click a clear bottom edge. The arrival
+it, or choose **Move the doorway** in **Rooms** and click a clear bottom edge. The arrival
 moves just inside it; the passage leads back outside. Spouse rooms keep their
 fixed size and marked standing spot. Existing homes keep their map coordinates:
 an addition on the left needs enough free space.
@@ -175,14 +159,12 @@ and [Nintendo's decorating manual](https://www.nintendo.com/eu/media/downloads/g
 Spouse rooms use the same finish-and-furniture approach demonstrated by
 [Spouse Room Renovation](https://www.nexusmods.com/stardewvalley/mods/23529).
 
-Imports are staged until **Apply home** or **Apply room**. Apply returns the
-design to Home & places; **Save project** keeps those changes on disk. Cancel
-discards edits and staged assets. Drafts can be applied before all artwork is
-ready; the Home page keeps missing setup visible and export remains blocked.
-Undo and redo work across room, furniture, and surface edits.
-Save As carries the private tilesheets and preview textures with the project.
-**Use this story location as their residence** updates the character's home; review their authored
-schedules separately. Applying an interior replaces that place's imported map.
+Use **Undo** and **Redo** while editing the current room. Switching rooms,
+opening room settings, or leaving Home keeps valid edits in the project;
+**Save project** writes them to disk. Incomplete artwork can stay in a draft,
+but export remains blocked until the required setup is ready. The first save
+and **Save As** carry the private tilesheets and preview textures with the
+project.
 
 Designed interiors require the separate **Pixelheart Interiors** SMAPI companion,
 Stardew Valley 1.6.9+, SMAPI 4.1+, and Content Patcher. The companion source is in
@@ -231,21 +213,25 @@ before treating an exported design as ready for play.
 
 ## Connect the entrance and exit
 
-Choose **Connect entrance…** beside **Edit interior…** for each new standalone
-place. New places remain unconnected until you choose **Use this entrance**:
+On **Pre-spouse residence**, choose **Connect entrance…** above the editor to
+open the entrance settings. For an existing connection, this button reads
+**Entrance…**. A new residence remains unconnected until you choose **Use this
+entrance**:
 
 1. Select the **Outside map** and the **Enter from** X/Y tile that triggers entry.
 2. Choose a different outside **Return to** tile.
 3. Designed residences derive their inside arrival and exit from the doorway.
-   Use **Move doorway in designer…** to change it. Imported or painted maps
-   expose separate **Arrive inside** and **Exit from** coordinates.
+   **Move doorway in designer…** returns you to the canvas with the doorway
+   tool selected. Imported or painted maps expose separate **Arrive inside**
+   and **Exit from** coordinates.
 4. Choose **Use this entrance**, then **Save project**. Editing its map or
    coordinates requires confirming the entrance again. Existing projects retain
    their saved connections.
 
-**Remove place** is blocked while routes, scenes, bundled characters, or other
-entrances still use it. The page lists those references so you can update them.
-**Undo removal** restores an unreferenced place until the next project save.
+In **Room settings… → Map tools & dependencies**, **Remove place** is blocked while routes, scenes,
+bundled characters, or other entrances still use it. The settings list those
+references so you can update them. **Undo removal** restores an unreferenced
+place until the next project save.
 
 The export creates the location and both game warps. Other project locations can
 be connected, provided the chain eventually leads to an existing outside map.
@@ -262,12 +248,12 @@ change without changing the authored map's identity.
 
 ## Give the spouse a room
 
-Choose **Design spouse room…** to decorate the fixed room directly. Only one
-primary spouse room is supported, and the primary character must have romance
-enabled.
+Choose the **Spouse room** tab in **Home** to decorate the fixed room directly.
+Only one spouse room is supported, and the character must have romance enabled
+for export.
 
-For a supplied map, open **Map tools & dependencies**, select **Use a section
-as the primary character's spouse room**, and choose the top-left X/Y tile of a
+For a supplied map, open **Room settings… → Map tools & dependencies**, select
+**Use this map section as their spouse room**, and choose the top-left X/Y tile of a
 6×9 section. The map must contain the whole section. The 6×9 painter preset
 selects X 0, Y 0 automatically.
 
@@ -277,9 +263,40 @@ destination. Use the game's farmhouse destination for married scenes and the
 married routine's **Return to farmhouse** control for the spouse's return home.
 See [LIFE_AND_BRANCHING.md](LIFE_AND_BRANCHING.md) for conversations and routines.
 
+## Imported maps and older places
+
+Open **Room settings… → Map tools & dependencies** for supplied maps and
+locations retained from older projects. The Home editor focuses on the
+residence and spouse room; older places keep their existing content and can
+still be selected in the advanced settings. A home made from an imported map
+shows **Edit imported map…** in its tab so you can keep working with that map.
+
+Choose a place in the advanced settings to change its **Stable map ID** or use
+the import tools. Renaming an ID updates references in this project; keep IDs
+stable after using the pack in a game save. Places appear by name in location
+selectors:
+
+- **Create map from a tilesheet…** opens the simple painter for a 20×20 location
+  or 6×9 spouse room, using your own 16×16 PNG tiles. **Edit painted map…** reopens
+  those layers without changing earlier revisions. See [MAP_WORKSHOP.md](MAP_WORKSHOP.md).
+- **Import Tiled map…** copies a supplied finite, orthogonal TMX map. It must use
+  16×16 tiles and contain Back, Buildings, and Front layers. Keep all referenced
+  TSX files and PNG sheets in its folder or subfolders. External references,
+  parent traversal, and missing dependencies are rejected.
+
+The map and its dependencies are copied together into `world_assets/maps/`.
+The exporter preserves their bytes, and **Save As** copies the complete bundle.
+The preview draws supplied tile artwork. It cannot certify collision, actions,
+or walking paths. Rich imported maps that the simple painter cannot preserve
+must be edited in Tiled and imported again.
+
+For an older story location, **Use this story location as their residence**
+updates the character's home; review authored schedules separately. Replacing
+an imported map with a designed interior changes that place's map source.
+
 ## Declare other mods
 
-Open **Map tools & dependencies**, then **Mod dependencies**. Use the UniqueID from another mod's `manifest.json`,
+Open **Room settings… → Map tools & dependencies**, then **Advanced: mod dependencies**. Use the UniqueID from another mod's `manifest.json`,
 optionally require a minimum version, and specify whether the dependency is
 required. Include mods that provide external maps, NPC actors, or modded items
 your content needs. Declaring a dependency does not download or bundle that mod.

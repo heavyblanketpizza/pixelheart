@@ -1,13 +1,15 @@
-"""The loaded NPC’s residence, spouse room, and optional story locations."""
+"""Direct interior workspace with project map settings kept out of the canvas."""
 from copy import deepcopy
+from pathlib import Path
 import re
+import tempfile
 
 from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QTabWidget, QListWidget,
     QSplitter, QCheckBox, QFileDialog, QScrollArea, QSizePolicy,
-    QStackedWidget, QLabel,
+    QStackedWidget, QLabel, QDialog, QTabBar,
 )
 
 from pixelheart_core.world import (
@@ -142,6 +144,7 @@ def _translate_character_rooms(character, maps, translations):
 
 class WorldPage(QWidget):
     changed = Signal()
+    draft_changed = Signal()
 
     def __init__(self, window):
         super().__init__()
@@ -152,15 +155,253 @@ class WorldPage(QWidget):
         self.detail_stacks = {}
         self.remove_buttons = {}
         self._removed_places = []
+        self.interior_editor = None
+        self._draft_project = None
+        self._editor_record_id = None
+        self._editor_baseline = None
+        self._room_kind = "residence"
+        self._room_views = {}
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(10)
+        self.home_switch = QTabBar()
+        self.home_switch.setAccessibleName("Home workspace")
+        self.home_switch.addTab("Rooms")
+        self.home_switch.addTab("Catalogue development")
+        self.home_switch.setExpanding(False)
+        root.addWidget(self.home_switch)
+        self.home_stack = QStackedWidget()
+        root.addWidget(self.home_stack, 1)
+        rooms = QWidget()
+        room_layout = QVBoxLayout(rooms)
+        room_layout.setContentsMargins(0, 0, 0, 0)
+        room_layout.setSpacing(10)
+        self.home_stack.addWidget(rooms)
+        from .catalogue_workshop import CatalogueWorkshop
+        self.catalogue_workshop = CatalogueWorkshop()
+        self.home_stack.addWidget(self.catalogue_workshop)
+        self.home_switch.currentChanged.connect(self.switch_home_workspace)
+        switch = QHBoxLayout()
+        self.room_switch = QTabBar()
+        self.room_switch.setAccessibleName("Interior to edit")
+        self.room_switch.addTab("Pre-spouse residence")
+        self.room_switch.addTab("Spouse room")
+        self.room_switch.setExpanding(False)
+        self.room_switch.currentChanged.connect(self.switch_room)
+        switch.addWidget(self.room_switch)
+        switch.addStretch()
+        self.entrance_action = button("Connect entrance…", lambda: self.open_settings(connection=True), "quiet")
+        switch.addWidget(self.entrance_action)
+        self.settings_button = button("Room settings…", self.open_settings, "quiet")
+        switch.addWidget(self.settings_button)
+        room_layout.addLayout(switch)
+        self.room_hint = label("Their home before marriage. Shape the rooms and make it their own.", "hint", True)
+        room_layout.addWidget(self.room_hint)
+        self.editor_host = QWidget()
+        self.editor_layout = QVBoxLayout(self.editor_host)
+        self.editor_layout.setContentsMargins(0, 0, 0, 0)
+        room_layout.addWidget(self.editor_host, 1)
+
+        self.settings_dialog = QDialog(self)
+        self.settings_dialog.setWindowTitle("Home settings — Pixelheart")
+        self.settings_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self.settings_dialog.resize(860, 720)
+        settings = QVBoxLayout(self.settings_dialog)
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
-        root.addWidget(self.tabs, 1)
+        settings.addWidget(self.tabs, 1)
+        settings.addWidget(button("Back to decorating", self.settings_dialog.accept, "primary"))
+        self.settings_dialog.finished.connect(lambda *_: self.activate_workspace() if self.isVisible() else None)
         self._build_places()
         self._build_dependencies()
         self.tabs.setTabVisible(1, False)
         self.tabs.tabBar().hide()
+
+    @property
+    def draft_project_file(self):
+        return Path(self._draft_project.name) / "character.json" if self._draft_project else None
+
+    def _interior_project_file(self):
+        if self.window.project_file:
+            return self.window.project_file
+        if self._draft_project is None:
+            self._draft_project = tempfile.TemporaryDirectory(prefix="pixelheart-home-")
+        return self.draft_project_file
+
+    def dispose_editor(self):
+        if self.interior_editor is not None:
+            editor = self.interior_editor
+            self._room_views[editor.draft.data["kind"]] = {
+                "tab": editor.tabs.currentIndex(), "zoom": editor.zoom.currentIndex(),
+                "auto_fit": editor._auto_fit, "grid": editor.grid.isChecked(),
+                "time": editor.preview_time.currentIndex(), "lights": editor.preview_lights.currentIndex(),
+            }
+            self.interior_editor.dispose()
+            self.editor_layout.removeWidget(self.interior_editor)
+            self.interior_editor.hide()
+            self.interior_editor.deleteLater()
+            self.interior_editor = None
+        while self.editor_layout.count():
+            item = self.editor_layout.takeAt(0)
+            if item.widget():
+                item.widget().hide()
+                item.widget().deleteLater()
+        self._editor_record_id = self._editor_baseline = None
+
+    def reset_workspace(self):
+        self.settings_dialog.hide()
+        self.catalogue_workshop.stop()
+        self.home_switch.blockSignals(True)
+        self.home_switch.setCurrentIndex(0)
+        self.home_switch.blockSignals(False)
+        self.home_stack.setCurrentIndex(0)
+        self.dispose_editor()
+        self._room_views.clear()
+        if self._draft_project is not None:
+            self._draft_project.cleanup()
+            self._draft_project = None
+        self._room_kind = "residence"
+        self.room_switch.blockSignals(True)
+        self.room_switch.setCurrentIndex(0)
+        self.room_switch.blockSignals(False)
+
+    def _role_index(self):
+        return (self._spouse_index() if self._room_kind == "spouse" else
+                next((index for index, record in enumerate(self.world["locations"])
+                      if self._is_residence(record)), None))
+
+    def activate_workspace(self):
+        if self.home_switch.currentIndex() == 1:
+            self.catalogue_workshop.refresh(self.window.project_file)
+            return
+        if self.settings_dialog.isVisible():
+            return
+        if self.interior_editor is not None:
+            return
+        self.dispose_editor()
+        index = self._role_index()
+        record = self.world["locations"][index] if index is not None else None
+        if index is not None:
+            self.location_list.setCurrentRow(index)
+            self.select_location(index)
+        spouse = self._room_kind == "spouse"
+        self.room_hint.setText("Their room in the farmhouse after marriage. Keep a path to the heart clear." if spouse else
+                               "Their home before marriage. Shape the rooms and make it their own.")
+        self.entrance_action.setVisible(not spouse)
+        self.entrance_action.setText("Entrance…" if record and record["entrance"].get("confirmed", True) else "Connect entrance…")
+        if record and record["map"] and not record.get("interior"):
+            # Imported TMX is not a structured interior. Never replace it just
+            # because its role is selected in the decorating workspace.
+            self.editor_layout.addWidget(label(record["name"] or "Imported interior", "profileName"))
+            self.editor_layout.addWidget(label("This home uses an imported map. Open its map editor to keep working on the original layout.", "muted", True))
+            self.editor_layout.addWidget(button("Edit imported map…", self.edit_imported_interior, "primary"))
+            self.editor_layout.addStretch()
+            return
+        try:
+            from .interior_editor import InteriorEditor
+            initial = deepcopy(record.get("interior", {})) if record else {}
+            protected = self._protected_room_points(record) if record else []
+            options = {}
+            if protected:
+                options["validate_layout"] = lambda candidate, offsets: self._validate_room_points(
+                    candidate, protected, _room_translations(initial, candidate, offsets))
+            editor = InteriorEditor(self._interior_project_file(), initial or None, self._room_kind,
+                                    self.editor_host, resident_name=self._character().get("name", ""),
+                                    allow_rebase=record is None, embedded=True, **options)
+            self.interior_editor = editor
+            self._editor_record_id = record["id"] if record else None
+            self._editor_initial_design = initial
+            self._editor_baseline = editor.draft.snapshot()
+            editor.draft_changed.connect(self.draft_changed)
+            self.editor_layout.addWidget(editor, 1)
+            view = self._room_views.get(self._room_kind)
+            if view:
+                editor.tabs.setCurrentIndex(view["tab"])
+                editor.grid.setChecked(view["grid"])
+                editor.preview_time.setCurrentIndex(view["time"])
+                editor.preview_lights.setCurrentIndex(view["lights"])
+                if not view["auto_fit"]:
+                    editor.zoom.setCurrentIndex(view["zoom"])
+                    editor._auto_fit = False
+            editor.show()
+        except (ValueError, OSError) as exc:
+            self.editor_layout.addWidget(label("This interior needs attention: " + str(exc), "notice", True))
+            self.editor_layout.addWidget(button("Open room settings…", self.open_settings))
+            self.editor_layout.addStretch()
+
+    def switch_home_workspace(self, index):
+        if not self.flush_editor():
+            self.home_switch.blockSignals(True)
+            self.home_switch.setCurrentIndex(self.home_stack.currentIndex())
+            self.home_switch.blockSignals(False)
+            return
+        self.catalogue_workshop.stop()
+        self.home_stack.setCurrentIndex(index)
+        self.activate_workspace()
+
+    def switch_room(self, index):
+        if not self.flush_editor():
+            self.room_switch.blockSignals(True)
+            self.room_switch.setCurrentIndex(1 if self._room_kind == "spouse" else 0)
+            self.room_switch.blockSignals(False)
+            return
+        self._room_kind = "spouse" if index == 1 else "residence"
+        self.activate_workspace()
+
+    def flush_editor(self, *, force=False):
+        """Apply the visible draft once before saving or changing context."""
+        editor = self.interior_editor
+        if editor is None:
+            return True
+        if not force and editor.draft.data == self._editor_baseline:
+            self.dispose_editor()
+            return True
+        index = next((i for i, record in enumerate(self.world["locations"])
+                      if record["id"] == self._editor_record_id), None)
+        if self._editor_record_id and index is None:
+            editor.notice("This room was removed. Reopen Home to choose a room.")
+            return False
+        if index is None and len(self.world["locations"]) >= 32:
+            editor.notice("This project already has 32 places. Remove an unused imported place in Room settings first.")
+            return False
+        if not editor.prepare_design(self._interior_project_file()):
+            return False
+        pending = index is None
+        record = self._new_interior_record(spouse=self._room_kind == "spouse") if pending else self.world["locations"][index]
+        try:
+            self._apply_interior_result(record, editor.result_design, self._editor_initial_design,
+                                        editor.result_room_translations)
+        except (ValueError, OSError) as exc:
+            editor.notice(str(exc))
+            return False
+        if pending:
+            self.world["locations"].append(record)
+            index = len(self.world["locations"]) - 1
+            self.location_list.addItem(record["name"])
+            if not record["spouse_room"]:
+                self._update_home(record["internal_name"], record["entry_x"], record["entry_y"])
+        self.dispose_editor()
+        self.location_list.setCurrentRow(index)
+        self.select_location(index)
+        self.changed.emit()
+        return True
+
+    def open_settings(self, checked=False, *, connection=False):
+        if not self.flush_editor(force=True):
+            return
+        index = self._role_index()
+        if index is not None:
+            self.location_list.setCurrentRow(index)
+            self.select_location(index)
+        self.tabs.setCurrentIndex(0)
+        self.settings_dialog.show()
+        self.settings_dialog.raise_()
+        if connection:
+            self.connection_button.setChecked(True)
+
+    def edit_imported_interior(self):
+        self.edit_map()
+        self.activate_workspace()
 
     def _split_page(self, title, add, remove):
         page = QWidget()
@@ -170,10 +411,13 @@ class WorldPage(QWidget):
         if title == "Add place":
             self.build_home_button = button("Build residence…", self.build_home, "primary")
             self.design_spouse_button = button("Design spouse room…", self.design_spouse_room)
-            row.addWidget(self.build_home_button)
-            row.addWidget(self.design_spouse_button)
+            self.build_home_button.setParent(page)
+            self.design_spouse_button.setParent(page)
+            self.build_home_button.hide()
+            self.design_spouse_button.hide()
             self.story_place_button = button("+ Story place", add, "quiet")
-            row.addWidget(self.story_place_button)
+            self.story_place_button.setParent(page)
+            self.story_place_button.hide()
             self.undo_remove_button = button("Undo removal", self.undo_remove_location, "quiet")
             self.undo_remove_button.hide()
             row.addWidget(self.undo_remove_button)
@@ -181,6 +425,8 @@ class WorldPage(QWidget):
             row.addWidget(button("+ " + title, add, "primary"))
         remove_button = button("Remove place" if title == "Add place" else "Remove", remove, "quiet")
         remove_button.setEnabled(False)
+        if title == "Add place":
+            remove_button.hide()
         row.addWidget(remove_button)
         row.addStretch()
         root.addLayout(row)
@@ -271,6 +517,10 @@ class WorldPage(QWidget):
         content.addWidget(self.map_preview)
         self.connection_hint = label("Choose where the player enters this place.", "hint", True)
         content.addWidget(self.connection_hint)
+        # The room itself is already open in Home. Settings only contains the
+        # name, connection and compatibility controls, without another preview.
+        for widget in (self.interior_button, self.map_preview, self.map_status, self.place_role):
+            widget.hide()
         layout.addWidget(details)
         self.warps_card, connection = card("Connect the entrance", "Choose an outside trigger and a separate return tile. Check both in the game.")
         connection.setContentsMargins(16, 14, 16, 14)
@@ -295,7 +545,7 @@ class WorldPage(QWidget):
         connection.addWidget(self.interior_connection_fields)
         self.doorway_summary = label("", "hint", True)
         connection.addWidget(self.doorway_summary)
-        self.doorway_button = button("Move doorway in designer…", lambda: self.design_interior(doorway=True), "quiet")
+        self.doorway_button = button("Move doorway in designer…", self.edit_doorway, "quiet")
         connection.addWidget(self.doorway_button)
         self.confirm_entrance_button = button("Use this entrance", self.confirm_entrance, "primary")
         connection.addWidget(self.confirm_entrance_button)
@@ -304,6 +554,10 @@ class WorldPage(QWidget):
         connection.addWidget(self.connection_error)
         self.warps_card.hide()
         layout.addWidget(self.warps_card)
+        page.layout().removeWidget(self.place_advanced_toggle)
+        page.layout().removeWidget(self.legacy_characters_button)
+        page.layout().addWidget(self.place_advanced_toggle)
+        page.layout().addWidget(self.legacy_characters_button)
         self.location_advanced = QWidget()
         advanced_layout = QVBoxLayout(self.location_advanced)
         advanced_layout.setContentsMargins(0, 0, 0, 0)
@@ -345,6 +599,7 @@ class WorldPage(QWidget):
         self.tabs.addTab(page, "Advanced: mod dependencies")
 
     def load(self, world=None, *, preserve_history=False):
+        self.dispose_editor()
         if not preserve_history:
             self._removed_places.clear()
             self.undo_remove_button.hide()
@@ -381,6 +636,28 @@ class WorldPage(QWidget):
         self.legacy_characters_button.setVisible(visible and bool(self.world["characters"]))
         if hasattr(self, "location_advanced"):
             self.location_advanced.setVisible(visible)
+        self.location_list.setVisible(visible and len(self.world["locations"]) > 1)
+        self.remove_buttons[self.location_panel].setVisible(visible)
+        if self.location_index >= 0:
+            record = self.world["locations"][self.location_index]
+            self.interior_button.setVisible(visible and not record["spouse_room"] and not self._is_residence(record))
+
+    def edit_doorway(self):
+        if self.location_index < 0:
+            return
+        record = self.world["locations"][self.location_index]
+        if self._is_residence(record):
+            self._room_kind = "residence"
+            self.room_switch.blockSignals(True)
+            self.room_switch.setCurrentIndex(0)
+            self.room_switch.blockSignals(False)
+            self.settings_dialog.accept()
+            self.activate_workspace()
+            if self.interior_editor:
+                self.interior_editor.tabs.setCurrentIndex(2)
+                self.interior_editor.set_tool("entry")
+        else:
+            self.design_interior(doorway=True)
 
     def _character(self):
         character = deepcopy(self.window.document["character"])
@@ -402,8 +679,8 @@ class WorldPage(QWidget):
                                        for record in self.world["locations"]) else "Build residence…")
         self.design_spouse_button.setText("Edit spouse room…" if self._spouse_index() is not None
                                          else "Design spouse room…")
-        self.build_home_button.setVisible(not any(self._is_residence(record) for record in self.world["locations"]))
-        self.design_spouse_button.setVisible(self._spouse_index() is None)
+        self.build_home_button.hide()
+        self.design_spouse_button.hide()
 
     def build_home(self):
         self._start_interior_place(spouse=False)
@@ -436,6 +713,22 @@ class WorldPage(QWidget):
             return
         previous_id = (self.world["locations"][self.location_index]["id"]
                        if self.location_index >= 0 else None)
+        record = self._new_interior_record(spouse=spouse)
+        self.world["locations"].append(record)
+        self.location_list.addItem(record["name"])
+        self.location_list.setCurrentRow(len(self.world["locations"]) - 1)
+        if self.design_interior(allow_rebase=True):
+            if not spouse:
+                self.assign_home()
+            return
+        # The pending record is private to this interaction; restore the prior
+        # selection and leave existing places and residence assignment intact.
+        self.world["locations"] = [entry for entry in self.world["locations"] if entry["id"] != record["id"]]
+        self.load(self.world, preserve_history=True)
+        self.location_list.setCurrentRow(next((index for index, entry in enumerate(self.world["locations"])
+                                              if entry["id"] == previous_id), -1))
+
+    def _new_interior_record(self, *, spouse):
         character = self._character()
         name = str(character.get("name", "")).strip()
         base = re.sub(r"[^A-Za-z0-9_]", "", str(character.get("internal_name") or name)) or "NPC"
@@ -453,19 +746,7 @@ class WorldPage(QWidget):
         record["entrance"]["confirmed"] = False
         record.update(name=(name[:60] + "'s " if name else "Their ") + ("spouse room" if spouse else "home"),
                       internal_name=internal, spouse_room=spouse)
-        self.world["locations"].append(record)
-        self.location_list.addItem(record["name"])
-        self.location_list.setCurrentRow(len(self.world["locations"]) - 1)
-        if self.design_interior(allow_rebase=True):
-            if not spouse:
-                self.assign_home()
-            return
-        # The pending record is private to this interaction; restore the prior
-        # selection and leave existing places and residence assignment intact.
-        self.world["locations"] = [entry for entry in self.world["locations"] if entry["id"] != record["id"]]
-        self.load(self.world, preserve_history=True)
-        self.location_list.setCurrentRow(next((index for index, entry in enumerate(self.world["locations"])
-                                              if entry["id"] == previous_id), -1))
+        return record
 
     def add_location(self):
         if len(self.world["locations"]) >= 32:
@@ -533,6 +814,7 @@ class WorldPage(QWidget):
         record = self.world["locations"][self.location_index]
         self.warps_card.setVisible(visible and not record["spouse_room"])
         if visible and not record["spouse_room"]:
+            self.settings_dialog.show()
             # The expanded form receives its final position on the next layout
             # pass. Scroll there only after that pass, not to its hidden geometry.
             QTimer.singleShot(0, self._scroll_to_connection)
@@ -601,7 +883,7 @@ class WorldPage(QWidget):
         self.connection_button.setChecked(False)
         self.warps_card.hide()
         self.location_panel.setEnabled(index >= 0)
-        self.location_list.setVisible(len(self.world["locations"]) > 1)
+        self.location_list.setVisible(self.place_advanced_toggle.isChecked() and len(self.world["locations"]) > 1)
         self.remove_buttons[self.location_panel].setEnabled(index >= 0)
         self.detail_stacks[self.location_panel].setCurrentIndex(0 if index >= 0 else 1)
         if index < 0:
@@ -674,6 +956,7 @@ class WorldPage(QWidget):
         self.edit_map_button.setEnabled(bool(record["map"]) and design is None)
         self.interior_button.setText("Edit interior…" if design else "Design interior…")
         residence = self._is_residence(record)
+        self.interior_button.setVisible(self.place_advanced_toggle.isChecked() and not record["spouse_room"] and not residence)
         self.place_role.setText("Their spouse room in the farmhouse." if record["spouse_room"] else
                                 "Their residence. Changes here apply to the NPC in this project." if residence else
                                 "An optional location for their story.")
@@ -763,6 +1046,7 @@ class WorldPage(QWidget):
             reference = import_map(path, self.window.project_file)
             self.world["locations"][self.location_index]["map"] = reference
             self.world["locations"][self.location_index].pop("interior", None)
+            self.dispose_editor()
             self.refresh_location()
             self.changed.emit()
         except (WorldError, OSError) as exc:
@@ -780,7 +1064,6 @@ class WorldPage(QWidget):
         self.location_list.setCurrentRow(next(index for index, item in enumerate(self.world["locations"]) if item["id"] == identity))
         from .interior_editor import InteriorEditor
         from PySide6.QtWidgets import QDialog
-        from pixelheart_core.interiors import doorway_exit, reachable_tiles
         record = self.world["locations"][self.location_index]
         accepted = False
         dialog = None
@@ -799,33 +1082,13 @@ class WorldPage(QWidget):
                 dialog.tabs.setCurrentIndex(2)
                 dialog.set_tool("entry")
             if dialog.exec() == QDialog.DialogCode.Accepted and dialog.result_design:
-                previous_entry = (record["entry_x"], record["entry_y"])
-                entry = tuple(dialog.result_design["entry"])
-                floors = reachable_tiles(dialog.result_design)
-                if len(floors) < 2 and not record["spouse_room"]:
-                    raise WorldError("Leave a free exit tile reachable from the interior entry.")
-                exit_position = (record["exit_x"], record["exit_y"])
-                translations = _room_translations(initial_design, dialog.result_design,
-                                                  getattr(dialog, "result_room_translations", None))
-                self._validate_room_points(dialog.result_design, protected_points, translations)
-                if "doorway" in dialog.result_design:
-                    exit_position = doorway_exit(dialog.result_design)
-                elif not record["spouse_room"]:
-                    exit_position = _translate_room_point(*exit_position, translations)
-                if not record["spouse_room"] and (exit_position not in floors or exit_position == entry):
-                    exit_position = min(floors - {entry}, key=lambda p: (abs(p[0]-entry[0])+abs(p[1]-entry[1]), p[1], p[0]))
-                scenes_moved = self._move_authored_room_positions(record, translations) if translations and not record["spouse_room"] else False
-                record["interior"] = dialog.result_design
-                record["map"] = None
-                record["room_x"] = record["room_y"] = 0
-                record["entry_x"], record["entry_y"] = dialog.result_design["entry"]
-                record["exit_x"], record["exit_y"] = exit_position
-                if self._is_residence(record):
-                    self._sync_home(record, _translate_room_point(*previous_entry, translations))
+                scenes_moved = self._apply_interior_result(record, dialog.result_design, initial_design,
+                                                           getattr(dialog, "result_room_translations", None))
                 self.select_location(self.location_index)
                 self.interior_notice.setText("Interior applied. Choose Save project to keep these changes." +
                                              (" Room moved: review scene blocking and walking routes." if scenes_moved else ""))
                 self.interior_notice.show()
+                self.dispose_editor()
                 self.changed.emit()
                 accepted = True
         except (ValueError, OSError) as exc:
@@ -834,6 +1097,33 @@ class WorldPage(QWidget):
             if dialog is not None:
                 dialog.deleteLater()
         return accepted
+
+    def _apply_interior_result(self, record, design, initial, offsets=None):
+        from pixelheart_core.interiors import doorway_exit, reachable_tiles
+        previous_entry = (record["entry_x"], record["entry_y"])
+        entry = tuple(design["entry"])
+        floors = reachable_tiles(design)
+        if len(floors) < 2 and not record["spouse_room"]:
+            raise WorldError("Leave a free exit tile reachable from the interior entry.")
+        exit_position = (record["exit_x"], record["exit_y"])
+        translations = _room_translations(initial, design,
+                                          offsets)
+        self._validate_room_points(design, self._protected_room_points(record), translations)
+        if "doorway" in design:
+            exit_position = doorway_exit(design)
+        elif not record["spouse_room"]:
+            exit_position = _translate_room_point(*exit_position, translations)
+        if not record["spouse_room"] and (exit_position not in floors or exit_position == entry):
+            exit_position = min(floors - {entry}, key=lambda p: (abs(p[0]-entry[0])+abs(p[1]-entry[1]), p[1], p[0]))
+        scenes_moved = self._move_authored_room_positions(record, translations) if translations and not record["spouse_room"] else False
+        record["interior"] = design
+        record["map"] = None
+        record["room_x"] = record["room_y"] = 0
+        record["entry_x"], record["entry_y"] = design["entry"]
+        record["exit_x"], record["exit_y"] = exit_position
+        if self._is_residence(record):
+            self._sync_home(record, _translate_room_point(*previous_entry, translations))
+        return scenes_moved
 
     def _move_authored_room_positions(self, record, translations):
         character = self._live_character()
@@ -969,6 +1259,7 @@ class WorldPage(QWidget):
                 if residence:
                     self._reset_home()
             self.select_location(self.location_index)
+            self.dispose_editor()
             self.changed.emit()
         dialog.deleteLater()
 
@@ -1011,11 +1302,34 @@ class WorldPage(QWidget):
         self.changed.emit()
 
     def open_issue(self, field):
+        if not self.flush_editor():
+            return
+        self.home_switch.blockSignals(True)
+        self.home_switch.setCurrentIndex(0)
+        self.home_switch.blockSignals(False)
+        self.home_stack.setCurrentIndex(0)
         parts = field.split(".")
         if parts and parts[0] == "world":
             parts = parts[1:]
         if not parts:
             return
+        if parts[0] == "locations" and len(parts) > 1 and parts[1].isdigit():
+            index = int(parts[1])
+            if 0 <= index < len(self.world["locations"]):
+                record = self.world["locations"][index]
+                if (record["spouse_room"] or self._is_residence(record)) and ("interior" in parts or
+                        (parts[-1] == "map" and record.get("interior"))):
+                    self._room_kind = "spouse" if record["spouse_room"] else "residence"
+                    self.room_switch.blockSignals(True)
+                    self.room_switch.setCurrentIndex(1 if record["spouse_room"] else 0)
+                    self.room_switch.blockSignals(False)
+                    self.settings_dialog.hide()
+                    self.activate_workspace()
+                    if self.interior_editor:
+                        self.interior_editor.canvas.setFocus()
+                    return
+        self.settings_dialog.show()
+        self.settings_dialog.raise_()
         if parts[0] == "characters":
             self.place_advanced_toggle.setChecked(True)
             self.edit_legacy_characters(index=int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0)
@@ -1033,6 +1347,7 @@ class WorldPage(QWidget):
                 widget = (self.doorway_button if record.get("interior") and field in self.location_fields
                           else self.entrance_fields.get(field, self.entrance_fields["map"]))
             elif field == "interior" or (field == "map" and record.get("interior")):
+                self.place_advanced_toggle.setChecked(True)
                 widget = self.interior_button
             else:
                 if field != "name":

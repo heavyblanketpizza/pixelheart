@@ -306,8 +306,7 @@ class HomePlacesWorkflowTests(unittest.TestCase):
         self.page.connection_button.click()
         for _ in range(3):
             self.app.processEvents()
-        scroll = self.page.detail_stacks[self.page.location_panel].widget(0)
-        self.assertGreater(scroll.verticalScrollBar().value(), 0)
+        self.assertTrue(self.page.settings_dialog.isVisible())
         self.assertFalse(self.page.entrance_fields["map"].visibleRegion().isEmpty())
 
 

@@ -1,11 +1,15 @@
+using HarmonyLib;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System.Globalization;
+using System.Security.Cryptography;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.Locations;
 using StardewValley.Mods;
 using StardewValley.Objects;
+using StardewValley.Pathfinding;
 
 namespace Pixelheart.Interiors;
 
@@ -20,6 +24,13 @@ internal sealed class FurnitureActivities
     private Dictionary<string, Definition>? definitions;
     private Candidate? candidate;
     private Running? active;
+    private Journey? journey;
+    private Point? returnOrigin;
+    private readonly Dictionary<Texture2D, string> textureHashes = new();
+    private readonly Dictionary<string, double> retryAfter = new(StringComparer.Ordinal);
+    private static FurnitureActivities? instance;
+    [ThreadStatic] private static Furniture? drawingSeat;
+    private static bool seatDrawingReady;
     private bool paused;
     private int day = -1;
 
@@ -36,6 +47,33 @@ internal sealed class FurnitureActivities
         public int EndTime { get; set; } = 900;
         public int DurationMilliseconds { get; set; } = 12000;
         public bool SpouseOnly { get; set; } = true;
+        public List<Frame> Frames { get; set; } = new();
+        public MirrorDefinition? MirrorReflection { get; set; }
+        // Opt-in. Existing definitions retain their adjacent, rotation-zero behavior.
+        public bool SeekFurniture { get; set; }
+        public List<string> AllowedLocations { get; set; } = new();
+        public Dictionary<int, RotationProfile> Profiles { get; set; } = new();
+        [Newtonsoft.Json.JsonIgnore] internal string AppearanceTexture { get; set; } = "";
+    }
+
+    public sealed class RotationProfile
+    {
+        public int[] SeatOffset { get; set; } = new[] { 0, 0 };
+        public int[] ApproachOffset { get; set; } = new[] { -1, 0 };
+        public int[] DrawOffsetPixels { get; set; } = new[] { 0, 0 };
+        public int FacingDirection { get; set; }
+        public int SeatRotation { get; set; }
+        public string RequiredHeldItemId { get; set; } = "";
+        public List<Appearance> Appearances { get; set; } = new();
+    }
+
+    public sealed class Appearance
+    {
+        public string Texture { get; set; } = "";
+        public int Width { get; set; }
+        public int Height { get; set; }
+        // SHA-256 of row-major runtime RGBA bytes (premultiplied, including alpha).
+        public string RgbaSha256 { get; set; } = "";
         public List<Frame> Frames { get; set; } = new();
         public MirrorDefinition? MirrorReflection { get; set; }
     }
@@ -59,19 +97,24 @@ internal sealed class FurnitureActivities
     }
 
     private sealed record Station(Furniture Vanity, Furniture? Seat, Vector2 VanityTile,
-        Vector2 SeatTile, Vector2 SeatPosition, Point Approach, int VanityRotation, int SeatRotation);
+        Vector2 SeatTile, Vector2 SeatPosition, Point Approach, int VanityRotation, int SeatRotation,
+        Definition? Settings = null, string RequiredHeldItemId = "", Stack<Point>? Route = null, int SeatType = -1);
     private sealed record Candidate(string Id, NPC Npc, GameLocation Location, Station Station,
         Vector2 Position, AnimatedSprite Sprite, double Since);
     private sealed record Running(string Id, Definition Definition, NPC Npc, GameLocation Location,
         Station Station, AnimatedSprite Sprite, Texture2D Texture,
         List<FarmerSprite.AnimationFrame> Animation, FarmerSprite.AnimationFrame[] AnimationFrames, Vector2 OriginalPosition,
         Vector2 SeatPosition, int OriginalFacing, Vector2 OriginalOffset, Vector2 AppliedOffset,
-        bool OriginalLoop, double Until, Texture2D? ReflectionTexture);
+        bool OriginalLoop, bool OriginalHideShadow, double Until, Texture2D? ReflectionTexture, Point ReturnOrigin, string? SeatTextureAsset);
+    private sealed record Journey(string Id, Definition Definition, NPC Npc, GameLocation Location,
+        Station Station, PathFindController Controller, AnimatedSprite Sprite, Texture2D Texture,
+        Point Origin, Point Destination, bool Returning, double Until, Vector2 LastPosition, double LastProgress);
 
     internal FurnitureActivities(IModHelper helper, IMonitor monitor)
     {
         this.helper = helper;
         this.monitor = monitor;
+        instance = this;
         helper.Events.Content.AssetRequested += (_, e) =>
         {
             if (e.NameWithoutLocale.IsEquivalentTo(AssetName))
@@ -81,9 +124,13 @@ internal sealed class FurnitureActivities
         {
             bool settingsChanged = e.NamesWithoutLocale.Any(name => name.IsEquivalentTo(AssetName));
             string? reflectionAsset = active?.Definition.MirrorReflection?.Texture;
+            string? appearanceAsset = active?.Definition.AppearanceTexture ?? journey?.Definition.AppearanceTexture;
             if (settingsChanged || e.NamesWithoutLocale.Any(name =>
                 name.IsEquivalentTo("Data/Furniture")
-                || (reflectionAsset != null && name.IsEquivalentTo(reflectionAsset)))) Stop();
+                || (reflectionAsset != null && name.IsEquivalentTo(reflectionAsset))
+                || (active?.SeatTextureAsset is { } seatAsset && (name.IsEquivalentTo(seatAsset) || name.IsEquivalentTo(seatAsset + "Front")))
+                || (!string.IsNullOrEmpty(appearanceAsset) && name.IsEquivalentTo(appearanceAsset)))) Stop();
+            textureHashes.Clear();
             if (settingsChanged) definitions = null;
         };
         helper.Events.Display.RenderedStep += RenderMirror;
@@ -96,12 +143,82 @@ internal sealed class FurnitureActivities
         helper.ConsoleCommands.Add("pixelheart_activities", "Optional NPC routines: pixelheart_activities [status|pause|resume]", Command);
     }
 
+    // Native furniture already draws correct seat backs/fronts for an occupied
+    // seat. Expose that state only while drawing this one NPC's chair, without
+    // registering a fake farmer or changing the placed furniture.
+    internal static void InstallSeatDrawing(IMonitor monitor)
+    {
+        if (seatDrawingReady) return;
+        try
+        {
+            var harmony = new Harmony("Pixelheart.Interiors.FurnitureActivities");
+            harmony.Patch(AccessTools.Method(typeof(Furniture), nameof(Furniture.draw), new[] { typeof(SpriteBatch), typeof(int), typeof(int), typeof(float) }),
+                prefix: new HarmonyMethod(typeof(FurnitureActivities), nameof(BeginSeatDraw)) { priority = Priority.First },
+                finalizer: new HarmonyMethod(typeof(FurnitureActivities), nameof(EndSeatDraw)));
+            harmony.Patch(AccessTools.Method(typeof(Furniture), nameof(Furniture.HasSittingFarmers)),
+                postfix: new HarmonyMethod(typeof(FurnitureActivities), nameof(SeatOccupiedForDraw)));
+            seatDrawingReady = true;
+        }
+        catch (Exception ex)
+        {
+            monitor.Log($"Furniture seat rendering was unavailable; seated seek routines will be skipped: {ex.Message}", LogLevel.Warn);
+        }
+    }
+
+    private readonly record struct DrawScope(bool Entered, Furniture? Previous);
+
+    private static void BeginSeatDraw(Furniture __instance, out DrawScope __state)
+    {
+        __state = new(true, drawingSeat);
+        // Clear an outer chair's scope during a nested furniture draw.
+        drawingSeat = null;
+        if (instance is not { active: { } state } runner || !seatDrawingReady
+            || !Furniture.isDrawingLocationFurniture || !state.Definition.SeekFurniture
+            || !ReferenceEquals(state.Station.Seat ?? state.Station.Vanity, __instance)
+            || !SupportedSeat(__instance) || !WorldAvailable || runner.paused || Interrupted
+            || state.Location != Game1.currentLocation) return;
+        if (MayContinue(state)) drawingSeat = __instance;
+    }
+
+    private static Exception? EndSeatDraw(Exception? __exception, DrawScope __state)
+    {
+        if (__state.Entered) drawingSeat = __state.Previous;
+        return __exception;
+    }
+
+    private static void SeatOccupiedForDraw(Furniture __instance, ref bool __result)
+    {
+        if (ReferenceEquals(drawingSeat, __instance)) __result = true;
+    }
+
+    private static bool SupportedSeat(Furniture furniture) => furniture.GetType() == typeof(Furniture)
+        && furniture.furniture_type.Value is 0 or 3 && furniture.GetSeatCapacity() == 1;
+
+    private string? PrepareSeatDrawing(string id, Station station)
+    {
+        Furniture seat = station.Seat ?? station.Vanity;
+        if (seat.GetSeatCapacity() == 0) return null;
+        if (!seatDrawingReady || !SupportedSeat(seat)) throw new InvalidOperationException("Unsupported native seat renderer.");
+        var item = ItemRegistry.GetDataOrErrorItem(seat.QualifiedItemId);
+        Texture2D front = helper.GameContent.Load<Texture2D>(item.TextureName + "Front");
+        Rectangle source = seat.sourceRect.Value;
+        Texture2D texture = item.GetTexture();
+        if (item.IsErrorItem || front == null || front.IsDisposed || texture.IsDisposed
+            || front.Width != texture.Width || front.Height != texture.Height || source.X < 0 || source.Y < 0
+            || source.Right > front.Width || source.Bottom > front.Height)
+            throw new InvalidOperationException("The native seat foreground is missing or incompatible.");
+        return item.TextureName;
+    }
+
     private void Reset()
     {
         Stop();
         definitions = null;
         completed.Clear();
         warnings.Clear();
+        retryAfter.Clear();
+        textureHashes.Clear();
+        returnOrigin = null;
         day = -1;
     }
 
@@ -119,13 +236,15 @@ internal sealed class FurnitureActivities
             {
                 Stop();
                 completed.Clear();
+                retryAfter.Clear();
                 day = Game1.Date.TotalDays;
             }
             if (active != null)
             {
-                if (!MayContinue(active)) Stop();
+                if (!MayContinue(active)) Finish();
                 return;
             }
+            if (journey != null) { UpdateJourney(); return; }
             if (!e.IsMultipleOf(30)) return;
             definitions ??= helper.GameContent.Load<Dictionary<string, Definition>>(AssetName);
             if (definitions.Count > 128)
@@ -136,14 +255,18 @@ internal sealed class FurnitureActivities
             }
             foreach ((string id, Definition definition) in definitions.OrderBy(pair => pair.Key, StringComparer.Ordinal))
             {
-                if (!Valid(definition)) { Warn(id, $"Furniture activity '{id}' has invalid settings; it was skipped."); continue; }
-                if (completed.Contains(id) || !InWindow(definition)) continue;
+                if (string.IsNullOrWhiteSpace(id) || id.Length > 256 || id.Any(char.IsControl) || !Valid(definition))
+                { Warn(id, $"Furniture activity '{id}' has invalid settings; it was skipped."); continue; }
+                if (completed.Contains(id) || !InWindow(definition)
+                    || (retryAfter.TryGetValue(id, out double next) && Now < next)) continue;
                 GameLocation location = Game1.currentLocation;
                 NPC? npc = location.characters.FirstOrDefault(person => person.Name == definition.Npc && !person.EventActor);
                 if (npc == null || !Idle(npc) || npc.Sprite.CurrentAnimation != null
-                    || !EligibleLocation(definition, npc, location)) continue;
-                Station? station = FindStation(definition, npc, location);
-                if (station == null || !FramesFit(definition, npc.Sprite)) continue;
+                    || !EligibleLocation(definition, npc, location) || CompletedToday(npc, id)) continue;
+                Station? station = definition.SeekFurniture ? FindRoutedStation(definition, npc, location) : FindStation(definition, npc, location);
+                Definition settings = station?.Settings ?? definition;
+                if (station == null || !FramesFit(settings, npc.Sprite))
+                { if (definition.SeekFurniture) retryAfter[id] = Now + 15000; continue; }
                 if (candidate == null || candidate.Id != id || candidate.Npc != npc || candidate.Location != location
                     || candidate.Station.Vanity != station.Vanity || candidate.Station.Seat != station.Seat
                     || candidate.Position != npc.Position || candidate.Sprite != npc.Sprite)
@@ -151,7 +274,12 @@ internal sealed class FurnitureActivities
                     candidate = new(id, npc, location, station, npc.Position, npc.Sprite, Now);
                     return;
                 }
-                if (Now - candidate.Since >= 1000) Start(id, definition, npc, location, station);
+                if (Now - candidate.Since >= 1000)
+                {
+                    if (definition.SeekFurniture && npc.TilePoint != station.Approach)
+                        BeginJourney(id, settings, npc, location, station, station.Route!, npc.TilePoint, station.Approach, false);
+                    else Start(id, settings, npc, location, station);
+                }
                 return;
             }
             candidate = null;
@@ -175,10 +303,31 @@ internal sealed class FurnitureActivities
             && Pair(data.DrawOffsetPixels, 128) && data.FacingDirection is >= 0 and <= 3
             && Time(data.StartTime) && Time(data.EndTime) && data.StartTime < data.EndTime
             && data.DurationMilliseconds is >= 1000 and <= 60000
-            && data.Frames is { Count: > 0 and <= 64 }
-            && data.Frames.All(frame => frame != null && frame.Index is >= 0 and <= 4095 && frame.Duration is >= 100 and <= 5000)
-            && ValidMirror(data.MirrorReflection, data.Frames);
+            && (data.SeekFurniture ? ValidProfiles(data) : ValidFrames(data.Frames) && ValidMirror(data.MirrorReflection, data.Frames));
     }
+
+    internal static bool ValidFrames(List<Frame>? frames) => frames is { Count: > 0 and <= 64 }
+        && frames.All(frame => frame != null && frame.Index is >= 0 and <= 4095 && frame.Duration is >= 100 and <= 5000);
+
+    internal static bool ValidProfiles(Definition data)
+    {
+        static bool Pair(int[]? value, int maximum) => value?.Length == 2 && value.All(part => Math.Abs((long)part) <= maximum);
+        return data.AllowedLocations is { Count: <= 16 } && data.AllowedLocations.All(name => !string.IsNullOrWhiteSpace(name) && name.Length <= 256)
+            && data.Profiles is { Count: > 0 and <= 4 } && data.Profiles.All(pair => pair.Key is >= 0 and <= 3
+                && pair.Value is { } profile && Pair(profile.SeatOffset, 8) && Pair(profile.ApproachOffset, 1)
+                && Math.Abs(profile.ApproachOffset[0]) + Math.Abs(profile.ApproachOffset[1]) == 1
+                && profile.ApproachOffset[1] == 0 && Pair(profile.DrawOffsetPixels, 128) && profile.FacingDirection is >= 0 and <= 3 && profile.SeatRotation is >= 0 and <= 3
+                && (profile.RequiredHeldItemId == "" || profile.RequiredHeldItemId?.StartsWith("(F)", StringComparison.Ordinal) == true)
+                && profile.Appearances is { Count: > 0 and <= 8 } && profile.Appearances.All(appearance => appearance != null
+                    && !string.IsNullOrWhiteSpace(appearance.Texture) && appearance.Texture.Length <= 512
+                    && appearance.Width is >= 16 and <= 4096 && appearance.Height is >= 32 and <= 4096
+                    && appearance.RgbaSha256 is { Length: 64 } && appearance.RgbaSha256.All(Uri.IsHexDigit)
+                    && ValidFrames(appearance.Frames) && ValidMirror(appearance.MirrorReflection, appearance.Frames)));
+    }
+
+    internal static string CompletionKey(string id) => "Pixelheart.Interiors/ActivityDay/" + id;
+    internal static bool CompletedToday(NPC npc, string id) => npc.modData.TryGetValue(CompletionKey(id), out string value)
+        && value == Game1.Date.TotalDays.ToString(CultureInfo.InvariantCulture);
 
     internal static bool ValidMirror(MirrorDefinition? mirror, IReadOnlyList<Frame> frames)
         => mirror == null || (!string.IsNullOrWhiteSpace(mirror.Texture) && mirror.Texture.Length <= 512
@@ -229,10 +378,178 @@ internal sealed class FurnitureActivities
         if (location is FarmHouse house)
         {
             if (house.OwnerId != Game1.player.UniqueMultiplayerID) return false;
-            return !data.SpouseOnly || house.HasNpcSpouseOrRoommate(data.Npc);
+            return (data.SeekFurniture || data.SpouseOnly) ? house.HasNpcSpouseOrRoommate(data.Npc) : true;
         }
-        return !data.SpouseOnly;
+        return data.SeekFurniture ? data.AllowedLocations.Contains(location.Name, StringComparer.Ordinal) : !data.SpouseOnly;
     }
+
+    private Definition? ResolveProfile(Definition data, NPC npc, RotationProfile profile)
+    {
+        Texture2D texture = npc.Sprite.Texture;
+        foreach (Appearance appearance in profile.Appearances)
+        {
+            if (texture.Width != appearance.Width || texture.Height != appearance.Height || texture.IsDisposed) continue;
+            if (!string.Equals(npc.Sprite.loadedTexture?.Replace('\\', '/'), appearance.Texture.Replace('\\', '/'), StringComparison.OrdinalIgnoreCase)) continue;
+            // Loading the final patched asset proves identity; dimensions alone don't identify an appearance.
+            try
+            {
+                if (!ReferenceEquals(texture, helper.GameContent.Load<Texture2D>(appearance.Texture))) continue;
+            }
+            catch (Exception ex)
+            {
+                Warn("appearance:" + appearance.Texture, $"Furniture activity appearance '{appearance.Texture}' was skipped: {ex.Message}");
+                continue;
+            }
+            if (!textureHashes.TryGetValue(texture, out string? hash))
+            {
+                var colors = new Color[texture.Width * texture.Height];
+                texture.GetData(colors);
+                hash = HashPixels(colors);
+                textureHashes[texture] = hash;
+            }
+            if (!hash.Equals(appearance.RgbaSha256, StringComparison.OrdinalIgnoreCase)) continue;
+            return new Definition
+            {
+                Npc = data.Npc, FurnitureItemId = data.FurnitureItemId, SeatItemId = data.SeatItemId,
+                SeatOffset = profile.SeatOffset, ApproachOffset = profile.ApproachOffset,
+                DrawOffsetPixels = profile.DrawOffsetPixels, FacingDirection = profile.FacingDirection,
+                StartTime = data.StartTime, EndTime = data.EndTime, DurationMilliseconds = data.DurationMilliseconds,
+                SpouseOnly = data.SpouseOnly, SeekFurniture = true, AllowedLocations = data.AllowedLocations,
+                Profiles = data.Profiles, Frames = appearance.Frames, MirrorReflection = appearance.MirrorReflection,
+                AppearanceTexture = appearance.Texture
+            };
+        }
+        return null;
+    }
+
+    internal static string HashPixels(Color[] colors)
+    {
+        byte[] bytes = new byte[colors.Length * 4];
+        for (int i = 0; i < colors.Length; i++)
+        { bytes[i * 4] = colors[i].R; bytes[i * 4 + 1] = colors[i].G; bytes[i * 4 + 2] = colors[i].B; bytes[i * 4 + 3] = colors[i].A; }
+        return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+    }
+
+    private Station? FindRoutedStation(Definition data, NPC npc, GameLocation location)
+    {
+        var floor = location.Map?.GetLayer("Back");
+        if (floor == null || floor.LayerWidth > 127 || floor.LayerHeight > 127) return null;
+        Station? best = null;
+        foreach (Furniture furniture in location.furniture.Where(item => item.QualifiedItemId == data.FurnitureItemId)
+            .OrderBy(item => Vector2.DistanceSquared(npc.Position, item.TileLocation * 64))
+            .ThenBy(item => item.TileLocation.Y).ThenBy(item => item.TileLocation.X).Take(8))
+        {
+            if (!data.Profiles.TryGetValue(furniture.currentRotation.Value, out RotationProfile? profile)) continue;
+            Definition? settings = ResolveProfile(data, npc, profile);
+            if (settings == null || !FramesFit(settings, npc.Sprite)) continue;
+            Station? station = StationAt(settings, profile, furniture, npc, location);
+            if (station == null) continue;
+            Stack<Point>? path = FindSafePath(location, npc, station.Approach);
+            if (path == null) continue;
+            station = station with { Route = path };
+            if (best == null || path.Count < best.Route!.Count || (path.Count == best.Route.Count
+                && (station.VanityTile.Y < best.VanityTile.Y || (station.VanityTile.Y == best.VanityTile.Y && station.VanityTile.X < best.VanityTile.X)))) best = station;
+        }
+        return best;
+    }
+
+    private static Station? StationAt(Definition data, RotationProfile profile, Furniture furniture, NPC npc, GameLocation location)
+    {
+        Vector2 tile = furniture.TileLocation + new Vector2(data.SeatOffset[0], data.SeatOffset[1]);
+        Furniture? seat = null;
+        Vector2 position = tile * 64;
+        if (!string.IsNullOrEmpty(data.SeatItemId))
+        {
+            seat = location.furniture.FirstOrDefault(item => item.QualifiedItemId == data.SeatItemId && item.TileLocation == tile
+                && item.currentRotation.Value == profile.SeatRotation);
+            if (seat == null || seat.GetSeatCapacity() != 1 || seat.HasSittingFarmers()) return null;
+            List<Vector2> seats = seat.GetSeatPositions();
+            if (seats.Count != 1) return null;
+            position = seats[0] * 64;
+        }
+        else
+        {
+            if (furniture.HasSittingFarmers()) return null;
+            if (furniture.GetSeatCapacity() == 1)
+            {
+                List<Vector2> seats = furniture.GetSeatPositions();
+                if (seats.Count != 1) return null;
+                position = seats[0] * 64;
+            }
+        }
+        Point approach = new((int)tile.X + data.ApproachOffset[0], (int)tile.Y + data.ApproachOffset[1]);
+        if (position.Y != approach.Y * 64 || !HeldMatches(furniture, profile.RequiredHeldItemId) || !TileClear(location, approach, npc)
+            || !TileClear(location, tile.ToPoint(), npc, seat ?? furniture)) return null;
+        return new(furniture, seat, furniture.TileLocation, tile, position, approach,
+            furniture.currentRotation.Value, seat?.currentRotation.Value ?? 0, data, profile.RequiredHeldItemId, SeatType: (seat ?? furniture).furniture_type.Value);
+    }
+
+    private static bool HeldMatches(Furniture furniture, string required)
+        => required.Length == 0 || furniture.heldObject.Value?.QualifiedItemId == required;
+
+    internal static Stack<Point>? FindSafePath(GameLocation location, NPC npc, Point target)
+    {
+        var floor = location.Map?.GetLayer("Back");
+        if (floor == null || floor.LayerWidth > 127 || floor.LayerHeight > 127 || !RouteTileClear(location, target, npc)) return null;
+        if (npc.TilePoint == target) return new Stack<Point>();
+        if (Math.Abs(npc.TilePoint.X - target.X) + Math.Abs(npc.TilePoint.Y - target.Y) > 48) return null;
+        Stack<Point>? path = PathFindController.findPath(npc.TilePoint, target, PathFindController.isAtEndPoint, location, npc, 4096);
+        if (path == null || path.Count == 0 || path.Count > 48 || !path.All(tile => RouteTileClear(location, tile, npc))) return null;
+        return path;
+    }
+
+    private static bool RouteTileClear(GameLocation location, Point tile, NPC npc)
+    {
+        if (!TileClear(location, tile, npc) || location.warps.Any(warp => warp.X == tile.X && warp.Y == tile.Y)) return false;
+        // A route may not execute a map's touch action (warps, events, damage or scripted movement).
+        return string.IsNullOrEmpty(location.doesTileHaveProperty(tile.X, tile.Y, "TouchAction", "Back"));
+    }
+
+    private void BeginJourney(string id, Definition data, NPC npc, GameLocation location, Station station,
+        Stack<Point> route, Point origin, Point destination, bool returning)
+    {
+        if (!Idle(npc) || npc.Sprite.CurrentAnimation != null || route.Count == 0) return;
+        var controller = new PathFindController(new Stack<Point>(route.Reverse()), npc, location)
+        { endPoint = destination, finalFacingDirection = data.FacingDirection, NPCSchedule = false, nonDestructivePathing = true };
+        journey = new(id, data, npc, location, station, controller, npc.Sprite, npc.Sprite.Texture,
+            origin, destination, returning, Now + 15000, npc.Position, Now);
+        npc.controller = controller;
+        candidate = null;
+    }
+
+    private void UpdateJourney()
+    {
+        Journey state = journey!;
+        NPC npc = state.Npc;
+        bool arrived = npc.TilePoint == state.Destination && npc.controller == null && !npc.isMoving();
+        bool valid = Now < state.Until && Now - state.LastProgress < 3000
+            && EligibleLocation(state.Definition, npc, state.Location) && Game1.currentLocation == state.Location
+            && InWindow(state.Definition) && npc.Sprite == state.Sprite && npc.Sprite.Texture == state.Texture
+            && npc.Sprite.CurrentAnimation == null && npc.temporaryController == null && !npc.EventActor && !npc.isSleeping.Value
+            && !npc.layingDown && !npc.isInvisible.Value && !npc.swimming.Value && !npc.IsEmoting
+            && npc.movementPause == 0 && npc.faceTowardFarmerTimer <= 0 && !npc.ignoreMovementAnimation
+            && !npc.doingEndOfRouteAnimation.Value && !npc.goingToDoEndOfRouteAnimation.Value
+            && Unscheduled(npc) && (npc.queuedSchedulePaths == null || npc.queuedSchedulePaths.Count == 0)
+            && (ReferenceEquals(npc.controller, state.Controller) || arrived)
+            && (state.Returning || StationUnchanged(state.Station, state.Location, npc))
+            && state.Controller.pathToEndPoint.All(tile => RouteTileClear(state.Location, tile, npc))
+            && Vector2.DistanceSquared(npc.Position, state.LastPosition) <= 64 * 64;
+        if (!valid) { Stop(); return; }
+        if (arrived)
+        {
+            journey = null;
+            if (!state.Returning && Idle(npc))
+            {
+                returnOrigin = state.Origin;
+                try { Start(state.Id, state.Definition, npc, state.Location, state.Station); }
+                finally { returnOrigin = null; }
+            }
+            return;
+        }
+        if (npc.Position != state.LastPosition) journey = state with { LastPosition = npc.Position, LastProgress = Now };
+    }
+
+    private static bool Unscheduled(NPC npc) => !npc.followSchedule || npc.Schedule == null || npc.Schedule.Count == 0;
 
     private static Station? FindStation(Definition data, NPC npc, GameLocation location)
     {
@@ -275,23 +592,49 @@ internal sealed class FurnitureActivities
 
     private void Start(string id, Definition data, NPC npc, GameLocation location, Station station)
     {
+        // Native body depth follows physical Y, independently of drawOffset. Seek
+        // stations use an exact side approach so the native NPC depth stays valid.
+        if (data.SeekFurniture && npc.Position.Y != station.SeatPosition.Y)
+        {
+            candidate = null;
+            retryAfter[id] = Now + 15000;
+            return;
+        }
+        string? seatTextureAsset = null;
+        if (data.SeekFurniture)
+        {
+            try { seatTextureAsset = PrepareSeatDrawing(id, station); }
+            catch (Exception ex)
+            {
+                Warn(id + ":seat-render", $"Furniture activity '{id}' was skipped: {ex.Message}");
+                candidate = null;
+                retryAfter[id] = Now + 15000;
+                return;
+            }
+        }
         AnimatedSprite sprite = npc.Sprite;
         var frames = data.Frames.Select(frame => new FarmerSprite.AnimationFrame(frame.Index, frame.Duration)).ToList();
-        Vector2 position = station.SeatPosition;
-        Vector2 offset = npc.drawOffset + new Vector2(data.DrawOffsetPixels[0], data.DrawOffsetPixels[1]);
+        // Seek routines remain physically on reachable floor. Only the seated drawing is
+        // projected onto its seat; starting/stopping cannot teleport through solid chairs.
+        Vector2 position = data.SeekFurniture ? npc.Position : station.SeatPosition;
+        Vector2 offset = npc.drawOffset + new Vector2(data.DrawOffsetPixels[0], data.DrawOffsetPixels[1])
+            + (data.SeekFurniture ? station.SeatPosition - position : Vector2.Zero);
         active = new(id, data, npc, location, station, sprite, sprite.Texture, frames, frames.ToArray(),
-            npc.Position, position, npc.FacingDirection, npc.drawOffset, offset, sprite.loop, Now + data.DurationMilliseconds,
-            LoadMirror(id, data.MirrorReflection));
-        // No controller, schedule, speed, movement lock or saved NPC is created.
-        npc.Position = position;
+            npc.Position, position, npc.FacingDirection, npc.drawOffset, offset, sprite.loop, npc.hideShadow.Value, Now + data.DurationMilliseconds,
+            LoadMirror(id, data.MirrorReflection), returnOrigin ?? npc.TilePoint, seatTextureAsset);
+        if (!data.SeekFurniture) npc.Position = position;
         npc.faceDirection(data.FacingDirection);
         npc.drawOffset = offset;
+        // A standing shadow would remain on the approach; offsetting it would
+        // include the seated pose's vertical adjustment. Hide it while seated.
+        if (data.SeekFurniture) npc.hideShadow.Value = true;
         sprite.setCurrentAnimation(frames);
         // The native setter copies into a reusable list. Retain the installed
         // list AND its frames so an external animation replacement is not ours.
         active = active with { Animation = sprite.CurrentAnimation, AnimationFrames = sprite.CurrentAnimation.ToArray() };
         sprite.loop = true;
         completed.Add(id);
+        npc.modData[CompletionKey(id)] = Game1.Date.TotalDays.ToString(CultureInfo.InvariantCulture);
         candidate = null;
     }
 
@@ -360,18 +703,54 @@ internal sealed class FurnitureActivities
             && Game1.currentLocation == state.Location && OwnAnimation(state) && npc.Sprite.Texture == state.Texture
             && FramesFit(state.Definition, npc.Sprite) && Idle(npc) && npc.Position == state.SeatPosition
             && npc.FacingDirection == state.Definition.FacingDirection && npc.drawOffset == state.AppliedOffset
-            && state.Location.furniture.Contains(station.Vanity) && station.Vanity.TileLocation == station.VanityTile
+            && StationUnchanged(station, state.Location, npc)
+            && (!state.Definition.SeekFurniture || (npc.hideShadow.Value && TileClear(state.Location, station.Approach, npc)));
+    }
+
+    private static bool StationUnchanged(Station station, GameLocation location, NPC npc)
+        => location.furniture.Contains(station.Vanity) && !station.Vanity.isTemporarilyInvisible
+            && station.Vanity.TileLocation == station.VanityTile
             && station.Vanity.currentRotation.Value == station.VanityRotation
+            && (station.Settings == null || station.Vanity.QualifiedItemId == station.Settings.FurnitureItemId)
+            && (station.SeatType < 0 || (station.Seat ?? station.Vanity).furniture_type.Value == station.SeatType)
+            && HeldMatches(station.Vanity, station.RequiredHeldItemId)
             && (station.Seat == null
                 ? !station.Vanity.HasSittingFarmers()
-                : state.Location.furniture.Contains(station.Seat) && station.Seat.TileLocation == station.SeatTile
+                : location.furniture.Contains(station.Seat) && !station.Seat.isTemporarilyInvisible && station.Seat.TileLocation == station.SeatTile
+                    && (station.Settings == null || station.Seat.QualifiedItemId == station.Settings.SeatItemId)
                     && station.Seat.currentRotation.Value == station.SeatRotation && !station.Seat.HasSittingFarmers())
-            && TileClear(state.Location, station.SeatTile.ToPoint(), npc, station.Seat ?? station.Vanity);
+            && TileClear(location, station.SeatTile.ToPoint(), npc, station.Seat ?? station.Vanity);
+
+    private void Finish()
+    {
+        Running state = active!;
+        bool returnToOrigin = state.Definition.SeekFurniture && Now >= state.Until && InWindow(state.Definition)
+            && OwnAnimation(state) && Idle(state.Npc) && state.Npc.Position == state.SeatPosition
+            && EligibleLocation(state.Definition, state.Npc, state.Location) && StationUnchanged(state.Station, state.Location, state.Npc);
+        Stop();
+        if (!returnToOrigin || !Idle(state.Npc) || state.Npc.TilePoint == state.ReturnOrigin) return;
+        Stack<Point>? path = FindSafePath(state.Location, state.Npc, state.ReturnOrigin);
+        if (path != null) BeginJourney(state.Id, state.Definition, state.Npc, state.Location, state.Station,
+            path, state.ReturnOrigin, state.ReturnOrigin, true);
     }
 
     private void Stop()
     {
         candidate = null;
+        Journey? travel = journey;
+        journey = null;
+        if (travel != null)
+        {
+            retryAfter[travel.Id] = Now + 15000;
+            if (ReferenceEquals(travel.Npc.controller, travel.Controller))
+            {
+                travel.Npc.controller = null;
+                // Halt only our ordinary walking. Never clear a replacement animation,
+                // event actor's movement, or a controller installed by another system.
+                if (travel.Npc.temporaryController == null && travel.Npc.Sprite.CurrentAnimation == null && !travel.Npc.EventActor
+                    && !Game1.eventUp && travel.Npc.currentLocation == travel.Location) travel.Npc.Halt();
+            }
+        }
         Running? state = active;
         active = null;
         if (state == null || !Context.IsWorldReady || !Context.IsMainPlayer) return;
@@ -398,7 +777,8 @@ internal sealed class FurnitureActivities
                 npc.faceDirection(state.OriginalFacing);
         }
         if (npc.Sprite == state.Sprite && npc.drawOffset == state.AppliedOffset) npc.drawOffset = state.OriginalOffset;
-        if (!positionOwned) return;
+        if (state.Definition.SeekFurniture && npc.hideShadow.Value) npc.hideShadow.Value = state.OriginalHideShadow;
+        if (!positionOwned || state.Definition.SeekFurniture) return;
         if (TileClear(state.Location, state.Station.Approach, npc)) npc.Position = state.OriginalPosition;
         else
         {
@@ -418,7 +798,8 @@ internal sealed class FurnitureActivities
         if (action == "pause") { paused = true; Stop(); }
         if (action == "resume") paused = false;
         monitor.Log($"Furniture routines: {(paused ? "paused" : "enabled")}; {(active == null ? "none active" : active.Id)}. "
-            + "Single-player only; the NPC must already be idle beside the configured seat.", LogLevel.Info);
+            + (journey == null ? "" : $"Walking for {journey.Id}. ")
+            + "Single-player only; scheduled NPC activity always takes priority.", LogLevel.Info);
     }
 
     private void Warn(string key, string message)

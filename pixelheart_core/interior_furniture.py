@@ -196,6 +196,69 @@ def _preview_lights(value, rotations):
     return result
 
 
+def _interaction_offset(value, label):
+    if not isinstance(value, (list, tuple)) or len(value) != 2:
+        raise FurnitureValidationError(f"{label} needs x and y in tiles.")
+    return [_integer(part, label, -16, 16) for part in value]
+
+
+def _interaction_profiles(value, rotations):
+    if not isinstance(value, list) or len(value) > 16:
+        raise FurnitureValidationError("Use at most 16 furniture interaction profiles.")
+    profiles, identities = [], set()
+    for profile in value:
+        if not isinstance(profile, dict):
+            raise FurnitureValidationError("Each interaction profile must be an object.")
+        identity = _text(profile.get("id"), "Interaction profile ID")
+        if identity in identities:
+            raise FurnitureValidationError("Interaction profile IDs must be unique per furniture item.")
+        identities.add(identity)
+        layouts = profile.get("rotations")
+        if not isinstance(layouts, dict) or not layouts or len(layouts) > rotations:
+            raise FurnitureValidationError("An interaction profile needs explicit layouts for available rotations.")
+        normalized = {}
+        for rotation, layout in layouts.items():
+            if rotation not in {str(index) for index in range(rotations)} or not isinstance(layout, dict):
+                raise FurnitureValidationError("Interaction layouts must use available rotation indexes as text.")
+            entry = {"approach": _interaction_offset(layout.get("approach"), "Approach offset")}
+            if "seat" in layout:
+                entry["seat"] = _interaction_offset(layout["seat"], "Seat offset")
+            companions = layout.get("companions", [])
+            if not isinstance(companions, list) or len(companions) > 8:
+                raise FurnitureValidationError("Use at most eight required companions per interaction layout.")
+            if companions:
+                entry["companions"] = []
+            for companion in companions:
+                if not isinstance(companion, dict):
+                    raise FurnitureValidationError("Each required companion must be an object.")
+                required = {"item_id": qualified_furniture_id(companion.get("item_id")),
+                            "offset": _interaction_offset(companion.get("offset"), "Companion offset")}
+                if "rotation" in companion:
+                    required["rotation"] = _integer(companion["rotation"], "Companion rotation", 0, 3)
+                if companion.get("label") not in (None, ""):
+                    required["label"] = _text(companion["label"], "Companion label")
+                entry["companions"].append(required)
+            normalized[rotation] = entry
+        result = {"id": identity, "name": _text(profile.get("name", identity), "Interaction name"),
+                  "rotations": normalized}
+        if profile.get("description") not in (None, ""):
+            result["description"] = _text(profile["description"], "Interaction description", 1024)
+        profiles.append(result)
+    return profiles
+
+
+def interaction_layouts(definition, rotation):
+    """Yield authored interaction layouts for this exact furniture rotation.
+
+    All offsets are integer tiles relative to the furniture anchor. These
+    preview hints never authorize a game activity or infer another rotation.
+    """
+    for profile in definition.get("interaction_profiles", []):
+        layout = profile["rotations"].get(str(rotation))
+        if layout is not None:
+            yield profile, layout
+
+
 def validate_definition(value):
     """Return a detached JSON-compatible definition with explicit preview data.
 
@@ -217,6 +280,10 @@ def validate_definition(value):
     require a mask rectangle and ignore ``mask_channel``.
     Optional ``held_item_offsets`` map rotations to observed pixel positions
     of a 16 × 16 tabletop decoration, relative to the parent tile origin.
+    Optional ``collection`` contains an ID and display name; ``description``
+    describes the piece. ``interaction_profiles`` carry named, explicitly
+    authored per-rotation approach/seat tiles and required companion offsets.
+    They are editor hints, independent of installed game activity settings.
     """
     if not isinstance(value, dict):
         raise FurnitureValidationError("A furniture definition must be an object.")
@@ -251,6 +318,16 @@ def validate_definition(value):
         raise FurnitureValidationError("Preview asset must be a relative PNG path or empty text.")
     result_frames = _preview_frames(value.get("frames", []), rotations)
     effects = {}
+    collection = value.get("collection")
+    if collection not in (None, "", {}):
+        if not isinstance(collection, dict):
+            raise FurnitureValidationError("A furniture collection needs an ID and display name.")
+        effects["collection"] = {"id": _text(collection.get("id"), "Collection ID"),
+                                 "name": _text(collection.get("name"), "Collection name")}
+    if value.get("description") not in (None, ""):
+        effects["description"] = _text(value["description"], "Furniture description", 1024)
+    if value.get("interaction_profiles") not in (None, ""):
+        effects["interaction_profiles"] = _interaction_profiles(value["interaction_profiles"], rotations)
     if "preview_variants" in value:
         variants = value["preview_variants"]
         if not isinstance(variants, dict) or any(key not in ("day_on", "day_off", "night_on", "night_off") for key in variants):

@@ -105,6 +105,10 @@ def world_structure_issues(world):
         return issues
     if type(world.get("version", 1)) is not int or world.get("version", 1) != 1:
         add("version", "This world version is not supported.")
+    if "spouse_patio" in world:
+        from .patios import patio_structure_issues
+        issues.extend({**issue, "field": "world." + issue["field"]}
+                      for issue in patio_structure_issues(world["spouse_patio"]))
     for key, limit in (("characters", 32), ("locations", 32), ("dependencies", 64)):
         values = world.get(key, [])
         if not isinstance(values, list) or len(values) > limit:
@@ -401,6 +405,9 @@ def import_map(source, project_file):
 
 def world_asset_references(world):
     world = normalize_world(world)
+    if world.get("spouse_patio") is not None:
+        from .patios import patio_asset_references
+        yield from patio_asset_references(world["spouse_patio"])
     for entry in world["characters"]:
         for reference in entry.get("artwork", {}).values():
             if isinstance(reference, str):
@@ -526,6 +533,15 @@ def world_issues(world, character, project_root=None):
     world = normalize_world(world)
     def add(level, field, message):
         issues.append({"level": level, "field": "world." + field, "message": message})
+    if world.get("spouse_patio") is not None:
+        if not character.get("romanceable") or character.get("age", "adult") != "adult":
+            add("error", "spouse_patio", "Enable adult romance before assigning a spouse patio.")
+        try:
+            from .patios import validate_patio_assets
+            validate_patio_assets(world["spouse_patio"], project_root)
+            add("warning", "spouse_patio", "Playtest the spouse patio's actual farm position, approach, interaction, and animation in-game.")
+        except WorldError as exc:
+            add("error", "spouse_patio", str(exc))
     from .exporting import validate_character
     used = {str(character.get("internal_name", "")).casefold()}
     identities = {str(character.get("id", ""))}
@@ -825,6 +841,31 @@ def compile_world(world, character, project_root):
     dependencies = [{"UniqueID": item["id"], "IsRequired": item.get("required", True),
                      **({"MinimumVersion": item["minimum_version"]} if item.get("minimum_version") else {})}
                     for item in world["dependencies"]]
+    if world.get("spouse_patio") is not None:
+        from .patios import compile_patio
+        patio = compile_patio(world["spouse_patio"], character, project_root)
+        patches.extend(patio["patches"])
+        files.update(patio["files"])
+        npc_fields["SpousePatio"] = patio["npc_field"]
+        backup_world["spouse_patio"] = patio["patio"]
+        if patio["requires_runtime"]:
+            existing = next((d for d in dependencies if d["UniqueID"].casefold() == "pixelheart.interiors"), None)
+            if existing is None:
+                dependencies.append({"UniqueID": "Pixelheart.Interiors", "IsRequired": True, "MinimumVersion": "0.2.1"})
+            else:
+                existing["IsRequired"] = True
+                specified = existing.get("MinimumVersion", "0.0.0")
+                version = tuple(map(int, specified.split("-")[0].split("+")[0].split(".")))
+                if version < (0, 2, 1) or (version == (0, 2, 1) and "-" in specified):
+                    existing["MinimumVersion"] = "0.2.1"
+        files["PATIO_TESTING.txt"] = ("PIXELHEART SPOUSE PATIO — PLAYTEST REQUIRED\n\n"
+            "This patio is a farm map section, not a standalone location. It has no entrance warp.\n"
+            + ("The separate actor pose requires the separately built Pixelheart.Interiors 0.2.1+ companion. "
+               "This archive does not include its DLL.\n" if patio["requires_runtime"] else "")
+            + "On a disposable married save, visit the spouse outdoors on a patio day. Check approach and collision, "
+            "talking and gifts, the pose's furniture overlap, and restoration of normal walking when the spouse leaves. "
+            "Check a non-patio day, save/reload, other farm layouts, and multiplayer before using a valued save. "
+            "Water and food in the map are decorative unless separately implemented.\n").encode("utf-8")
     if runtime_designs:
         patches.append({"Action": "EditData", "Target": "Pixelheart.Interiors/Designs", "Entries": runtime_designs})
         for identity in sorted(interior_dependencies | {"Pixelheart.Interiors"}):

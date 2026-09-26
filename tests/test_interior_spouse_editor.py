@@ -9,7 +9,8 @@ import unittest
 from unittest.mock import patch
 
 from PIL import Image
-from PySide6.QtCore import QPoint, QSettings, Qt
+from PySide6.QtCore import QEvent, QPoint, QPointF, QSettings, Qt
+from PySide6.QtGui import QMouseEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog
 
@@ -83,6 +84,87 @@ class SpouseEditorTests(unittest.TestCase):
         self.assertEqual((dialog.draft.snapshot(), dialog.draft._undo), before)
         dialog.save_design()
         self.assertEqual(dialog.result(), QDialog.DialogCode.Accepted)
+
+    def test_rooms_button_keeps_click_placement_active_through_edits_and_undo(self):
+        dialog = self.editor()
+        dialog.tabs.setCurrentIndex(2)
+        dialog.entrance_button.click()
+        for target in ((2, 6), (4, 7)):
+            QTest.mouseClick(dialog.canvas, Qt.MouseButton.LeftButton, pos=self.point(dialog, *target))
+            self.assertEqual(dialog.draft.data["spouse_stand"], list(target))
+            self.assertEqual(dialog.canvas.tool, "spouse_stand")
+            self.assertEqual(dialog.tool.currentData(), "spouse_stand")
+            self.assertEqual(dialog.canvas.selected_room_id, "")
+            self.assertEqual(dialog.status.text(), "")
+        self.assertEqual(len(dialog.draft._undo), 2)
+        dialog.undo()
+        self.assertEqual(dialog.draft.data["spouse_stand"], [2, 6])
+        dialog.redo()
+        self.assertEqual(dialog.draft.data["spouse_stand"], [4, 7])
+
+    def test_heart_drag_previews_then_commits_one_undoable_edit_at_every_zoom(self):
+        dialog = self.editor()
+        dialog.tabs.setCurrentIndex(2)
+        for scale in (1, 2, 3, 4):
+            with self.subTest(scale=scale):
+                dialog.zoom.setCurrentIndex(dialog.zoom.findData(scale))
+                start, end = self.point(dialog, 3, 5), self.point(dialog, 2, 6)
+                before = dialog.draft.snapshot(), deepcopy(dialog.draft._undo)
+                QTest.mousePress(dialog.canvas, Qt.MouseButton.LeftButton, pos=start)
+                self.app.sendEvent(dialog.canvas, QMouseEvent(
+                    QEvent.Type.MouseMove, QPointF(end), QPointF(end), Qt.MouseButton.NoButton,
+                    Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier))
+                self.assertEqual((dialog.draft.snapshot(), dialog.draft._undo), before)
+                self.assertTrue(dialog.canvas.preview_valid)
+                QTest.mouseRelease(dialog.canvas, Qt.MouseButton.LeftButton, pos=end)
+                self.assertEqual(dialog.draft.data["spouse_stand"], [2, 6])
+                self.assertEqual(len(dialog.draft._undo), len(before[1]) + 1)
+                dialog.undo()
+                self.assertEqual(dialog.draft.snapshot(), before[0])
+                dialog.redo()
+                self.assertEqual(dialog.draft.data["spouse_stand"], [2, 6])
+                dialog.undo()
+
+    def test_standing_spot_uses_external_validator_for_preview_and_commit(self):
+        dialog = self.editor()
+        def protect(candidate, offsets):
+            if candidate["spouse_stand"] == [2, 6]:
+                raise ValueError("Leave the scheduled activity spot clear.")
+        dialog.validate_layout = protect
+        before = dialog.draft.snapshot(), deepcopy(dialog.draft._undo)
+        with self.assertRaisesRegex(ValueError, "scheduled activity"):
+            dialog.standing_spot_candidate(2, 6)
+        self.assertFalse(dialog.move_standing_spot(2, 6))
+        self.assertEqual((dialog.draft.snapshot(), dialog.draft._undo), before)
+        self.assertIn("scheduled activity", dialog.status.text())
+
+    def test_preview_omits_unused_catalog_entries_but_move_preserves_them(self):
+        dialog = self.editor()
+        before = dialog.draft.snapshot()
+        preview = dialog.canvas.spouse_stand_candidate(2, 6)
+        self.assertEqual(preview["catalog"], [])
+        self.assertEqual(preview["spouse_stand"], [2, 6])
+        self.assertEqual(dialog.draft.snapshot(), before)
+        self.assertTrue(dialog.move_standing_spot(2, 6))
+        self.assertEqual(dialog.draft.data["catalog"], before["catalog"])
+
+    def test_auto_fit_settles_without_scrollbars_at_odd_and_even_window_sizes(self):
+        from pixelheart.theme import STYLESHEET
+        dialog = self.editor()
+        dialog.setStyleSheet(STYLESHEET)
+        with patch.object(dialog, "center_room", wraps=dialog.center_room) as center:
+            for width in (1320, 1321, 1319):
+                dialog.resize(width, 880)
+                dialog.fit_room()
+                QTest.qWait(80)
+                calls = center.call_count
+                viewport_size = dialog.canvas_scroll.viewport().size()
+                QTest.qWait(50)
+                self.assertEqual(center.call_count, calls, "Auto-fit kept centering an idle window")
+                self.assertEqual(dialog.canvas_scroll.viewport().size(), viewport_size)
+                self.assertEqual(dialog.canvas_scroll.horizontalScrollBar().maximum(), 0)
+                self.assertEqual(dialog.canvas_scroll.verticalScrollBar().maximum(), 0)
+                self.assertFalse(dialog._fit_timer.isActive())
 
     def test_native_layers_travel_with_design_without_changing_map_or_raw_render(self):
         data = design()
