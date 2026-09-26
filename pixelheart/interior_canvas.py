@@ -16,7 +16,9 @@ from PySide6.QtWidgets import QApplication, QWidget
 from pixelheart_core.interiors import (
     footprint, normalize_interior, render_interior, validate_furniture_placement, validate_spouse_access,
 )
-from pixelheart_core.interior_furniture import preview_frame, preview_frame_offset, frame_at, held_item_preview_offset
+from pixelheart_core.interior_furniture import (
+    preview_frame, preview_frame_offset, frame_at, held_item_preview_offset, interaction_layouts,
+)
 from pixelheart_core.interior_layout import partition_rectangle, partition_opening_rectangle
 from pixelheart_core.interior_spouse_context import SPOUSE_CONTEXT_ORIGIN, SPOUSE_CONTEXT_SIZE, spouse_context_layers
 
@@ -40,6 +42,7 @@ class InteriorCanvas(QWidget):
     partition_drawn = Signal(str, int, int, int)
     partition_selected = Signal(str)
     doorway_moved = Signal(int, int)
+    spouse_stand_moved = Signal(int, int)
     architecture_placed = Signal(str, int, int)
     architecture_moved = Signal(str, int, int)
     architecture_selected = Signal(str)
@@ -114,6 +117,12 @@ class InteriorCanvas(QWidget):
         self._pending_doorway_move = None
         self._doorway_drag = None
         self._doorway_preview = None
+        self.spouse_stand_candidate = None
+        self._pending_spouse_stand_move = None
+        self._spouse_stand_drag = None
+        self._spouse_stand_preview = None
+        self._spouse_stand_edit_key = None
+        self._spouse_stand_tool = None
         self._hover_room_id = ""
         self._drag_image = QPixmap()
         self._validation_key = None
@@ -121,7 +130,7 @@ class InteriorCanvas(QWidget):
         self.setMouseTracking(True)
         self.setAcceptDrops(True)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setAccessibleName("Room designer: drag furniture into the room; in Rooms, drag a new room onto the layout or drag an existing room to move it")
+        self.setAccessibleName("Room designer: drag furniture into the room; drag the heart to choose their standing spot; in Rooms, drag a new room onto the layout or drag an existing room to move it")
         self.refresh_size()
 
     def refresh_size(self):
@@ -173,6 +182,7 @@ class InteriorCanvas(QWidget):
 
     def set_placement(self, definition, rotation=0, root=None):
         """Hold a real library item at the cursor until placed or cancelled."""
+        self.clear_spouse_stand_interaction()
         self.clear_architecture_interaction()
         self._placement = (deepcopy(definition), rotation)
         if root is not None:
@@ -228,6 +238,7 @@ class InteriorCanvas(QWidget):
 
     def clear_room_interaction(self):
         """Cancel room gestures when the editor changes mode or history."""
+        self.clear_spouse_stand_interaction()
         self.clear_architecture_interaction()
         self._pending_room_move = None
         self._room_drag = None
@@ -358,6 +369,45 @@ class InteriorCanvas(QWidget):
     def _doorway_at(self, x, y):
         point = self.draft.data.get("doorway")
         return point is not None and x == point[0] and y in (point[1], point[1] + 1)
+
+    def _spouse_stand_at(self, x, y):
+        return (self.draft.data["kind"] == "spouse"
+                and self.tool in ("select", "room-select", "spouse_stand")
+                and (x, y) == tuple(self.draft.data["spouse_stand"]))
+
+    def clear_spouse_stand_interaction(self):
+        """Discard the standing-spot proposal without creating a history edit."""
+        self._pending_spouse_stand_move = None
+        self._spouse_stand_drag = None
+        self._spouse_stand_preview = None
+        self._spouse_stand_edit_key = None
+        self._spouse_stand_tool = None
+        self._set_preview(True, "")
+        self._update_cursor()
+        self.update()
+
+    def _preview_spouse_stand_edit(self, x, y, *, force=False):
+        key = (id(self.draft.data), x, y, bool(self._spouse_stand_drag))
+        if not force and key == self._spouse_stand_edit_key:
+            return self.preview_valid
+        self._spouse_stand_edit_key = key
+        self._spouse_stand_preview = (x, y)
+        try:
+            if self.spouse_stand_candidate is not None:
+                self.spouse_stand_candidate(x, y)
+            else:
+                from pixelheart_core.interior_architecture_rules import validate_architecture_rules
+                candidate = self._collision_candidate()
+                candidate["spouse_stand"] = [x, y]
+                candidate = normalize_interior(candidate)
+                validate_architecture_rules(candidate, before=self.draft.data)
+                validate_spouse_access(candidate, before=self.draft.data)
+            self._set_preview(True, "Release to move their standing spot" if self._spouse_stand_drag
+                              else "Click to place their standing spot, or drag the heart")
+        except (ValueError, OSError) as exc:
+            self._set_preview(False, str(exc))
+        self.update()
+        return self.preview_valid
 
     def _preview_doorway_edit(self, x, y, *, force=False):
         key = (id(self.draft.data), "doorway", x, y)
@@ -751,7 +801,11 @@ class InteriorCanvas(QWidget):
         return x, y, width, height
 
     def _update_cursor(self):
-        if self._architecture_drag:
+        if self._spouse_stand_drag:
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+        elif self.cursor_tile and self._spouse_stand_at(*self.cursor_tile):
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
+        elif self._architecture_drag:
             self.setCursor(Qt.CursorShape.ClosedHandCursor)
         elif self.tool == "architecture-select" and self.cursor_tile and self._architecture_at(*self.cursor_tile):
             self.setCursor(Qt.CursorShape.OpenHandCursor)
@@ -769,7 +823,7 @@ class InteriorCanvas(QWidget):
             self.setCursor(Qt.CursorShape.OpenHandCursor)
         elif self.tool in ("select", "place") and self.cursor_tile and self._at(*self.cursor_tile):
             self.setCursor(Qt.CursorShape.OpenHandCursor)
-        elif self.tool in ("place", "entry", "corridor", "partition", "opening", "room", "architecture-place"):
+        elif self.tool in ("place", "entry", "spouse_stand", "corridor", "partition", "opening", "room", "architecture-place"):
             self.setCursor(Qt.CursorShape.CrossCursor)
         else:
             self.unsetCursor()
@@ -896,6 +950,75 @@ class InteriorCanvas(QWidget):
         painter.drawRect(rectangle)
         return rectangle
 
+    def interaction_overlays(self):
+        """Return furniture-relative guides for the selected or moving item.
+
+        Guides are informational: missing companion furniture never turns a
+        valid room placement into an error, and guides never enter map data.
+        """
+        catalog = {entry["id"]: entry for entry in self.draft.data["catalog"]}
+        selected = next((item for item in self.draft.data["furniture"] if item["id"] == self.selected_id), None)
+        if self.ghost:
+            definition = self.ghost["definition"]
+            x, y, rotation = (self.ghost[key] for key in ("x", "y", "rotation"))
+            identity = self.drag[0] if self.drag else ""
+        elif selected and not self.drag:
+            definition = catalog.get(selected["item_id"], {})
+            x, y, rotation = selected["x"], selected["y"], selected.get("rotation", 0)
+            identity = selected["id"]
+        else:
+            return []
+        result = []
+        for profile, layout in interaction_layouts(definition, rotation):
+            for role, caption in (("approach", "Approach"), ("seat", "Activity spot")):
+                if role in layout:
+                    dx, dy = layout[role]
+                    result.append({"role": role, "label": caption, "profile": profile["name"],
+                                   "x": x + dx, "y": y + dy, "width": 1, "height": 1})
+            for companion in layout.get("companions", []):
+                dx, dy = companion["offset"]
+                required = catalog.get(companion["item_id"], {})
+                companion_rotation = companion.get("rotation", 0)
+                size = required.get("rotation_footprints", {}).get(str(companion_rotation),
+                            required.get("footprint")) or [1, 1]
+                matched = next((item for item in self.draft.data["furniture"]
+                                if item["id"] != identity and item["item_id"] == companion["item_id"]
+                                and (item["x"], item["y"]) == (x + dx, y + dy)
+                                and ("rotation" not in companion or item.get("rotation", 0) == companion_rotation)), None)
+                present = matched is not None
+                if matched and "rotation" not in companion:
+                    size = required.get("rotation_footprints", {}).get(str(matched.get("rotation", 0)), size)
+                name = companion.get("label") or required.get("name", "Companion furniture")
+                result.append({"role": "companion", "label": name + (" ✓" if present else " required"),
+                               "profile": profile["name"], "x": x + dx, "y": y + dy,
+                               "width": size[0], "height": size[1], "present": present})
+        return result
+
+    def _draw_interaction_overlays(self, painter):
+        painter.save()
+        font = painter.font()
+        font.setPixelSize(max(9, min(12, self.scale * 3)))
+        font.setBold(True)
+        painter.setFont(font)
+        groups = {}
+        for overlay in self.interaction_overlays():
+            key = tuple(overlay[field] for field in ("x", "y", "width", "height"))
+            groups.setdefault(key, []).append(overlay)
+        for bounds, overlays in groups.items():
+            overlay = next((entry for entry in overlays if entry["role"] == "companion"), overlays[0])
+            color = {"approach": "#7bcce5", "seat": "#d8b6ef"}.get(overlay["role"],
+                    "#81d2a1" if overlay.get("present") else "#e6b878")
+            rect = self._draw_outline(painter, bounds, color, 32, dashed=True)
+            marks = dict.fromkeys("A" if entry["role"] == "approach" else "S" if entry["role"] == "seat"
+                                  else "✓" if entry.get("present") else "!" for entry in overlays)
+            caption = "".join(marks)
+            label = painter.fontMetrics().boundingRect(caption).adjusted(-3, -1, 3, 1)
+            label.moveCenter(rect.center())
+            painter.fillRect(label.intersected(rect), QColor(35, 40, 44, 215))
+            painter.setPen(QColor("#fffdf5"))
+            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, caption)
+        painter.restore()
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.fillRect(event.rect(), QColor("#292d30"))
@@ -931,10 +1054,15 @@ class InteriorCanvas(QWidget):
             x, y = shown["spouse_stand"]
             rect = QRect(x * cell, y * cell, cell, cell)
             tint = QColor("#dba392")
-            tint.setAlpha(145 if self.tool == "spouse_stand" else 75)
+            tint.setAlpha(35 if self._spouse_stand_drag else 145 if self.tool == "spouse_stand" else 75)
             painter.fillRect(rect, tint)
             painter.setPen(QColor("#fffdf5"))
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "♥")
+            if self._spouse_stand_preview is not None:
+                color = "#81d2a1" if self.preview_valid else "#f38a87"
+                rect = self._draw_outline(painter, (*self._spouse_stand_preview, 1, 1), color, 100, dashed=True)
+                painter.setPen(QColor("#fffdf5"))
+                painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "♥")
         if self._doorway_preview:
             color = "#81d2a1" if self.preview_valid else "#f38a87"
             self._draw_outline(painter, (*self._doorway_preview, 1, 2), color, 16, dashed=True)
@@ -972,6 +1100,7 @@ class InteriorCanvas(QWidget):
                     painter.setOpacity(1)
             color = "#81d2a1" if ghost["valid"] else "#f38a87"
             self._draw_outline(painter, tuple(ghost[key] for key in ("x", "y", "width", "height")), color, 55)
+        self._draw_interaction_overlays(painter)
         if self._room_preview:
             color = "#81d2a1" if self.preview_valid else "#f38a87"
             rect = self._draw_outline(painter, self._room_preview, color, 55, dashed=True)
@@ -1009,6 +1138,7 @@ class InteriorCanvas(QWidget):
         painter.end()
 
     def _cancel(self):
+        self.clear_spouse_stand_interaction()
         self.clear_architecture_interaction()
         self.drag = None
         self._pending_move = None
@@ -1061,7 +1191,10 @@ class InteriorCanvas(QWidget):
             self._set_preview(False, "The farmhouse surroundings are preview only. Decorate inside the room.")
             self.update()
             return
-        if self.tool == "architecture-place":
+        if self._spouse_stand_at(x, y):
+            self._spouse_stand_tool = self.tool
+            self._pending_spouse_stand_move = (x, y, *self.draft.data["spouse_stand"], event.position().toPoint())
+        elif self.tool == "architecture-place":
             if self._architecture_placement is not None:
                 self._pending_architecture_place = self._architecture_placement["id"]
                 self._preview_architecture_edit(self._pending_architecture_place, x, y, force=True)
@@ -1124,6 +1257,12 @@ class InteriorCanvas(QWidget):
         self.cursor_tile = x, y = self._position(event)
         self.cursor_position = event.position().toPoint()
         self.hovered.emit(x, y)
+        if self._spouse_stand_tool is not None and self.tool != self._spouse_stand_tool:
+            self.clear_spouse_stand_interaction()
+        if self._pending_spouse_stand_move and event.buttons() & Qt.MouseButton.LeftButton:
+            if (event.position().toPoint() - self._pending_spouse_stand_move[-1]).manhattanLength() >= QApplication.startDragDistance():
+                self._spouse_stand_drag = self._pending_spouse_stand_move[:-1]
+                self._pending_spouse_stand_move = None
         if self._pending_move and event.buttons() & Qt.MouseButton.LeftButton:
             identity, start_x, start_y, point = self._pending_move
             if (event.position().toPoint() - point).manhattanLength() >= QApplication.startDragDistance():
@@ -1150,7 +1289,12 @@ class InteriorCanvas(QWidget):
             if (event.position().toPoint() - self._pending_architecture_move[-1]).manhattanLength() >= QApplication.startDragDistance():
                 self._architecture_drag = self._pending_architecture_move[:-1]
                 self._pending_architecture_move = None
-        if self._architecture_drag or self.tool == "architecture-place":
+        if self._spouse_stand_drag:
+            start_x, start_y, original_x, original_y = self._spouse_stand_drag
+            self._preview_spouse_stand_edit(original_x + x - start_x, original_y + y - start_y)
+        elif self.tool == "spouse_stand" and self.draft.data["kind"] == "spouse":
+            self._preview_spouse_stand_edit(x, y)
+        elif self._architecture_drag or self.tool == "architecture-place":
             self._update_architecture_preview()
         elif self._doorway_drag:
             start_x, start_y, original_x, original_y = self._doorway_drag
@@ -1181,7 +1325,24 @@ class InteriorCanvas(QWidget):
         x, y = self._position(event)
         self.cursor_tile = x, y
         self.cursor_position = event.position().toPoint()
-        if self._pending_architecture_place is not None:
+        if self._spouse_stand_drag is not None:
+            start_x, start_y, original_x, original_y = self._spouse_stand_drag
+            destination = original_x + x - start_x, original_y + y - start_y
+            active = self.tool == self._spouse_stand_tool and self.draft.data["kind"] == "spouse"
+            valid = active and self._preview_spouse_stand_edit(*destination, force=True)
+            rejection = self.preview_message if active and not valid else ""
+            self.clear_spouse_stand_interaction()
+            if rejection:
+                self._set_preview(False, rejection)
+            if valid and destination != (original_x, original_y):
+                self.spouse_stand_moved.emit(*destination)
+        elif self._pending_spouse_stand_move is not None:
+            _, _, original_x, original_y, _ = self._pending_spouse_stand_move
+            click = self.tool == self._spouse_stand_tool == "spouse_stand"
+            self.clear_spouse_stand_interaction()
+            if click:
+                self.tile_clicked.emit(original_x, original_y)
+        elif self._pending_architecture_place is not None:
             piece_id = self._pending_architecture_place
             self._pending_architecture_place = None
             if (self.tool == "architecture-place" and self._architecture_placement is not None
@@ -1259,7 +1420,7 @@ class InteriorCanvas(QWidget):
         self.update()
 
     def leaveEvent(self, event):
-        if not self.drag and not self._architecture_drag and not self._room_start and not self._structure_start and not self._room_drag and not self._room_resize and not self._doorway_drag:
+        if not self.drag and not self._architecture_drag and not self._room_start and not self._structure_start and not self._room_drag and not self._room_resize and not self._doorway_drag and not self._spouse_stand_drag and not self._pending_spouse_stand_move:
             self.cursor_tile = None
             self.cursor_position = None
             self.ghost = None
@@ -1269,6 +1430,8 @@ class InteriorCanvas(QWidget):
             self._architecture_candidate_data = None
             self._architecture_candidate_image = QPixmap()
             self._architecture_edit_key = None
+            if self._spouse_stand_preview is not None:
+                self.clear_spouse_stand_interaction()
             if self.tool in ("entry", "opening"):
                 self._doorway_preview = None
                 self.set_room_preview(None)

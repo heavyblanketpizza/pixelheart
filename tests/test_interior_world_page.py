@@ -173,16 +173,20 @@ class InteriorWorldPageTests(unittest.TestCase):
         self.assertEqual(self.page.dump(), before)
         self.assertIn("Invalid texture reference", self.window.errors[-1][1])
 
-    def test_empty_places_starts_with_home_actions_and_closed_advanced_tools(self):
+    def test_empty_home_has_two_roles_and_keeps_place_management_in_settings(self):
         self.assertEqual(self.page.build_home_button.text(), "Build residence…")
         self.assertEqual(self.page.design_spouse_button.text(), "Design spouse room…")
-        self.assertFalse(self.page.story_place_button.isHidden())
+        self.assertEqual(self.page.room_switch.count(), 2)
+        self.assertEqual(self.page.room_switch.tabText(0), "Pre-spouse residence")
+        self.assertEqual(self.page.room_switch.tabText(1), "Spouse room")
+        self.assertTrue(self.page.story_place_button.isHidden())
+        self.assertTrue(self.page.settings_dialog.isHidden())
         self.assertTrue(self.page.location_advanced.isHidden())
         self.assertFalse(self.page.tabs.isTabVisible(1))
         self.assertTrue(self.page.location_list.isHidden())
         self.assertFalse(self.page.remove_buttons[self.page.location_panel].isEnabled())
         self.page.place_advanced_toggle.click()
-        self.assertFalse(self.page.story_place_button.isHidden())
+        self.assertTrue(self.page.story_place_button.isHidden())
         self.assertFalse(self.page.location_advanced.isHidden())
         self.assertTrue(self.page.tabs.isTabVisible(1))
         self.page.place_advanced_toggle.click()

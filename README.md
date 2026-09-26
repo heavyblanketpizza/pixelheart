@@ -32,10 +32,10 @@ Create a character or open their existing project. Every editor works on that ch
 | **Gifts** | Their favorite and least favorite items |
 | **Story & events** | Linked chapters, event triggers, staging, scene beats, choices, and relationship arcs |
 | **Artwork** | Portraits, sprites, and optional seasonal or beach appearances |
-| **Home & places** | Their residence and spouse room, with optional places needed by the story |
+| **Home** | Their pre-spouse residence and farmhouse spouse room |
 | **Review & export** | Validation, Content Patcher export, installation, and in-game playtest records |
 
-Save the project early so imported artwork and maps can travel with it. Keep internal character and map IDs stable after using the pack in a game save.
+Use **Save project** to keep your work and its imported assets together. Keep internal character and map IDs stable after using the pack in a game save.
 
 ### Write a story that changes their life
 
@@ -57,7 +57,7 @@ Import complete portrait and sprite sheets in **Artwork**. **From my game…** i
 | Nonromance sprite | 64 pixels wide, at least 128 high, in 32-pixel rows |
 | Romance sprite | 64 pixels wide, at least 416 high, including kiss/wedding frames |
 
-In **Home & places**, build or reopen the loaded character's residence or spouse room directly. Applying a new home assigns it to this NPC; cancelling leaves no empty place behind. Existing designs reopen for editing. Connect a local game library to browse furniture, wallpaper, and flooring. The page shows unfinished setup. Use **Connect entrance…** to choose the way in and out, **+ Story place** for other locations, and **Save project** to keep applied changes. Technical settings are under **Map tools & dependencies**. See the [home guide](WORLD_BUILDING.md) for decorating, companion setup, and map connections.
+Open **Home** to decorate immediately. Switch between **Pre-spouse residence** and **Spouse room** above the editor, and connect a local game library to browse furniture, wallpaper, and flooring. Edits stay with the project when you switch rooms or leave Home; **Save project** writes them to disk. You can start before the project's first save. Use **Connect entrance…** for the residence's way in and out, or **Room settings…** for its name and advanced map tools. See the [home guide](WORLD_BUILDING.md) for decorating, companion setup, and map connections.
 
 ### Export, install, and play their story
 
@@ -71,7 +71,7 @@ Older projects retain their authored content and extension metadata, including p
 
 ## Guides
 
-[Artwork](ARTWORK.md) · [Story workshop](STORY_WORKSHOP.md) · [Daily life](LIFE_AND_BRANCHING.md) · [Home & places](WORLD_BUILDING.md) · [Maps](MAP_WORKSHOP.md) · [Export](EXPORT_FORMAT.md)
+[Artwork](ARTWORK.md) · [Story workshop](STORY_WORKSHOP.md) · [Daily life](LIFE_AND_BRANCHING.md) · [Home](WORLD_BUILDING.md) · [Maps](MAP_WORKSHOP.md) · [Export](EXPORT_FORMAT.md)
 
 ## License
 

@@ -1,4 +1,7 @@
 using System.Globalization;
+using System.Reflection;
+using System.Reflection.Emit;
+using HarmonyLib;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
@@ -9,10 +12,13 @@ using StardewValley.Objects;
 
 namespace Pixelheart.Interiors;
 
-/// <summary>Opt-in appearance for native lamps, following their existing light lifecycle.</summary>
+/// <summary>Opt-in lamp and fireplace appearance, following native on/off and light lifecycles.</summary>
 internal sealed class FurnitureEffects
 {
     internal const string AssetName = "Pixelheart.Interiors/FurnitureEffects";
+    private static FurnitureEffects? instance;
+    private static bool flameDrawingReady;
+    private readonly Dictionary<string, Texture2D?> flameTextures = new(StringComparer.OrdinalIgnoreCase);
     private readonly IModHelper helper;
     private readonly IMonitor monitor;
     private readonly HashSet<string> warnings = new(StringComparer.Ordinal);
@@ -35,6 +41,16 @@ internal sealed class FurnitureEffects
         public int FrameMilliseconds { get; set; } = 140;
         public float GlowRadiusPixels { get; set; }
         public float GlowOpacity { get; set; }
+        public FlameDefinition? Flame { get; set; }
+    }
+
+    public sealed class FlameDefinition
+    {
+        public string Texture { get; set; } = "";
+        public int[] FrameSizePixels { get; set; } = new[] { 16, 16 };
+        public int[] Frames { get; set; } = new[] { 0 };
+        public int FrameMilliseconds { get; set; } = 140;
+        public int[] OffsetPixels { get; set; } = new[] { 0, 0 };
     }
 
     private sealed class LightChange
@@ -83,6 +99,8 @@ internal sealed class FurnitureEffects
     {
         this.helper = helper;
         this.monitor = monitor;
+        instance = this;
+        InstallFlameDrawing(monitor);
         helper.Events.Content.AssetRequested += (_, e) =>
         {
             if (e.NameWithoutLocale.IsEquivalentTo(AssetName))
@@ -91,21 +109,23 @@ internal sealed class FurnitureEffects
         helper.Events.Content.AssetsInvalidated += (_, e) =>
         {
             if (e.NamesWithoutLocale.Any(name => name.IsEquivalentTo(AssetName)
-                || name.IsEquivalentTo("Data/Furniture")))
+                || name.IsEquivalentTo("Data/Furniture")
+                || flameTextures.Keys.Any(asset => name.IsEquivalentTo(asset))))
             {
                 Restore();
+                flameTextures.Clear();
                 definitions = null;
                 refresh = true;
             }
         };
         helper.Events.GameLoop.UpdateTicked += Update;
-        helper.Events.GameLoop.SaveLoaded += (_, _) => { refresh = true; definitions = null; };
+        helper.Events.GameLoop.SaveLoaded += (_, _) => { refresh = true; definitions = null; flameTextures.Clear(); };
         helper.Events.GameLoop.DayStarted += (_, _) => refresh = true;
         helper.Events.GameLoop.Saving += (_, _) => { saving = true; Restore(); };
         helper.Events.GameLoop.Saved += (_, _) => saving = false;
         helper.Events.GameLoop.ReturnedToTitle += (_, _) =>
         {
-            applied.Clear(); candidates.Clear(); definitions = null; warnings.Clear(); refresh = true; saving = false;
+            applied.Clear(); candidates.Clear(); definitions = null; warnings.Clear(); flameTextures.Clear(); refresh = true; saving = false;
             glowTexture?.Dispose(); glowTexture = null; glowSource = null;
         };
         helper.Events.World.FurnitureListChanged += (_, _) => refresh = true;
@@ -158,7 +178,7 @@ internal sealed class FurnitureEffects
                 if (!location.furniture.Contains(furniture)) { refresh = true; continue; }
                 if (!GetDefinitions().TryGetValue(furniture.QualifiedItemId, out Definition? definition)) continue;
                 if (!ApplyTo(furniture, location, definition, elapsed))
-                { Warn(furniture.QualifiedItemId, $"Furniture effect '{furniture.QualifiedItemId}' does not fit its native lamp atlas; it was skipped."); continue; }
+                { Warn(furniture.QualifiedItemId, $"Furniture effect '{furniture.QualifiedItemId}' does not fit its native furniture or effect atlas; it was skipped."); continue; }
             }
         }
         catch (Exception ex) { Warn("runtime", $"Furniture effects were deferred: {ex.Message}"); }
@@ -167,24 +187,23 @@ internal sealed class FurnitureEffects
     internal bool ApplyTo(Furniture furniture, GameLocation location, Definition definition, double elapsed)
     {
         if (!applied.TryGetValue(furniture, out Applied? state)) applied[furniture] = state = new();
+        if (!Valid(definition) || !EffectFits(furniture, definition))
+        { RestoreOne(furniture, state); return false; }
         if (!TryNativeLight(furniture, location, out LightSource? local, out LightSource? shared))
-        { RestoreFrame(furniture, state); return true; }
-        if (!FramesFit(furniture, definition))
-        {
-            RestoreFrame(furniture, state);
-            state.Local?.Restore(); state.Shared?.Restore();
-            state.Local = null; state.Shared = null;
-            return false;
-        }
-        if (state.Local?.Light != local) state.Local = new(local!);
-        if (state.Shared?.Light != shared) state.Shared = new(shared!);
+        { RestoreOne(furniture, state); return true; }
+        if (state.Local?.Light != local) { state.Local?.Restore(); state.Local = new(local!); }
+        if (state.Shared?.Light != shared) { state.Shared?.Restore(); state.Shared = new(shared!); }
         Color tint = NativeLightColor(definition.LightColor);
         Vector2 center = LightPosition(furniture, definition);
         state.Local!.Apply(tint, definition.LightRadius, center);
         state.Shared!.Apply(tint, definition.LightRadius, center);
-        Rectangle frame = LitSource(furniture.defaultSourceRect.Value, definition, elapsed);
-        if (furniture.sourceRect.Value != frame) furniture.sourceRect.Value = frame;
-        state.Frame = frame;
+        if (definition.Flame == null)
+        {
+            Rectangle frame = LitSource(furniture.defaultSourceRect.Value, definition, elapsed);
+            if (furniture.sourceRect.Value != frame) furniture.sourceRect.Value = frame;
+            state.Frame = frame;
+        }
+        else RestoreFrame(furniture, state);
         return true;
     }
 
@@ -195,11 +214,21 @@ internal sealed class FurnitureEffects
             && definition.LitFrames is { Length: > 0 and <= 32 } && definition.LitFrames.All(frame => frame is >= 1 and <= 32)
             && definition.FrameMilliseconds is >= 80 and <= 5000
             && float.IsFinite(definition.GlowRadiusPixels) && definition.GlowRadiusPixels is >= 0 and <= 64
-            && float.IsFinite(definition.GlowOpacity) && definition.GlowOpacity is >= 0 and <= 1;
+            && float.IsFinite(definition.GlowOpacity) && definition.GlowOpacity is >= 0 and <= 1
+            && (definition.Flame == null || ValidFlame(definition.Flame));
+
+    internal static bool ValidFlame(FlameDefinition? flame)
+        => flame != null && !string.IsNullOrWhiteSpace(flame.Texture) && flame.Texture.Length <= 256
+            && !flame.Texture.Contains(':') && !flame.Texture.StartsWith('/') && !flame.Texture.StartsWith('\\')
+            && !flame.Texture.Replace('\\', '/').Split('/').Any(part => part is ".." or "." or "")
+            && flame.FrameSizePixels is { Length: 2 } && flame.FrameSizePixels.All(size => size is > 0 and <= 64)
+            && flame.Frames is { Length: > 0 and <= 32 } && flame.Frames.All(frame => frame is >= 0 and <= 63)
+            && flame.FrameMilliseconds is >= 80 and <= 5000
+            && flame.OffsetPixels is { Length: 2 } && flame.OffsetPixels.All(value => Math.Abs((long)value) <= 128);
 
     internal static bool FramesFit(Furniture furniture, Definition definition)
     {
-        if (furniture.GetType() != typeof(Furniture) || furniture.furniture_type.Value != Furniture.lamp
+        if (definition.Flame != null || furniture.GetType() != typeof(Furniture) || furniture.furniture_type.Value != Furniture.lamp
             || furniture.rotations.Value != 1 || furniture.currentRotation.Value != 0) return false;
         Rectangle source = furniture.defaultSourceRect.Value;
         Texture2D texture = ItemRegistry.GetDataOrErrorItem(furniture.QualifiedItemId).GetTexture();
@@ -218,6 +247,127 @@ internal sealed class FurnitureEffects
 
     internal static Vector2 LightPosition(Furniture furniture, Definition definition)
         => furniture.TileLocation * 64 + new Vector2(definition.LightOffsetPixels[0], definition.LightOffsetPixels[1]) * 4;
+
+    private bool EffectFits(Furniture furniture, Definition definition)
+        => definition.Flame == null ? FramesFit(furniture, definition)
+            : flameDrawingReady && SupportedFireplace(furniture) && GetFlameTexture(definition.Flame) != null;
+
+    internal static bool SupportedFireplace(Furniture furniture)
+        => furniture.GetType() == typeof(Furniture) && furniture.furniture_type.Value == Furniture.fireplace
+            && furniture.rotations.Value == 1 && furniture.currentRotation.Value == 0 && !furniture.flipped.Value;
+
+    private Texture2D? GetFlameTexture(FlameDefinition flame)
+    {
+        if (!ValidFlame(flame)) return null;
+        if (!flameTextures.TryGetValue(flame.Texture, out Texture2D? texture))
+        {
+            try { texture = helper.GameContent.Load<Texture2D>(flame.Texture); }
+            catch (Exception ex) { Warn("flame:" + flame.Texture, $"Furniture flame '{flame.Texture}' was unavailable; native fire was kept: {ex.Message}"); }
+            flameTextures[flame.Texture] = texture;
+        }
+        return texture != null && !texture.IsDisposed && texture.Height == flame.FrameSizePixels[1]
+            && (long)(flame.Frames.Max() + 1) * flame.FrameSizePixels[0] <= texture.Width ? texture : null;
+    }
+
+    internal static Rectangle FlameSource(FlameDefinition flame, double elapsedMilliseconds)
+    {
+        if (!double.IsFinite(elapsedMilliseconds)) elapsedMilliseconds = 0;
+        int index = (int)(Math.Max(0, elapsedMilliseconds) / flame.FrameMilliseconds % flame.Frames.Length);
+        return new Rectangle(flame.Frames[index] * flame.FrameSizePixels[0], 0, flame.FrameSizePixels[0], flame.FrameSizePixels[1]);
+    }
+
+    internal static void InstallFlameDrawing(IMonitor monitor)
+    {
+        if (flameDrawingReady) return;
+        var harmony = new Harmony("Pixelheart.Interiors.FurnitureEffects");
+        try
+        {
+            harmony.Patch(AccessTools.Method(typeof(Furniture), nameof(Furniture.draw),
+                    new[] { typeof(SpriteBatch), typeof(int), typeof(int), typeof(float) }),
+                transpiler: new HarmonyMethod(typeof(FurnitureEffects), nameof(ReplaceFlameCalls)));
+            flameDrawingReady = true;
+        }
+        catch (Exception ex)
+        {
+            harmony.UnpatchAll(harmony.Id);
+            monitor.Log($"Custom fireplace effects were unavailable; native fire and light were kept: {ex.Message}", LogLevel.Warn);
+        }
+    }
+
+    private static readonly MethodInfo NativeDraw = AccessTools.Method(typeof(SpriteBatch), nameof(SpriteBatch.Draw),
+        new[] { typeof(Texture2D), typeof(Vector2), typeof(Rectangle?), typeof(Color), typeof(float),
+            typeof(Vector2), typeof(float), typeof(SpriteEffects), typeof(float) });
+
+    internal static IEnumerable<CodeInstruction> ReplaceFlameCalls(IEnumerable<CodeInstruction> instructions)
+    {
+        var code = instructions.Select(instruction => new CodeInstruction(instruction)).ToList();
+        FieldInfo type = AccessTools.Field(typeof(Furniture), nameof(Furniture.furniture_type));
+        FieldInfo on = AccessTools.Field(typeof(StardewValley.Object), nameof(StardewValley.Object.isOn));
+        FieldInfo cursors = AccessTools.Field(typeof(Game1), nameof(Game1.mouseCursors));
+        var regions = new List<(int Start, int End)>();
+        for (int i = 4; i + 3 < code.Count; i++)
+        {
+            if (!code[i].LoadsField(type) || !code[i + 2].LoadsConstant(Furniture.fireplace)
+                || code[i + 3].opcode != OpCodes.Bne_Un && code[i + 3].opcode != OpCodes.Bne_Un_S
+                || !code[i - 4].LoadsField(on)
+                || code[i - 2].opcode != OpCodes.Brfalse && code[i - 2].opcode != OpCodes.Brfalse_S
+                || code[i - 2].operand is not Label offLabel
+                || code[i + 3].operand is not Label endLabel) continue;
+            int end = code.FindIndex(i + 4, instruction => instruction.labels.Contains(endLabel));
+            if (end > i && code[end].labels.Contains(offLabel)) regions.Add((i + 4, end));
+        }
+        if (regions.Count != 1) throw new InvalidOperationException("Native fireplace branch did not match the supported renderer.");
+        var (start, stop) = regions[0];
+        var region = code.GetRange(start, stop - start);
+        var draws = Enumerable.Range(start, stop - start).Where(index => code[index].Calls(NativeDraw)).ToArray();
+        // Do not partly patch a changed renderer or the separate torch path.
+        if (draws.Length != 2 || region.Count(instruction => instruction.LoadsField(cursors)) != 2
+            || region.Count(instruction => instruction.LoadsConstant(276)) != 2
+            || region.Count(instruction => instruction.LoadsConstant(1985)) != 2
+            || draws.Any(index => code[index].blocks.Count != 0))
+            throw new InvalidOperationException("Native fireplace flame calls did not match the supported renderer.");
+        MethodInfo replacement = AccessTools.Method(typeof(FurnitureEffects), nameof(DrawFireplaceFlame));
+        for (int part = draws.Length - 1; part >= 0; part--)
+        {
+            int index = draws[part];
+            var load = new CodeInstruction(OpCodes.Ldarg_0);
+            load.labels.AddRange(code[index].labels);
+            code[index].labels.Clear();
+            code.InsertRange(index, new[] { load, new CodeInstruction(OpCodes.Ldc_I4, part), new CodeInstruction(OpCodes.Ldarg_S, (byte)4) });
+            code[index + 3] = new CodeInstruction(OpCodes.Call, replacement);
+        }
+        return code;
+    }
+
+    private static void DrawFireplaceFlame(SpriteBatch batch, Texture2D texture, Vector2 position,
+        Rectangle? source, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects,
+        float depth, Furniture furniture, int part, float alpha)
+    {
+        Texture2D? custom = null;
+        FlameDefinition? flame = null;
+        FurnitureEffects? runner = instance;
+        if (flameDrawingReady && runner != null && !runner.saving && Furniture.isDrawingLocationFurniture
+            && !furniture.isTemporarilyInvisible && furniture.isOn.Value && SupportedFireplace(furniture))
+        {
+            try
+            {
+                if (runner.GetDefinitions().TryGetValue(furniture.QualifiedItemId, out Definition? definition)
+                    && definition.Flame is { } configured)
+                { custom = runner.GetFlameTexture(configured); flame = configured; }
+            }
+            catch (Exception ex) { runner.Warn("flame-draw", $"Custom fireplace drawing was deferred; native fire was kept: {ex.Message}"); }
+        }
+        if (custom == null || flame == null)
+        {
+            batch.Draw(texture, position, source, color, rotation, origin, scale, effects, depth);
+            return;
+        }
+        if (part != 0) return;
+        Vector2 world = furniture.TileLocation * 64 + new Vector2(flame.OffsetPixels[0], flame.OffsetPixels[1]) * 4;
+        batch.Draw(custom, Game1.GlobalToLocal(Game1.viewport, world),
+            FlameSource(flame, Game1.currentGameTime.TotalGameTime.TotalMilliseconds), Color.White * alpha,
+            0, Vector2.Zero, 4, SpriteEffects.None, depth);
+    }
 
     private static bool TryColor(string? value, out Color color)
     {
@@ -238,7 +388,8 @@ internal sealed class FurnitureEffects
     {
         local = furniture.lightSource;
         shared = null;
-        return furniture.GetType() == typeof(Furniture) && furniture.furniture_type.Value == Furniture.lamp
+        return furniture.GetType() == typeof(Furniture)
+            && (furniture.furniture_type.Value == Furniture.lamp || furniture.furniture_type.Value == Furniture.fireplace && furniture.isOn.Value)
             && local != null && location.sharedLights.TryGetValue(local.Id, out shared);
     }
 
@@ -250,7 +401,7 @@ internal sealed class FurnitureEffects
             foreach (Furniture furniture in Game1.currentLocation.furniture)
                 if (!furniture.isTemporarilyInvisible && GetDefinitions().TryGetValue(furniture.QualifiedItemId, out Definition? definition)
                     && definition.GlowRadiusPixels > 0 && definition.GlowOpacity > 0
-                    && TryNativeLight(furniture, Game1.currentLocation, out _, out _) && FramesFit(furniture, definition))
+                    && TryNativeLight(furniture, Game1.currentLocation, out _, out _) && EffectFits(furniture, definition))
                     DrawGlow(e.SpriteBatch, furniture, definition, GetGlowTexture());
         }
         catch (Exception ex) { Warn("draw", $"Furniture glow was skipped: {ex.Message}"); }
@@ -302,13 +453,18 @@ internal sealed class FurnitureEffects
         applied.Clear();
     }
 
+    private static void RestoreOne(Furniture furniture, Applied state)
+    {
+        RestoreFrame(furniture, state);
+        state.Local?.Restore(); state.Shared?.Restore();
+        state.Local = null; state.Shared = null;
+    }
+
     internal void RestoreApplied()
     {
         foreach ((Furniture furniture, Applied state) in applied)
         {
-            RestoreFrame(furniture, state);
-            state.Local?.Restore();
-            state.Shared?.Restore();
+            RestoreOne(furniture, state);
         }
         applied.Clear();
     }

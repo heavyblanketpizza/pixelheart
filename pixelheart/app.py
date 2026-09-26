@@ -43,7 +43,7 @@ SECTIONS = [
     ("gifts", "Gifts", "It's the thought that counts.", "Give them favorites, pet peeves, and another way to connect with the player."),
     ("story", "Story & events", "Every heart has a story.", "Develop this character's storyline through connected scenes, choices, and relationships."),
     ("artwork", "Artwork", "Let their personality show.", "Prepare this character's portraits, sprites, and seasonal appearances."),
-    ("home", "Home & places", "A place that feels like them.", "Design their residence, spouse room, and the places their story needs."),
+    ("home", "Home", "Home", "Decorate their pre-spouse residence and spouse room."),
     ("export", "Review & export", "Bring them into Stardew Valley.", "Check the project, export and install the pack, then playtest their story."),
 ]
 SECTION_INDEX = {section[0]: index for index, section in enumerate(SECTIONS)}
@@ -279,6 +279,7 @@ class MainWindow(QMainWindow):
         self.artwork = ArtworkPage(self)
         self.life = LifePage(self)
         self.world = WorldPage(self)
+        self.world.draft_changed.connect(self.interior_draft_changed)
         self.export_page = ExportPage(self)
         self.playtest = self.export_page.playtest
         self.dialogue_tabs = QTabWidget()
@@ -347,12 +348,20 @@ class MainWindow(QMainWindow):
     def navigate(self, index):
         if index < 0:
             return
+        if (not self.loading and self.stack.currentIndex() == SECTION_INDEX["home"]
+                and index != SECTION_INDEX["home"] and not self.world.flush_editor()):
+            self.navigation.blockSignals(True)
+            self.navigation.setCurrentRow(SECTION_INDEX["home"])
+            self.navigation.blockSignals(False)
+            return
         self.stack.setCurrentIndex(index)
         key, name, title, subtitle = SECTIONS[index]
         character_name = self.document["character"].get("name") or "Your character"
         self.breadcrumb.setText(character_name.upper() + "  /  " + name.upper())
         self.title_label.setText(title)
         self.subtitle.setText(subtitle)
+        self.title_label.setVisible(key != "home")
+        self.subtitle.setVisible(key != "home")
         if self.loading:
             return
         if key == "export":
@@ -363,10 +372,12 @@ class MainWindow(QMainWindow):
         elif key in ("dialogue", "schedule"):
             self.life.refresh_context()
         elif key == "home":
-            if self.world.location_index >= 0:
-                self.world.refresh_location()
-            else:
-                self.world.refresh_home_actions()
+            self.world.activate_workspace()
+
+    def interior_draft_changed(self):
+        if not self.loading:
+            self.dirty = True
+            self.update_title()
 
     def collect(self):
         self.document["character"].update(self.identity.dump())
@@ -414,6 +425,7 @@ class MainWindow(QMainWindow):
 
     def load_document(self, document, path=None):
         self.loading = True
+        self.world.reset_workspace()
         self.document = deepcopy(document)
         self.project_file = project_path(path) if path else None
         character = self.document["character"]
@@ -497,13 +509,16 @@ class MainWindow(QMainWindow):
         return self.save_to(path)
 
     def save_to(self, path):
+        if not self.world.flush_editor():
+            return False
         self.collect()
         document = deepcopy(self.document)
         document["character"]["updated_at"] = datetime.now(timezone.utc).isoformat()
         try:
             destination = project_path(path)
-            if self.project_file and destination != self.project_file:
-                saved = copy_project(document, self.project_file, destination)
+            source = self.project_file or self.world.draft_project_file
+            if source and destination != source:
+                saved = copy_project(document, source, destination)
                 document = load_project(saved)
             else:
                 saved = save_project(document, destination)
@@ -515,10 +530,14 @@ class MainWindow(QMainWindow):
             self.dirty = False
             self.update_title()
             self.artwork.refresh()
+            if self.navigation.currentRow() == SECTION_INDEX["home"]:
+                self.world.activate_workspace()
             self.statusBar().showMessage(f"Saved · {saved}", 9000)
             return True
         except (ProjectError, OSError) as exc:
             self.show_error("Could not save project", str(exc))
+            if self.navigation.currentRow() == SECTION_INDEX["home"]:
+                self.world.activate_workspace()
             return False
 
     def resolved_artwork(self, kind, variant=None, issues=None):
@@ -546,6 +565,8 @@ class MainWindow(QMainWindow):
         }
 
     def validate_project(self):
+        if not self.world.flush_editor():
+            return [{"level": "error", "field": "world", "message": "Finish the current interior edit in Home before reviewing the project."}]
         self.collect()
         path_issues = []
         portrait, sprite = self.artwork_paths(issues=path_issues)
@@ -639,6 +660,7 @@ class MainWindow(QMainWindow):
             event.ignore()
             return
         event.accept()
+        self.world.reset_workspace()
 
     def _finish_icon_close(self):
         if self._closing_after_download:
