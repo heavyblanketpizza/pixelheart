@@ -269,7 +269,7 @@ class MainWindow(QMainWindow):
         main.addLayout(heading)
         self.stack = QStackedWidget()
         self.identity = IdentityPage()
-        self.dialogue = DialoguePage()
+        self.dialogue = DialoguePage(self)
         self.schedule = SchedulePage()
         self.gifts = GiftsPage(auto_download=self.auto_download_icons)
         self.gifts.download_stopped.connect(self._finish_icon_close)
@@ -428,6 +428,7 @@ class MainWindow(QMainWindow):
         self.world.reset_workspace()
         self.document = deepcopy(document)
         self.project_file = project_path(path) if path else None
+        self.dialogue.set_project_file(self.project_file)
         character = self.document["character"]
         self.identity.load(character)
         self.dialogue.load(character["dialogues"])
@@ -523,6 +524,7 @@ class MainWindow(QMainWindow):
             else:
                 saved = save_project(document, destination)
             self.project_file = saved
+            self.dialogue.set_project_file(saved)
             self.document = document
             self.loading = True
             self.world.load(document.get("world", {}))

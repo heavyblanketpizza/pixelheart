@@ -1,14 +1,81 @@
-"""Shared local Content Patcher setup; installation paths stay in OS settings."""
+"""Local Content Patcher setup for project dialogue and artwork references."""
 
-from PySide6.QtCore import QSettings, Signal
+from PySide6.QtCore import QSettings, Qt, QUrl, Signal
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QApplication, QFileDialog, QHBoxLayout, QLineEdit, QPlainTextEdit, QVBoxLayout, QWidget
 
-from pixelheart_core.local_templates import export_commands
+from pixelheart_core.local_templates import (
+    LOCAL_TEMPLATES, LocalTemplateError, export_commands, project_dialogue_folder,
+)
 from .widgets import button, label
 
 
 def game_import_settings():
     return QSettings("Pixelheart", "Pixelheart")
+
+
+class ProjectDialogueSourceWidget(QWidget):
+    """Dialogue references always belong to the opened NPC project."""
+
+    def __init__(self, template_id, project_file, parent=None):
+        super().__init__(parent)
+        self.project_file = project_file
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(8)
+        root.addWidget(label("1. With Content Patcher loaded, run this command in the SMAPI console.", "muted", True))
+        command_row = QHBoxLayout()
+        self.commands = QPlainTextEdit()
+        self.commands.setReadOnly(True)
+        self.commands.setAccessibleName("Content Patcher export commands")
+        self.commands.setMaximumHeight(48)
+        command_row.addWidget(self.commands, 1)
+        command_row.addWidget(button("Copy command", self.copy_commands))
+        root.addLayout(command_row)
+        self.instructions = label("", "muted", True)
+        root.addWidget(self.instructions)
+        folder_row = QHBoxLayout()
+        self.folder = label("", "hint", True)
+        self.folder.setTextFormat(Qt.TextFormat.PlainText)
+        self.folder.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.folder.setAccessibleName("Project dialogue folder")
+        folder_row.addWidget(self.folder, 1)
+        self.open_button = button("Open dialogue folder", self.open_folder)
+        folder_row.addWidget(self.open_button)
+        root.addLayout(folder_row)
+        root.addWidget(label("Exports include active mods. For vanilla references, run only SMAPI and Content Patcher.", "hint", True))
+        self.set_template(template_id)
+        self.prepare_folder()
+
+    def set_template(self, template_id):
+        name = LOCAL_TEMPLATES[template_id]["name"]
+        self.commands.setPlainText(export_commands(template_id, "dialogue"))
+        self.instructions.setText(
+            f"2. Copy Characters_Dialogue_{name}.json from the game’s patch export folder "
+            "into this project’s dialogue folder, then load the dialogue."
+        )
+
+    def prepare_folder(self):
+        if not self.project_file:
+            self.folder.setText("Save your NPC project first to create its dialogue folder.")
+            self.open_button.setEnabled(False)
+            return None
+        try:
+            folder = project_dialogue_folder(self.project_file, create=True)
+        except (LocalTemplateError, OSError) as exc:
+            self.folder.setText(str(exc))
+            return None
+        self.folder.setText(str(folder))
+        self.open_button.setEnabled(True)
+        return folder
+
+    def open_folder(self):
+        folder = self.prepare_folder()
+        if folder is not None:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
+
+    def copy_commands(self):
+        QApplication.clipboard().setText(self.commands.toPlainText())
 
 
 class LocalGameSourceWidget(QWidget):

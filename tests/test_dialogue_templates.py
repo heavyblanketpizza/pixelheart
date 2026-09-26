@@ -3,6 +3,7 @@
 import copy
 import unittest
 import uuid
+from unittest.mock import patch
 
 from pixelheart_core.dialogue_templates import (
     MAX_DIALOGUES,
@@ -10,6 +11,7 @@ from pixelheart_core.dialogue_templates import (
     dialogue_conflicts,
     dialogue_has_advanced_commands,
     dialogue_preview,
+    overwrite_dialogue_examples,
 )
 from pixelheart_core.validation import validate_nested
 
@@ -190,6 +192,85 @@ class DialogueTemplateTests(unittest.TestCase):
             with self.subTest(source=source), self.assertRaises(ValueError):
                 apply_dialogue_examples(self.records, [{**self.examples[0], "source": source}], {"Introduction": "replace"})
             self.assertEqual(self.records[0]["text"], "My own introduction.")
+
+    def test_overwrite_keeps_other_dialogue_and_updates_all_matching_rows_in_place(self):
+        records = self.records + [
+            {"id": "duplicate", "trigger": "Introduction", "text": "Another draft."},
+        ]
+        examples = list(reversed(self.examples))
+        original_records, original_examples = copy.deepcopy(records), copy.deepcopy(examples)
+        replaced = overwrite_dialogue_examples(records, examples)
+        self.assertEqual([row["trigger"] for row in replaced],
+                         [" Introduction ", "Mon", "Introduction", "spring_Mon"])
+        self.assertEqual([row["text"] for row in replaced],
+                         [self.examples[0]["text"], self.records[1]["text"],
+                          self.examples[0]["text"], self.examples[1]["text"]])
+        self.assertEqual([row["id"] for row in replaced[:3]], ["intro", "monday", "duplicate"])
+        self.assertEqual(replaced[1], records[1])
+        self.assertEqual(replaced[0]["notes"], self.records[0]["notes"])
+        self.assertNotIn("explanation", replaced[0])
+        replaced[0]["notes"]["drafts"].clear()
+        self.assertEqual(records, original_records)
+        self.assertEqual(examples, original_examples)
+
+    def test_overwrite_refreshes_only_matching_provenance_and_detaches_sources(self):
+        old = {"provider": "local-content-patcher", "asset": "Characters/Dialogue/Elliott", "sha256": "e" * 64}
+        source = {"provider": "local-content-patcher", "asset": "Characters/Dialogue/Abigail", "sha256": "a" * 64}
+        self.records[0].update(source=old, source_history=[old])
+        self.records[1].update(source=old, source_history=[old])
+        examples = [{**self.examples[0], "source": source}, {**self.examples[1], "source": source}]
+        original = copy.deepcopy(self.records)
+        replaced = overwrite_dialogue_examples(self.records, examples)
+        self.assertEqual(replaced[0]["source"], source)
+        self.assertNotIn("source_history", replaced[0])
+        replaced[0]["source"]["sha256"] = "b" * 64
+        self.assertEqual(replaced[2]["source"], source)
+        self.assertEqual(replaced[1], self.records[1])
+        replaced[1]["source_history"][0]["sha256"] = "c" * 64
+        self.assertEqual(examples[0]["source"]["sha256"], "a" * 64)
+        without_source = overwrite_dialogue_examples(self.records, self.examples)
+        self.assertNotIn("source", without_source[0])
+        self.assertNotIn("source_history", without_source[0])
+        self.assertEqual(self.records, original)
+
+    def test_overwrite_appends_new_rows_in_order_with_unique_ids(self):
+        examples = [{"trigger": "Tue", "text": "Tuesday."}, {"trigger": "Wed", "text": "Wednesday."}]
+        with patch("pixelheart_core.dialogue_templates.uuid.uuid4",
+                   side_effect=["intro", "new-first", "new-first", "new-second"]):
+            replaced = overwrite_dialogue_examples(self.records, examples)
+        self.assertEqual(replaced[:2], self.records)
+        self.assertEqual([row["id"] for row in replaced[2:]], ["new-first", "new-second"])
+        self.assertEqual([row["trigger"] for row in replaced[2:]], ["Tue", "Wed"])
+        self.assertTrue(all(set(row) == {"id", "trigger", "text"} for row in replaced[2:]))
+
+    def test_overwrite_validates_entire_template_before_changing_records(self):
+        original = copy.deepcopy(self.records)
+        for examples in (
+            [], None, {},
+            [self.examples[0], {"trigger": "Tue", "text": ""}],
+            [self.examples[0], {"trigger": " Introduction ", "text": "Duplicate."}],
+            [self.examples[0], {"trigger": "Tue", "text": "{{PlayerName}}"}],
+            [self.examples[0], {"trigger": "Tue", "text": "Hi.", "source": {"path": "/private/game"}}],
+        ):
+            with self.subTest(examples=examples), self.assertRaises(ValueError):
+                overwrite_dialogue_examples(self.records, examples)
+            self.assertEqual(self.records, original)
+        for records in (None, {}, [None]):
+            with self.subTest(records=records), self.assertRaises(ValueError):
+                overwrite_dialogue_examples(records, self.examples)
+
+    def test_overwrite_capacity_counts_retained_rows_and_additions(self):
+        records = [{"id": str(i), "trigger": f"Mon{i}", "text": "Original."} for i in range(MAX_DIALOGUES)]
+        original = copy.deepcopy(records)
+        examples = [{"trigger": "Mon0", "text": "Imported."}]
+        replaced = overwrite_dialogue_examples(records, examples)
+        self.assertEqual(len(replaced), MAX_DIALOGUES)
+        self.assertEqual(replaced[0]["text"], "Imported.")
+        self.assertEqual(replaced[1:], records[1:])
+        self.assertEqual(len(overwrite_dialogue_examples(records[:-1], self.examples[:1])), MAX_DIALOGUES)
+        with self.assertRaisesRegex(ValueError, "up to 2000"):
+            overwrite_dialogue_examples(records, examples + [{"trigger": "Wed", "text": "Too many."}])
+        self.assertEqual(records, original)
 
 
 if __name__ == "__main__":
