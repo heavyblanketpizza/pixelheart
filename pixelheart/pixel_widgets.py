@@ -1,4 +1,4 @@
-"""Small widgets that make Pixelheart feel like the game's own menus."""
+"""Small pixel widgets: friendship hearts, headings and portrait frames."""
 from __future__ import annotations
 
 from pathlib import Path

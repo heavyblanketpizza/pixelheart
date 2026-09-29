@@ -1,4 +1,4 @@
-"""The in-game menu skin, with game art or original pieces."""
+"""The paper skin, with hearts and lettering borrowed from a connected game."""
 import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -35,20 +35,19 @@ class SkinTests(QtTestCase):
         self.assertIn("Pixelify", skin.pixel_family())
 
     def test_stylesheet_uses_every_piece_by_object_name(self):
-        pieces, source = skin.refresh_pieces(None)
+        pieces = skin.refresh_pieces(None)
         sheet = skin.build_stylesheet(pieces)
-        self.assertEqual(source, "paper")
         for selector in ("QFrame#card", "QPushButton#primary", "QPushButton#quiet", "QPushButton#danger",
                          "QLineEdit", "QComboBox::drop-down", "QCheckBox::indicator:checked",
                          "QWidget#sidebar", "QListWidget#navigation::item:selected", "QScrollBar::handle:vertical",
                          "QTabBar::tab:selected"):
             self.assertIn(selector, sheet)
-        for role in ("panel", "button", "button_primary", "textbox", "checkbox_on", "wood", "tab"):
+        for role in ("panel", "button", "button_primary", "textbox", "checkbox_on", "sidebar", "tab"):
             self.assertIn(pieces[role].path.as_posix(), sheet)
         self.assertNotIn("__", sheet)
 
     def test_easy_read_swaps_body_font_only(self):
-        pieces, _ = skin.refresh_pieces(None)
+        pieces = skin.refresh_pieces(None)
         pixel, easy = skin.build_stylesheet(pieces), skin.build_stylesheet(pieces, easy_read=True)
         family = skin.pixel_family()
         self.assertIn(f'QWidget {{ font-family: "{family}"', pixel)
@@ -70,11 +69,11 @@ class SkinTests(QtTestCase):
     def test_unwritable_cache_falls_back_to_a_temporary_folder(self):
         from pixelheart_core.game_ui import ui_pieces as real
         calls = []
-        def flaky(content, cache_root, **options):
+        def flaky(content, cache_root):
             calls.append(cache_root)
             if len(calls) == 1:
                 raise PermissionError("read-only home")
-            return real(content, cache_root, **options)
+            return real(content, cache_root)
         with patch("pixelheart.skin.ui_pieces", side_effect=flaky):
             apply_theme(self.app, content_root=None)
         self.assertEqual(len(calls), 2)
@@ -90,46 +89,31 @@ class SkinTests(QtTestCase):
         self.assertEqual(skin.current_pieces(), {})
 
     def connected_game(self):
-        fixture = test_game_ui.GameUiTests("test_fallback_draws_every_required_role")
+        fixture = test_game_ui.GameUiTests("test_without_a_game_everything_is_drawn")
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
         return fixture.content
 
-    def test_paper_is_the_default_look_even_with_a_game(self):
+    def test_palette_is_warm_white_and_ink(self):
+        reds = {"danger", "danger_soft", "danger_rule", "error"}
+        for name, value in skin.COLORS.items():
+            if value.startswith("#") and name not in reds:
+                channels = [int(value[index:index + 2], 16) for index in (1, 3, 5)]
+                self.assertLessEqual(max(channels) - min(channels), 24, name)
+
+    def test_connected_game_lends_only_hearts_and_lettering(self):
         apply_theme(self.app, content_root=self.connected_game())
-        self.assertEqual(skin.current_look(), "paper")
-        self.assertEqual(skin.current_source(), "paper")
-        self.assertEqual(skin.COLORS, skin.PAPER_COLORS)
-        self.assertEqual(self.app.palette().window().color().name(), skin.PAPER_COLORS["page"])
+        self.assertEqual(self.app.palette().window().color().name(), skin.COLORS["page"])
         sheet = self.app.styleSheet()
         self.assertIn("/paper-v", sheet)
         self.assertNotRegex(sheet, GAME_CROPS)
-        # Hearts and the bold title font still come from the player's game.
         self.assertIn("game-", skin.current_pieces()["heart_full"].path.parent.name)
-        self.assertEqual(skin.current_pieces()["font"].path.name, "font_ink.png")
+        self.assertIn("game-", skin.current_pieces()["font"].path.parent.name)
 
-    def test_stardew_menu_colors_bring_back_the_game_look(self):
-        self.addCleanup(skin.set_stardew_colors, False)
-        skin.set_stardew_colors(True)
-        self.assertEqual(self.settings.value("view/stardewColors"), "true")
-        apply_theme(self.app, content_root=self.connected_game())
-        self.assertEqual(skin.current_look(), "stardew")
-        self.assertEqual(skin.current_source(), "game")
-        self.assertEqual(skin.COLORS, skin.STARDEW_COLORS)
-        self.assertRegex(self.app.styleSheet(), GAME_CROPS)
-        skin.set_stardew_colors(False)
-        apply_theme(self.app, content_root=None)
-        self.assertEqual(skin.COLORS, skin.PAPER_COLORS)
-
-    def test_looks_share_every_color_name(self):
-        self.assertEqual(set(skin.PAPER_COLORS), set(skin.STARDEW_COLORS))
-
-    def test_skin_falls_back_when_game_disappears(self):
-        self.addCleanup(skin.set_stardew_colors, False)
-        skin.set_stardew_colors(True)
+    def test_missing_game_draws_its_own_hearts_and_headings(self):
         apply_theme(self.app, content_root=self.folder / "gone")
-        self.assertEqual(skin.current_source(), "original")
-        self.assertIn("original-v", self.app.styleSheet())
+        self.assertIn("paper-v", skin.current_pieces()["heart_full"].path.parent.name)
+        self.assertNotIn("font", skin.current_pieces())
         button = QPushButton("Hello")
         self.addCleanup(button.deleteLater)
         button.ensurePolished()

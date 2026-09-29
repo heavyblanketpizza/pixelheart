@@ -152,7 +152,7 @@ class SpouseEditorTests(QtTestCase):
     def test_auto_fit_settles_without_scrollbars_at_odd_and_even_window_sizes(self):
         from pixelheart.skin import build_stylesheet, refresh_pieces
         dialog = self.editor()
-        dialog.setStyleSheet(build_stylesheet(refresh_pieces(None)[0]))
+        dialog.setStyleSheet(build_stylesheet(refresh_pieces(None)))
         with patch.object(dialog, "center_room", wraps=dialog.center_room) as center:
             for width in (1320, 1321, 1319):
                 dialog.resize(width, 880)

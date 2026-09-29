@@ -37,7 +37,7 @@ from .location_picker import MapSelector
 from pixelheart_core.playtesting import record_export
 from .theme import apply_theme, heart_icon
 from .game_connection import game_connection, open_find_game
-from .skin import easy_read_enabled, set_easy_read, set_stardew_colors, stardew_colors_enabled
+from .skin import easy_read_enabled, set_easy_read
 from .welcome_page import WelcomePage
 from .overview_page import OverviewPage
 from .new_character import NewCharacterDialog
@@ -415,11 +415,6 @@ class MainWindow(QMainWindow):
         self.easy_read_action.setChecked(easy_read_enabled())
         self.easy_read_action.toggled.connect(self.toggle_easy_read)
         view_menu.addAction(self.easy_read_action)
-        self.stardew_colors_action = QAction("&Stardew menu colors", self)
-        self.stardew_colors_action.setCheckable(True)
-        self.stardew_colors_action.setChecked(stardew_colors_enabled())
-        self.stardew_colors_action.toggled.connect(self.toggle_stardew_colors)
-        view_menu.addAction(self.stardew_colors_action)
         help_menu = self.menuBar().addMenu("&Help")
         guide = QAction("&Getting started", self)
         guide.triggered.connect(self.getting_started)
@@ -826,13 +821,6 @@ class MainWindow(QMainWindow):
     def toggle_easy_read(self, enabled):
         set_easy_read(enabled)
         apply_theme(QApplication.instance())
-
-    def toggle_stardew_colors(self, enabled):
-        set_stardew_colors(enabled)
-        apply_theme(QApplication.instance())
-        # Sidebar icons are drawn in the look's inks; stylesheets repaint the rest.
-        for row, (key, *_rest) in enumerate(SECTIONS):
-            self.navigation.item(row).setIcon(navigation_icon(key))
 
     def find_game(self):
         open_find_game(self)

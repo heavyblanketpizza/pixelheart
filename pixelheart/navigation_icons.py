@@ -10,9 +10,9 @@ def navigation_icon(section: str) -> QIcon:
     """Return a crisp 20px icon in the current look's sidebar and selected-row inks."""
     icon = QIcon()
     for mode, ink, accent in (
-        (QIcon.Mode.Normal, COLORS["nav_ink"], COLORS["nav_accent"]),
-        (QIcon.Mode.Active, COLORS["nav_ink_hover"], COLORS["nav_accent_hover"]),
-        (QIcon.Mode.Selected, COLORS["nav_ink_selected"], COLORS["nav_accent_selected"]),
+        (QIcon.Mode.Normal, COLORS["nav_icon"], COLORS["nav_icon_detail"]),
+        (QIcon.Mode.Active, COLORS["text"], COLORS["muted"]),
+        (QIcon.Mode.Selected, COLORS["text"], COLORS["muted"]),
     ):
         pixmap = QPixmap(40, 40)
         pixmap.setDevicePixelRatio(2)

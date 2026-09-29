@@ -111,7 +111,7 @@ class FramePairs(QWidget):
         painter = QPainter(self)
         painter.setClipRect(event.rect())
         if not self.frame_count:
-            painter.setPen(QColor(COLORS["ink_soft"]))
+            painter.setPen(QColor(COLORS["muted"]))
             painter.drawText(self.rect().adjusted(20, 20, -20, -20), Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap,
                              "Upload a complete sheet in Portraits & sprites to review its frames.")
             return
@@ -123,10 +123,10 @@ class FramePairs(QWidget):
         span = 2 if self.detail and self.paired else 1
         for index in indices:
             rect = self.frame_rect(index)
-            painter.setBrush(QColor(COLORS["surface"]))
-            painter.setPen(QPen(QColor(COLORS["accent_rule" if index == self.selected_index else "rule"]), 2 if index == self.selected_index else 1))
+            painter.setBrush(QColor(COLORS["paper"]))
+            painter.setPen(QPen(QColor(COLORS["outline" if index == self.selected_index else "rule"]), 2 if index == self.selected_index else 1))
             painter.drawRoundedRect(rect, 7, 7)
-            painter.setPen(QColor(COLORS["ink"]))
+            painter.setPen(QColor(COLORS["text"]))
             heading = f"{index:02}" + (f" + {index + 1}" if span == 2 else "") + " · " + frame_title(sheet.kind, index)
             painter.drawText(rect.adjusted(12, 7, -12, -7), Qt.AlignmentFlag.AlignTop,
                              painter.fontMetrics().elidedText(heading, Qt.TextElideMode.ElideRight, rect.width() - 24))
@@ -141,7 +141,7 @@ class FramePairs(QWidget):
                                  painter.fontMetrics().elidedText(name, Qt.TextElideMode.ElideRight, panel_width - 8))
                 stage = QRect(x, rect.top() + 55, panel_width - 8, size.height() - 99)
                 self.draw_stage(painter, stage, item, index, span)
-            painter.setPen(QColor(COLORS["ink_soft"]))
+            painter.setPen(QColor(COLORS["muted"]))
             painter.drawText(QRect(rect.left() + 12, rect.bottom() - 26, rect.width() - 24, 20),
                              Qt.AlignmentFlag.AlignLeft, f"Row {index // sheet.columns + 1} · column {index % sheet.columns + 1}")
 

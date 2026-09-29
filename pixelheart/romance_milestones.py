@@ -45,8 +45,8 @@ class _MilestoneButton(QPushButton):
         self.initStyleOption(option)
         painter.drawControl(QStyle.ControlElement.CE_PushButton, option)
         enabled, selected = self.isEnabled(), self.isChecked()
-        ink = COLORS["ink_faint"] if not enabled else COLORS["accent"] if selected else COLORS["ink"]
-        muted = COLORS["ink_faint"] if not enabled else COLORS["ink_soft"]
+        ink = COLORS["disabled"] if not enabled else COLORS["text"] if selected else COLORS["text"]
+        muted = COLORS["disabled"] if not enabled else COLORS["muted"]
         font = self.font()
         font.setPixelSize(19)
         font.setBold(True)

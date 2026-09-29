@@ -31,7 +31,7 @@ def _source_paths(settings):
     """Inspect known layouts of explicitly connected sources, without scanning."""
     paths = []
     try:
-        # The connected game's own Cursors atlas, cached by the interface skin.
+        # The connected game's own Cursors atlas, borrowed and cached by skin.py.
         from .skin import current_pieces
         cursors = current_pieces().get("cursors")
         if cursors is not None and cursors.path.is_file():

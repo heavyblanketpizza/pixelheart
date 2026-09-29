@@ -1,4 +1,4 @@
-"""Interface crops from synthetic game textures; no game art is needed."""
+"""Paper menu pieces, plus hearts and lettering borrowed from synthetic game textures."""
 from pathlib import Path
 import tempfile
 import unittest
@@ -7,9 +7,11 @@ from unittest.mock import patch
 from PIL import Image, ImageColor
 
 from pixelheart_core.game_ui import (
-    INK, PANEL_RULE, PIECES, REQUIRED_ROLES, build_fallback_ui, build_game_ui, ui_pieces,
+    INK, PANEL_RULE, REQUIRED_ROLES, build_game_ui, build_paper_ui, ui_pieces,
 )
 from tests.test_game_templates import texture_from
+
+BORROWED = {"heart_full", "heart_empty", "font", "cursors"}
 
 
 def marked(size, marks):
@@ -26,91 +28,65 @@ class GameUiTests(unittest.TestCase):
         (self.content / "Maps").mkdir()
         (self.content / "LooseSprites").mkdir()
         (self.content / "Maps/Town.xnb").write_bytes(b"x")
-        # MenuTiles art is pre-scaled ×4, so one art pixel is a 4×4 block.
-        block = {(x, 256 + y): (1, 2, 3, 255) for x in range(4) for y in range(4)}
-        self.write("Maps/MenuTiles", marked((64, 1088), block))
-        self.write("LooseSprites/Cursors", marked((448, 480), {(432, 439): (9, 8, 7, 255)}))
-        self.write("LooseSprites/textBox", marked((192, 48), {}))
+        self.write("LooseSprites/Cursors", marked((448, 480), {(211, 428): (9, 8, 7, 255)}))
         self.write("LooseSprites/font_bold", marked((128, 592), {}))
 
     def write(self, asset, image):
         (self.content / (asset + ".xnb")).write_bytes(texture_from(image))
 
-    def test_game_pieces_are_cropped_and_scaled_to_two_pixels_per_art_pixel(self):
+    def test_game_hearts_are_cropped_at_two_pixels_per_art_pixel(self):
         pieces = build_game_ui(self.content, self.cache)
-        with Image.open(pieces["button"].path) as button:
-            self.assertEqual(button.size, (18, 18))
-            self.assertEqual(button.getpixel((0, 0)), (9, 8, 7, 255))
-            self.assertEqual(button.getpixel((1, 1)), (9, 8, 7, 255))
-        with Image.open(pieces["panel"].path) as panel:
-            self.assertEqual(panel.size, (30, 30))
-            self.assertEqual(panel.getpixel((0, 0)), (1, 2, 3, 255))
-        self.assertEqual(pieces["panel"].margin, PIECES["panel"][3])
-        self.assertTrue(pieces["font"].path.is_file())
+        self.assertEqual(set(pieces), BORROWED)
+        with Image.open(pieces["heart_full"].path) as heart:
+            self.assertEqual(heart.size, (14, 12))
+            self.assertEqual(heart.getpixel((0, 0)), (9, 8, 7, 255))
+            self.assertEqual(heart.getpixel((1, 1)), (9, 8, 7, 255))
+            self.assertEqual(heart.getpixel((2, 0)), (240, 200, 120, 255))
         self.assertTrue(pieces["cursors"].path.is_file())
-        for role in ("button_hover", "button_pressed", "button_disabled", "button_primary", "button_danger", "tab_idle", "textbox_focus"):
-            self.assertTrue(pieces[role].path.is_file(), role)
+
+    def test_bold_font_is_inked_with_a_soft_grey_shadow(self):
+        glyph, shadow = (90, 30, 10, 255), (230, 160, 80, 255)
+        self.write("LooseSprites/font_bold", marked((128, 592), {(0, 0): glyph, (1, 0): shadow, (2, 0): (0, 0, 0, 0)}))
+        with Image.open(build_game_ui(self.content, self.cache)["font"].path) as font:
+            self.assertEqual(font.getpixel((0, 0)), ImageColor.getrgb(INK) + (255,))
+            self.assertEqual(font.getpixel((1, 0)), ImageColor.getrgb(PANEL_RULE) + (255,))
+            self.assertEqual(font.getpixel((2, 0))[3], 0)
 
     def test_cache_is_reused_and_refreshed_when_the_game_changes(self):
         first = build_game_ui(self.content, self.cache)
         with patch("pixelheart_core.game_ui.load_texture", side_effect=AssertionError("must reuse cache")):
             self.assertEqual(build_game_ui(self.content, self.cache), first)
-        self.write("LooseSprites/Cursors", marked((448, 481), {(432, 439): (50, 50, 50, 255)}))
+        self.write("LooseSprites/Cursors", marked((448, 481), {(211, 428): (50, 50, 50, 255)}))
         changed = build_game_ui(self.content, self.cache)
-        self.assertNotEqual(changed["button"].path.parent, first["button"].path.parent)
+        self.assertNotEqual(changed["heart_full"].path.parent, first["heart_full"].path.parent)
 
-    def test_out_of_bounds_crop_uses_original_piece(self):
+    def test_out_of_bounds_crop_keeps_the_drawn_heart(self):
         self.write("LooseSprites/Cursors", marked((100, 100), {}))
-        pieces, source = ui_pieces(self.content, self.cache)
-        self.assertEqual(source, "mixed")
-        self.assertIn("original", pieces["button"].path.parent.name)
-        self.assertIn("game-", pieces["panel"].path.parent.name)
+        pieces = ui_pieces(self.content, self.cache)
+        self.assertIn("paper-v", pieces["heart_full"].path.parent.name)
+        self.assertIn("game-", pieces["cursors"].path.parent.name)
 
-    def test_fallback_draws_every_required_role(self):
-        pieces = build_fallback_ui(self.cache)
-        self.assertEqual(set(REQUIRED_ROLES) - set(pieces), set())
-        self.assertNotIn("font", pieces)
-        with Image.open(pieces["heart_full"].path) as heart:
-            self.assertEqual(heart.size, (14, 12))
-            self.assertGreater(sum(1 for pixel in heart.getdata() if pixel[3]), 20)
-
-    def test_primary_and_danger_buttons_are_calm_not_neon(self):
-        import colorsys
-        pieces = build_fallback_ui(self.cache)
-        for role in ("button_primary", "button_danger"):
-            with Image.open(pieces[role].path) as image:
-                r, g, b, _ = image.convert("RGBA").getpixel((image.width // 2, image.height // 2))
-                _, saturation, value = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
-                self.assertLessEqual(value, 0.8, role)
-                self.assertLessEqual(saturation, 0.85, role)
-
-    def test_paper_look_is_ink_on_warm_white(self):
-        pieces, source = ui_pieces(None, self.cache, look="paper")
-        self.assertEqual(source, "paper")
-        self.assertEqual(set(REQUIRED_ROLES) - set(pieces), set())
+    def test_paper_pieces_are_ink_on_warm_white(self):
+        pieces = build_paper_ui(self.cache)
+        self.assertEqual(set(pieces), set(REQUIRED_ROLES))
         # Only the hearts and the danger button carry color; everything else is near-neutral.
         for role in set(REQUIRED_ROLES) - {"heart_full", "heart_empty", "button_danger"}:
             with Image.open(pieces[role].path) as image:
                 colors = [color for _, color in image.convert("RGBA").getcolors(256) if color[3]]
             for color in colors:
                 self.assertLessEqual(max(color[:3]) - min(color[:3]), 24, role)
+        with Image.open(pieces["heart_full"].path) as heart:
+            self.assertEqual(heart.size, (14, 12))
+            self.assertGreater(sum(count for count, color in heart.getcolors(256) if color[3]), 20)
 
-    def test_paper_look_keeps_game_hearts_and_inks_the_bold_font(self):
-        glyph, shadow = (90, 30, 10, 255), (230, 160, 80, 255)
-        self.write("LooseSprites/font_bold", marked((128, 592), {(0, 0): glyph, (1, 0): shadow, (2, 0): (0, 0, 0, 0)}))
-        pieces, _ = ui_pieces(self.content, self.cache, look="paper")
-        self.assertIn("paper-v", pieces["button"].path.parent.name)
-        self.assertIn("game-", pieces["heart_full"].path.parent.name)
-        self.assertIn("game-", pieces["cursors"].path.parent.name)
-        with Image.open(pieces["font"].path) as font:
-            self.assertEqual(font.getpixel((0, 0)), ImageColor.getrgb(INK) + (255,))
-            self.assertEqual(font.getpixel((1, 0)), ImageColor.getrgb(PANEL_RULE) + (255,))
-            self.assertEqual(font.getpixel((2, 0))[3], 0)
-
-    def test_without_a_game_everything_is_original(self):
-        pieces, source = ui_pieces(None, self.cache)
-        self.assertEqual(source, "original")
+    def test_connected_game_lends_only_hearts_lettering_and_cursors(self):
+        pieces = ui_pieces(self.content, self.cache)
         self.assertEqual(set(REQUIRED_ROLES) - set(pieces), set())
+        borrowed = {role for role, piece in pieces.items() if piece.path.parent.name.startswith("game-")}
+        self.assertEqual(borrowed, BORROWED)
+
+    def test_without_a_game_everything_is_drawn(self):
+        self.assertEqual(set(ui_pieces(None, self.cache)), set(REQUIRED_ROLES))
 
     def test_nothing_is_written_to_the_game_folder(self):
         before = sorted(p.relative_to(self.content) for p in self.content.rglob("*"))

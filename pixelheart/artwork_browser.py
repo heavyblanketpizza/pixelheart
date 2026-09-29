@@ -83,17 +83,17 @@ class _FramePreview(QWidget):
                 for index in range(browser.frame_count):
                     painter.drawRect(self.sheet_cell_rect(index).adjusted(0, 0, -1, -1))
                 selected = self.sheet_cell_rect(browser.current_frame).adjusted(0, 0, -1, -1)
-                tint = QColor(COLORS["accent_soft"])
+                tint = QColor(COLORS["selected"])
                 tint.setAlpha(65)
                 painter.fillRect(selected, tint)
-                painter.setPen(QPen(QColor(COLORS["surface"]), 4))
+                painter.setPen(QPen(QColor(COLORS["paper"]), 4))
                 painter.drawRect(selected)
-                painter.setPen(QPen(QColor(COLORS["accent"]), 2))
+                painter.setPen(QPen(QColor(COLORS["text"]), 2))
                 painter.drawRect(selected)
         else:
             paint_artwork_placeholder(painter, self.rect(), f"Add a {browser.kind} sheet to preview it", portrait=browser.kind == "portrait")
         if self.hasFocus():
-            painter.setPen(QPen(QColor(COLORS["accent_rule"]), 2))
+            painter.setPen(QPen(QColor(COLORS["outline"]), 2))
             painter.drawRect(self.rect().adjusted(1, 1, -2, -2))
         painter.end()
 
