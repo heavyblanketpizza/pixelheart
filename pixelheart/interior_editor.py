@@ -17,12 +17,12 @@ from PySide6.QtWidgets import (
     QDialog, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QSplitter,
     QTabWidget, QScrollArea, QComboBox, QSpinBox, QCheckBox, QLineEdit,
     QListWidget, QListWidgetItem, QFileDialog, QTableWidget, QTableWidgetItem,
-    QHeaderView, QAbstractItemView, QFrame, QListView, QStackedWidget,
+    QHeaderView, QAbstractItemView, QFrame, QListView,
     QStyledItemDelegate, QStyle, QApplication, QSizePolicy,
 )
 
 from pixelheart_core.interiors import (
-    InteriorDraft, import_atlas, render_interior, footprint, room_edit_candidate,
+    InteriorDraft, import_atlas, render_interior, room_edit_candidate,
     ensure_doorway, place_doorway, interior_asset_references, spouse_access_issues, validate_spouse_access,
     normalize_interior,
 )
@@ -585,14 +585,21 @@ class InteriorEditor(QDialog):
         right_layout.addWidget(self.coordinates)
         self.selection_bar = QFrame()
         self.selection_bar.setObjectName("card")
-        selected = QHBoxLayout(self.selection_bar)
+        # The hint sits above the actions so both stay readable in narrow windows.
+        stacked = QVBoxLayout(self.selection_bar)
+        stacked.setContentsMargins(6, 4, 6, 4)
+        stacked.setSpacing(6)
         self.selection_label = label("Nothing selected", "hint", True)
-        selected.addWidget(self.selection_label, 1)
+        stacked.addWidget(self.selection_label)
+        selected = QHBoxLayout()
+        selected.setSpacing(6)
+        stacked.addLayout(selected)
         self.rotate_button = button("Rotate ↻", self.rotate_active)
         self.duplicate_button = button("Duplicate", self.duplicate_selected)
         self.remove_button = button("Put away", self.put_away)
         for widget in (self.rotate_button, self.duplicate_button, self.remove_button):
             selected.addWidget(widget)
+        selected.addStretch()
         right_layout.addWidget(self.selection_bar)
         split.addWidget(right)
         split.setStretchFactor(1, 1)
@@ -1107,9 +1114,11 @@ class InteriorEditor(QDialog):
     def connect_library(self):
         from pixelheart_core.interior_furniture import discover_furniture_libraries
         saved = self.remembered_library()
+        from .game_connection import game_connection
         cp = self.settings.value("localGame/contentPatcherExportFolder", "")
+        roots = [value for value in (cp, game_connection().folder()) if isinstance(value, str) and value]
         candidates = (self.remembered_library_candidates() if saved
-                      else discover_furniture_libraries([cp] if isinstance(cp, str) and cp else []))
+                      else discover_furniture_libraries(roots))
         if candidates and self.load_catalog(candidates[0]):
             return
         message = (self.status.text() if candidates else
@@ -1152,7 +1161,9 @@ class InteriorEditor(QDialog):
         feedback.setVisible(bool(message))
         layout.addWidget(feedback)
         def choose_folder():
-            directory = QFileDialog.getExistingDirectory(setup, "Choose Stardew Valley, Mods, or a Pixelheart library folder", saved if isinstance(saved, str) else "")
+            from .game_connection import game_connection
+            start = saved if isinstance(saved, str) and saved else game_connection().folder()
+            directory = QFileDialog.getExistingDirectory(setup, "Choose Stardew Valley, Mods, or a Pixelheart library folder", start)
             if not directory:
                 return
             try:

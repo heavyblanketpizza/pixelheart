@@ -60,7 +60,7 @@ class WorkspaceTests(QtTestCase):
         second['character']['name'] = 'Second NPC'
         original = deepcopy(second)
         window.load_document(second)
-        self.assertEqual(window.navigation.currentRow(), SECTION_INDEX['identity'])
+        self.assertEqual(window.navigation.currentRow(), SECTION_INDEX['overview'])
         self.assertEqual(window.dialogue_tabs.currentIndex(), 0)
         self.assertEqual(window.schedule_tabs.currentIndex(), 0)
         self.assertIn('SECOND NPC', window.breadcrumb.text())

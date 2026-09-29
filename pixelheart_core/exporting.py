@@ -176,6 +176,15 @@ def _appearance_sheets(appearances, add):
     return {variant: result[variant] for variant in APPEARANCE_VARIANTS if variant in result}
 
 
+def _invalid_portrait_labels(text, frame_count):
+    """Yield bounded labels for numeric portrait selections outside the sheet."""
+    for number in re.findall(r"\$(\d+)(?=#|$)", text):
+        significant = number.lstrip("0") or "0"
+        # Bound conversion: a valid dialogue can exceed Python's integer limit.
+        if len(significant) > len(str(frame_count - 1)) or int(significant) >= frame_count:
+            yield number if len(number) <= 16 else number[:12] + "…"
+
+
 def _validate_portrait_indices(dialogues, size, add, appearance=None):
     if not size:
         return
@@ -183,15 +192,10 @@ def _validate_portrait_indices(dialogues, size, add, appearance=None):
     for index, entry in enumerate(dialogues):
         if isinstance(entry, dict):
             # Numeric commands at the end of a line are portrait selections.
-            for number in re.findall(r"\$(\d+)(?=#|$)", _text(entry.get("text"))):
-                significant = number.lstrip("0") or "0"
-                # Bound the conversion first: input can exceed Python's
-                # integer-string limit even within a valid dialogue length.
-                if len(significant) > len(str(frame_count - 1)) or int(significant) >= frame_count:
-                    label = number if len(number) <= 16 else number[:12] + "…"
-                    field = f"appearances.{appearance}.portrait" if appearance else f"dialogues.{index}"
-                    detail = f"{appearance.title()} appearance, dialogue {index + 1}: " if appearance else ""
-                    add("error", field, f"{detail}Portrait ${label} is outside your {frame_count}-frame portrait sheet.")
+            for label in _invalid_portrait_labels(_text(entry.get("text")), frame_count):
+                field = f"appearances.{appearance}.portrait" if appearance else f"dialogues.{index}"
+                detail = f"{appearance.title()} appearance, dialogue {index + 1}: " if appearance else ""
+                add("error", field, f"{detail}Portrait ${label} is outside your {frame_count}-frame portrait sheet.")
 
 
 def _validate_story_portrait_indices(data, size, add, appearance=None):
@@ -213,13 +217,10 @@ def _validate_story_portrait_indices(data, size, add, appearance=None):
             choices = beat.get("choices", []) if isinstance(beat.get("choices", []), list) else []
             texts = [_text(beat.get("text"))] + [_text(option.get("text")) for option in choices if isinstance(option, dict)]
             text = "#".join(texts).replace("\r\n", "\n").replace("\r", "\n").replace("\n", "#$b#")
-            for number in re.findall(r"\$(\d+)(?=#|$)", text):
-                significant = number.lstrip("0") or "0"
-                if len(significant) > len(str(frame_count - 1)) or int(significant) >= frame_count:
-                    label = number if len(number) <= 16 else number[:12] + "…"
-                    field = f"events.{index}.story.beats.{beat_index}"
-                    detail = f"{appearance.title()} appearance: " if appearance else ""
-                    add("error", field, f"{detail}Scene dialogue portrait ${label} is outside your {frame_count}-frame portrait sheet.")
+            for label in _invalid_portrait_labels(text, frame_count):
+                field = f"events.{index}.story.beats.{beat_index}"
+                detail = f"{appearance.title()} appearance: " if appearance else ""
+                add("error", field, f"{detail}Scene dialogue portrait ${label} is outside your {frame_count}-frame portrait sheet.")
 
 
 def _validate_life_portrait_indices(data, size, add, appearance=None):

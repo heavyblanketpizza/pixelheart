@@ -6,7 +6,7 @@ room**, their room in the farmhouse after marriage. Existing designs open in
 place; an empty tab lets you start decorating immediately.
 
 You can begin before saving the project for the first time. Edits stay with the
-project when you switch rooms or leave Home; use **Save project** to write them
+project when you switch rooms or leave Home; use **File → Save** to write them
 to disk. There is no separate Apply step. Simply visiting an empty room does not
 add it to the project. If an edit needs correction, the editor explains the
 problem and keeps the room open before switching or saving.
@@ -161,7 +161,7 @@ Spouse rooms use the same finish-and-furniture approach demonstrated by
 
 Undo and redo follow changes across the whole character project. Switching
 rooms, opening room settings, or leaving Home preserves that history and keeps
-valid edits in the project. **Save project** writes the project and its private
+valid edits in the project. **File → Save** writes the project and its private
 tilesheets and preview textures to disk, then starts a fresh undo history.
 A cancelled or failed save keeps the history. Incomplete artwork can stay in a
 draft, but export remains blocked until the required setup is ready.
@@ -224,7 +224,7 @@ entrance**:
    **Move doorway in designer…** returns you to the canvas with the doorway
    tool selected. Imported or painted maps expose separate **Arrive inside**
    and **Exit from** coordinates.
-4. Choose **Use this entrance**, then **Save project**. Editing its map or
+4. Choose **Use this entrance**, then **File → Save**. Editing its map or
    coordinates requires confirming the entrance again. Existing projects retain
    their saved connections.
 
@@ -309,7 +309,7 @@ frameworks separately and check SMAPI's log before playtesting.
 
 ## Export, test, and revise
 
-Resolve the export review's errors, then export a ZIP or use **Review & export → Install & playtest**
+Resolve the export review's errors, then export a ZIP or use **Play in Stardew → Put in game & playtest**
 to install in a selected Mods folder. Pixelheart updates only folders it owns
 with a matching pack identity. The previous version is backed up under
 `Pixelheart backups` beside Mods, outside the active mod directory. A manually
@@ -320,7 +320,7 @@ map IDs, warp coordinates, and spouse-room information. `STORY_TESTING.txt`
 covers ready primary and supporting scenes, their triggers, answer outcomes,
 and repeat rules. Test on a backed-up save: meet each character, sleep and follow
 routes, use both directions of every entrance, play every scene and answer, and
-check the farmhouse after marriage. Record results in **Review & export → Install & playtest**,
+check the farmhouse after marriage. Record results in **Play in Stardew → Put in game & playtest**,
 revise the same records, and export/install again.
 
 Desktop exports contain a portable `project.json` with test records, catalog,

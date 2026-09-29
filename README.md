@@ -1,84 +1,83 @@
 # Pixelheart
 
-An experimental desktop editor for bringing **one custom Stardew Valley NPC** to life. Each project contains their identity, dialogue, full storyline, events, daily routines, artwork, residence, and spouse room, ready to export as a Content Patcher pack.
+Make a new friend for Stardew Valley. Pixelheart is a free, fan-made character studio: give your villager a name, a voice, a daily routine, favorite gifts, heart events, portraits and a home, then put them in your game and go say hello. No coding needed.
 
 ![Pixelheart — Stardew Valley's Farm Computer and a cup of coffee](docs/assets/pixelheart-banner.png)
 
-> [!CAUTION]
-> **This project is still at an early stage and started 2 AM; the GUI is currently terrible. Clone at your own peril.**
+> [!NOTE]
+> Pixelheart is an early fan project. Characters you make play through SMAPI and Content Patcher, and every character still deserves a test run in your own game before you share it.
 
-Projects stay on your computer. Use artwork you have permission to use. Packaged releases and full in-game verification are still pending.
+## What you need
 
-## Run from source
+- **Stardew Valley 1.6** on your computer (Steam or GOG, on Windows, macOS or Linux). Pixelheart reads your copy of the game to show real maps, portraits and menus. Nothing from the game is copied into Pixelheart or your character projects.
+- **SMAPI** and **Content Patcher** to *play* your character. You can create without them; Pixelheart tells you when they're missing. Get them at [smapi.io](https://smapi.io/) and [Nexus Mods](https://www.nexusmods.com/stardewvalley/mods/1915).
 
-Install [uv](https://docs.astral.sh/uv/getting-started/installation/) **0.12.16+**, then run from the repository root:
+## Start Pixelheart
+
+There's no installer yet, so Pixelheart runs from this folder with [uv](https://docs.astral.sh/uv/getting-started/installation/) (version 0.12.16 or newer). Install uv once, then open a terminal in this folder and run:
 
 ```sh
 uv sync --locked
 uv run --locked python -m pixelheart
 ```
 
-uv manages Python and dependencies. Exported packs target Stardew Valley 1.6 with SMAPI and Content Patcher; see the [export guide](EXPORT_FORMAT.md) for supported features and required dependencies.
+uv downloads the right Python and everything else Pixelheart needs.
 
-## One project, one character
+## Your first visit
 
-Create a character or open their existing project. Every editor works on that character. There is no separate mod-creation wizard or character selection for their home.
+1. **Pixelheart finds your game.** It checks the usual Steam and GOG places, including Steam libraries on external drives. The welcome screen says what it found, for example *Stardew Valley 1.6.15 found on Just for Fun*, and whether SMAPI and Content Patcher are installed. If it can't find the game, choose **Find Stardew Valley…** and point it at the game folder. If your game lives on a drive that's unplugged, Pixelheart waits patiently and uses its own look until you plug it back in.
+2. **Choose New character** and type a name. That's it: Pixelheart saves them in `Documents/Pixelheart/<their name>/` for you.
+3. **Follow the hearts.** The **Overview** page shows your character's journey as eight hearts, one per step, with a *Next up* suggestion and anything that still needs fixing.
 
-| Editor | What you author |
+Everything looks like the game's own menus, using the frames, buttons, hearts and lettering from your installed game. Long writing sessions are easier on the eyes with **View → Easier-to-read text**, which keeps the wooden frames but uses a plain font.
+
+## The eight steps
+
+| Step | What you do there |
 | --- | --- |
-| **Identity** | Name, birthday, personality, biography, romance, and starting location |
-| **Dialogue** | Everyday conversations, story reactions, and marriage dialogue |
-| **Schedule** | The daily route and conditional routines for seasons, weather, story progress, and marriage |
-| **Gifts** | Their favorite and least favorite items |
-| **Story & events** | Linked chapters, event triggers, staging, scene beats, choices, and relationship arcs |
-| **Artwork** | Portraits, sprites, and optional seasonal or beach appearances |
-| **Home** | Their pre-spouse residence and farmhouse spouse room |
-| **Review & export** | Validation, Content Patcher export, installation, and in-game playtest records |
+| **About them** | Name, birthday, personality, where they live, and whether they're open to romance |
+| **Conversations** | What they say day to day, how they react to your story, and married life |
+| **Daily routine** | Where they go each day, and how that changes with seasons, weather and marriage |
+| **Gifts** | The gifts they love, like, dislike and hate, picked from the game's items |
+| **Heart events** | The scenes at 2, 4, 6, 8, 10 and 14 hearts, staged on real maps from your game |
+| **Portraits & sprites** | Their portrait expressions, walking sprites, and seasonal outfits |
+| **Home** *(optional)* | Their home before marriage and their spouse room after |
+| **Play in Stardew** | Check everything, put them in your game, and keep playtest notes |
 
-Use **Save project** to keep your work and its imported assets together. Keep internal character and map IDs stable after using the pack in a game save.
+Each finished step earns a heart in the sidebar and on the Overview.
 
-**Edit → Undo / Redo** follows your changes across the whole character project, including Home. Switching editors keeps that history. Saving successfully starts a fresh history from the saved project; a cancelled or failed save keeps your undo and redo steps.
+## Start from a villager
 
-### Write a story that changes their life
+Stuck on a blank page? Borrow a starting point from any villager in your game:
 
-Start with an introduction in **Dialogue**, then develop the first meeting in **Story & events**. Add the player, your NPC, and any townspeople needed by the scene. Write the dialogue and actions, choose the map and actor positions, and rehearse the sequence. Mark reviewed scenes ready for export; unfinished chapters remain drafts.
+- **Conversations → Load dialogue template…** loads everything a villager says, like Haley's or Harvey's lines, so you can rewrite it in your character's voice.
+- **Portraits & sprites → From my game…** shows a villager's portraits and walking sprites as a reference, or as starting artwork to paint over.
 
-Connect later events through prerequisites and relationship arcs. A closing player choice supports two responses with separate NPC replies and friendship effects. Scenes can require friendship, dating, marriage, or a farmhouse upgrade. Repeating scenes are optional and require Event Repeater; use one-time chapters for lasting story prerequisites.
+These read straight from your installed game. There are no console commands and no files to copy. (Want to start from a *modded* villager instead? Both windows have an **Advanced** option for Content Patcher exports.)
 
-In **Dialogue → Story reactions**, write what they say after a chapter or when a season or relationship condition matches. **Marriage dialogue** covers their authored mornings and evenings. In **Schedule → Conditional routines**, give those situations their own route. Later matching rules take priority; unfinished rules stay disabled until reviewed. Conditions are evaluated each morning, so sleep before checking a changed situation in-game.
+Pixelheart never draws or generates artwork. Use art you made or have permission to use; see the [artwork guide](ARTWORK.md) for the sheet layouts.
 
-The editors help stage scenes and compile supported commands. Walking routes, emotional pacing, and actual game behavior need your review in Stardew Valley. See the [story guide](STORY_WORKSHOP.md) and [daily life guide](LIFE_AND_BRANCHING.md).
+## Play in Stardew
 
-### Give them a face and a home
+1. Open **Play in Stardew → Check & export**, fix anything it lists, and choose **Export for Stardew…**.
+2. Open **Put in game & playtest** and install. Pixelheart suggests your game's Mods folder and only ever replaces its own earlier copy of this character; your other mods are left alone.
+3. Start Stardew Valley through SMAPI, meet your character, and tick off the playtest checklist.
 
-Import complete portrait and sprite sheets in **Artwork**. **From my game…** imports Abigail/Elliott references from your local Content Patcher exports; the dialogue template browser can load their exported conversations too. These are references to adapt for your character. No artwork is generated by the app.
+Only heart events marked ready go into the game. Unfinished drafts stay safely in your project.
 
-For dialogue templates, Pixelheart creates a **dialogue** folder inside your NPC project. Copy the exported `Characters_Dialogue_Abigail.json` or `Characters_Dialogue_Elliott.json` there, then choose **Load dialogue template…**. A warning shows which entries will be overwritten: matching lines are replaced, new lines are added, and your other dialogue is kept. Edits save with the project.
+## Keeping your characters safe
 
-| Sheet | Required layout |
-| --- | --- |
-| Portrait | 128 pixels wide, at least 192 high, in 64-pixel rows |
-| Nonromance sprite | 64 pixels wide, at least 128 high, in 32-pixel rows |
-| Romance sprite | 64 pixels wide, at least 416 high, including kiss/wedding frames |
-
-Open **Home** to decorate immediately. Switch between **Pre-spouse residence** and **Spouse room** above the editor, and connect a local game library to browse furniture, wallpaper, and flooring. Edits stay with the project when you switch rooms or leave Home; **Save project** writes them to disk. You can start before the project's first save. Use **Connect entrance…** for the residence's way in and out, or **Room settings…** for its name and advanced map tools. See the [home guide](WORLD_BUILDING.md) for decorating, companion setup, and map connections.
-
-### Export, install, and play their story
-
-Open **Review & export → Checks & export**, resolve blockers, and export the pack. Only ready events and enabled life rules become playable content; the portable project backup retains unfinished work.
-
-In **Install & playtest**, select the game's `Mods` folder and install the exported revision. The installer checks the archive and pack identity; updating this pack backs up its previous installation and leaves unrelated mods intact. Install SMAPI, Content Patcher, and any declared dependencies separately, then launch through SMAPI.
-
-Follow the project-specific checklist to meet the NPC, hear their dialogue, give gifts, follow routes, play every chapter and choice, visit their home, and test married life where applicable. Record **Worked as intended** or **Needs a fix**, with observations. Results belong to the installed revision; later edits make them stale while retaining the notes. Save the project to keep export history and test records.
-
-Older projects retain their authored content and extension metadata, including previously bundled supporting characters. The workspace now focuses new authoring on the project's single NPC.
+- Characters live in `Documents/Pixelheart/`. Back up that folder to keep everything, including imported artwork and homes.
+- **File → Save a copy…** saves a character somewhere else.
+- **Edit → Undo / Redo** works across the whole character, including Home.
+- Keep a character's internal name the same once you've used them in a save file.
 
 ## Guides
 
-[Artwork](ARTWORK.md) · [Story workshop](STORY_WORKSHOP.md) · [Daily life](LIFE_AND_BRANCHING.md) · [Home](WORLD_BUILDING.md) · [Maps](MAP_WORKSHOP.md) · [Export](EXPORT_FORMAT.md)
+[Artwork](ARTWORK.md) · [Heart events](STORY_WORKSHOP.md) · [Daily life](LIFE_AND_BRANCHING.md) · [Home](WORLD_BUILDING.md) · [Maps](MAP_WORKSHOP.md) · [Gift items](GAME_ITEMS.md) · [Export details](EXPORT_FORMAT.md)
 
 ## License
 
-Free for personal, noncommercial modding under the [Pixelheart Source-Available License 1.1](LICENSE). Source available, not open source.
+Free for personal, noncommercial modding under the [Pixelheart Source-Available License 1.1](LICENSE). Source available, not open source. The bundled Pixelify Sans font is under the SIL Open Font License (see `pixelheart/resources/fonts/OFL.txt`).
 
 Stardew Valley is by **ConcernedApe**. Pixelheart is an unofficial fan tool, unaffiliated with and unendorsed by ConcernedApe.

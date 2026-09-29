@@ -1,5 +1,7 @@
 """Local Content Patcher setup for project dialogue and artwork references."""
 
+import os
+
 from PySide6.QtCore import QSettings, Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QApplication, QFileDialog, QHBoxLayout, QLineEdit, QPlainTextEdit, QVBoxLayout, QWidget
@@ -11,6 +13,10 @@ from .widgets import button, label
 
 
 def game_import_settings():
+    """Per-user Pixelheart settings. Tests point PIXELHEART_SETTINGS_FILE at a temp INI."""
+    override = os.environ.get("PIXELHEART_SETTINGS_FILE")
+    if override:
+        return QSettings(override, QSettings.Format.IniFormat)
     return QSettings("Pixelheart", "Pixelheart")
 
 

@@ -1,6 +1,6 @@
 # Pixelheart artwork policy
 
-Pixelheart uses **user-uploaded portraits and character sprite images**, with optional reference sheets imported from your own Content Patcher exports. The application does not generate artwork or include generative-image features.
+Pixelheart uses **user-uploaded portraits and character sprite images**, with optional reference sheets read from your own installed game (or your Content Patcher exports). The application does not generate artwork or include generative-image features.
 
 ## Supported image preparation
 
@@ -39,7 +39,7 @@ The exporter validates the selected PNG sheets and writes their bytes unchanged.
 
 ## Detailed artwork review
 
-Choose **Artwork → Detailed review…** to inspect every frame of the selected appearance. The review uses each sheet's selected original or prepared version and shows when an appearance falls back to Default. It opens separately from the compact editor preview.
+Choose **Portraits & sprites → Detailed review…** to inspect every frame of the selected appearance. The review uses each sheet's selected original or prepared version and shows when an appearance falls back to Default. It opens separately from the compact editor preview.
 
 - Browse portraits and sprites by frame, with pixel zoom and checkerboard, light, or dark backgrounds.
 - Choose **Compare with…** to place a reference PNG, the original upload, or a sheet from **From my game…** beside each corresponding frame. Loading a comparison does not replace your artwork or change the project's export selection.
@@ -51,22 +51,25 @@ Frames are numbered from zero. Comparison matches frame positions; different cha
 
 ## Templates from your game
 
-Choose **From my game…** in Artwork, select Abigail or Elliott, and follow the displayed export commands. This workflow uses SMAPI and Content Patcher on Windows, macOS, or Linux; Steam and GOG use the same exported file formats. Console editions are not supported.
+Once Pixelheart has found your game (see **View → Find Stardew Valley…**), **Portraits & sprites → From my game…** lists every villager whose portrait and sprite sheets are in your installed game. Pick one and choose **Load template**; the sheets are read straight from the game's own files, with no console commands. A few villagers with unusual sheet layouts (such as Krobus) can't be previewed and say so. Console editions are not supported.
 
-For Abigail, run these in the SMAPI console:
+The dialog previews both complete sheets before **Use as starting artwork** copies them into the selected appearance. Loading alone does not change the project, and nothing in your game folder is changed. Source information follows the imported sheets into saved projects and pack credits; replacing a sheet keeps its previous source as history. **Sheet options → Save PNG copy for editing…** creates a separate copy for your pixel editor.
+
+**Conversations → Load dialogue template…** works the same way for any villager's everyday dialogue. Every line is loaded with its text, commands, and order; the handful of vanilla lines the editor can't hold (for example keys with spaces) are left out, and the dialog says how many. Resolve matching triggers before applying; the editor's 2,000-entry limit still applies. This loads the villager's dialogue asset, not lines from festivals, events, or other game assets.
+
+### Advanced: Content Patcher exports
+
+To start from a modded version of a villager, choose **From a Content Patcher export (advanced)** in either dialog. With SMAPI and Content Patcher running, export the assets in the SMAPI console, for example:
 
 ```text
 patch export "Portraits/Abigail" image
 patch export "Characters/Abigail" image
+patch export "Characters/Dialogue/Abigail"
 ```
 
-Choose the resulting **patch export** folder (or its game folder), then **Load template**. The macOS game app bundle is also accepted. Use Elliott in the commands for Elliott's sheets. The selected folder is remembered only in local application settings.
+Then choose the resulting **patch export** folder (artwork) or copy the dialogue JSON into the project's `dialogue` folder (dialogue). Exports include active mod changes and the game's current language.
 
-The dialog previews both complete sheets before **Use as starting artwork** copies them into the selected appearance. Loading alone does not change the project. Original exports remain unchanged. Source information follows the imported sheets into saved projects and pack credits; replacing a sheet keeps its previous source as history. **Sheet options → Save PNG copy for editing…** creates a separate copy for your pixel editor.
-
-**Dialogue → Load character dialogue…** uses the same folder. Its command is `patch export "Characters/Dialogue/Abigail"` (or Elliott). Every entry in that file is loaded and selected, preserving text, commands, and order. Search does not deselect entries. Resolve matching triggers before applying; files exceeding the editor's 2,000-entry or import-size limits are rejected rather than truncated. This loads the selected character dialogue asset, not every line the character may speak from festivals, events, or other game assets.
-
-Exports include active mod changes and the game's current language. For vanilla references, run only SMAPI and Content Patcher. These imports require no template downloads, and importing local content does not grant permission to redistribute game or mod artwork or writing. Review rights and character-specific expressions, poses, and dialogue before sharing a pack.
+Imports need no downloads, and importing local content does not grant permission to redistribute game or mod artwork or writing. Review rights and character-specific expressions, poses, and dialogue before sharing a pack.
 
 Gift item previews use a separate cache. Opening Gifts automatically downloads missing vanilla icons from verified Stardew Valley Wiki image links into the OS user cache at `Pixelheart/wiki-items`. Those PNGs stay outside repositories, projects, and exported packs; cached icons work offline. Locally imported mod textures take precedence. See [GAME_ITEMS.md](GAME_ITEMS.md).
 

@@ -1,144 +1,81 @@
-# From a story note to a playable scene
+# Write heart events
 
-The Story workshop keeps an idea, its narrative outline, and its playable scene
-together. You can save unfinished work at any point. Only scenes marked **Ready**
-are included as event scripts in an exported Content Patcher pack; all stages
-remain in the project backup.
+Open **Heart events** to work on **2, 4, 6, 8, 10, and 14-heart** events.
+These milestones provide a starting structure. Existing scenes can use other heart
+thresholds, and any milestone can contain several scenes.
 
-Open **Story & events → Heart events** to work through **Idea → Outline → Scene
-→ Rehearse**. The button above the steps moves to the next part of the flow.
-Use **Relationship arcs** for a connection that develops over several events.
+New characters start with six blank drafts: starting cast positions and an empty
+dialogue beat, ready for your own writing. The 10-heart draft initially requires
+dating; the 14-heart draft requires marriage. Earlier drafts allow any relationship
+status. Opening a saved project preserves its events, including an empty event list.
 
-## Capture the moment
+## Choose a scene
 
-Choose a story starter and **New event**, or start a **New relationship**. Write the situation in the
-character's own terms: what they want, what prevents it, and what they reveal
-when the farmer becomes involved. A useful small scene has one change the player
-can notice afterward.
+Select a heart tile, then use **Add scene** for another part at that milestone.
+When there is more than one part, the **Scene** chooser switches between them.
+Use **Other saved events** for existing scenes outside the six standard thresholds.
+Navigation does not change event conditions or the saved order of your events.
 
-For example: a guarded gardener wants to restore an abandoned plot, but is
-afraid the town will laugh at another failed attempt. The farmer discovers the
-seedlings before the gardener is ready to show anyone. The scene ends with an
-invitation to return tomorrow.
+Edit the scene title directly. The **•••** menu offers **Duplicate scene** and
+**Remove scene**. A duplicate receives new identities and has its prerequisite
+and relationship links cleared. Removing a scene also removes its old chapter
+memberships. If another event or daily-life rule requires it, resolve that
+condition before removal; gameplay dependencies are not cleared automatically.
 
-Older event and relationship notes open as ideas. Their descriptions and IDs
-are preserved, and opening or saving them does not opt them into export.
+## When, Scene, and Preview
 
-## Develop an outline
+**When** sets the entry location, time window, and relationship requirement.
+**Additional conditions** reveals season, weather, farmhouse upgrade, repetition,
+and **Requires completed scene**. A prerequisite is explicit: choosing a later
+heart tile does not require completion of the earlier scenes. Repeating events
+require Event Repeater and cannot anchor lasting event or daily-life prerequisites.
 
-Use **They want…**, **But…**, and **By the end…** to develop the idea's premise,
-conflict, and outcome. Describe
-what the player witnesses and why it matters. Keep a relationship's current
-dynamic and intended change alongside its events so that later scenes develop
-the same thread.
+**Scene** places the visual stage beside **Sequence**. Drag actors to position
+them, or open **Cast** for people, tile coordinates, and facing directions.
+**Settings** holds the music track. **View** adjusts zoom and framing; **Expand**
+opens a larger stage. **Hide scene** gives writing more room, and **Show scene**
+brings the stage back. View changes do not alter authored positions.
 
-In **Relationship arcs**, describe **A beginning**, **A complication**, **A turning
-point**, and **A new connection**, then choose **Create four milestone events**.
-This creates linked drafts at 2, 4, 6, and 8 hearts. Activate a milestone in the
-relationship's list to open its event editor. Give each
-milestone its own dramatic purpose: an introduction, a complication, a moment
-of trust, and a payoff. Review the generated triggers, cast, and outline before
-writing each scene. They are a starting structure for the author to complete.
+Your selected project sprite appears on the stage; your selected portrait appears
+in **Preview**. Once Pixelheart has found your game (it looks automatically;
+otherwise choose **View → Find Stardew Valley…**), scenes show actual maps,
+supporting NPC sprites, and farmer artwork from your local game installation.
+Game artwork is not bundled with Pixelheart. Supplied custom maps and local game
+exports can also provide previews. Missing sprites use named placement markers;
+unavailable maps are identified explicitly.
 
-**Part of a relationship** organizes the arc. **After event** supplies a
-real in-game prerequisite: the player must have seen the earlier scene before
-the next one can begin. A prerequisite needs a ready event, and circular or
-missing prerequisites must be fixed before exporting a ready scene.
+The stage follows the event's entry location. With no entry location set,
+**Preview location** starts at Town and lets you explore without changing the trigger.
 
-## Build the playable scene
+In **Sequence**, choose **+ Add** for dialogue, movement, an expression, a pause,
+a friendship change, or a player choice. Use the arrows to arrange the beats.
+Movement is relative to an actor's current tile. A final **Player choice** offers
+two answers, each with its own closing reply and friendship effect. It does not
+store a permanent answer flag for later scenes.
 
-Choose a location, minimum friendship, time window, season, weather, relationship
-status, and optional farmhouse upgrade. Use the map's tile coordinates for the cast; the initial
-camera centers on the authored NPC. The authored NPC (`$npc`) and player (`farmer`)
-have dedicated actor references. Choose cast members by name; beat controls offer the characters already in that
-scene. Relationship arcs also choose the other person by name. Legacy bundled
-characters retain their stable references. External NPCs need their exact
-internal names and the mod that supplies them. Imported places appear in location
-selectors; known map dimensions are checked at export.
+**Preview** steps through the writing with **Previous**, **Next beat**, and
+**Restart**. Enter the farmer's name and choose **Woman** or **Man** to compare
+name substitutions and gendered dialogue. The gender selection also updates the
+stage's farmer preview; it does not change your NPC or restrict event access.
+Preview both choice outcomes. The preview does not run the game or verify walkable routes.
 
-Choose a beat type and **Add beat**, then arrange the sequence with the up and
-down buttons. **Dialogue** gives NPC speech or farmer narration, **Movement**
-sets relative tile offsets and a final direction, **Expression** plays an emote,
-**Pause** sets a delay, and **Friendship change** adds or removes points. Movement
-uses the scene's current actor position, so inspect the starting tiles as well
-as every movement. Friendship effects change the player's friendship with an
-NPC, measured in points; 250 points equal one heart.
+## Save, review, and test
 
-**Player choice** can be the final beat: write a question, two answers, and each
-answer's closing response and friendship effect. Rehearse both outcomes. This
-creates a real two-way event ending; it does not store a permanent answer flag
-for later chapters. See [LIFE_AND_BRANCHING.md](LIFE_AND_BRANCHING.md).
+Use **File → Save** at any stage. **Edit → Undo / Redo** follows edits across
+the project, including scene removal. A successful save starts a fresh history.
+Older chapter, relationship, and aftermath data remains in the saved project;
+Heart events does not expose those former editors or silently discard their settings.
 
-Use one-time scenes for lasting chapters. A **Daily** scene requires Event
-Repeater 6.5.8 or later, which the export lists as a required dependency. The
-framework forgets those scene IDs after sleeping or reloading a save, including
-the same day. Daily scenes cannot be prerequisites for lasting story or life
-rules, and their friendship effects can happen again.
+In **Preview**, activate a check to visit its related control. Choose
+**Mark ready for export** after resolving the checks. Editing a ready event
+returns it to draft; **Keep as draft** also excludes it from the next export.
+Only ready events become playable scripts. Every draft stays in the project.
+Preserved legacy conditions and pending effects still undergo validation.
 
-Use **Rehearse** to step through the sequence with **Previous**, **Next beat**,
-and **Restart**. Enable **Show compiled event details** to inspect the event patch.
-The rehearsal helps review pacing, continuity, and the connection between scene controls
-and the export. It does not run Stardew Valley or prove that the chosen tiles
-are walkable. The editor checks supported structure and flags missing or
-unsafe input before a ready scene can enter an archive.
+Open **Play in Stardew** to check the complete character and export the pack.
+Test event triggers, movement, both choice outcomes, skipping, and completion
+in Stardew Valley. Record results under **Put in game & playtest**; passing editor
+checks is separate from a successful in-game test.
 
-## Review and export
-
-Activate a readiness message to move to the relevant scene control, then choose
-**Mark ready for export** when the checks pass. **Review & export** takes you to
-the character's export review. Editing a ready scene returns it to **Scene** so
-you can rehearse and approve its inclusion again; **Keep as draft** also removes
-it from the next export. Invalid ready scenes imported through project files
-block export. Incomplete ideas and outlines stay in the project and do not
-block the playable scenes.
-
-A relationship can be marked ready when every linked scene is ready and valid.
-Each linked scene must include the relationship's other character in its cast.
-Review the relationship again after revising its scenes. Ready events can be
-exported while the larger relationship remains in development.
-
-Export still needs the character's normal identity, dialogue, schedule, and
-complete portrait and sprite sheets. The pack includes:
-
-- Ready events in `content.json`, as patches to the relevant location's events.
-- Every draft, outline, relationship, and authored extension field in `project.json`.
-- `STORY_TESTING.txt` when there are playable scenes, listing exact event IDs,
-  trigger keys, relationship links, answer outcomes, repeat rules, and a testing checklist.
-
-Event identity comes from the project's and event's stable IDs. Renaming or
-reordering a scene keeps its event identity. Duplicating it creates an independent
-idea with new identities and clears its prerequisite and relationship links.
-Removing a prerequisite or a relationship is blocked while events refer to it.
-An **Undo remove** action restores the last removed story, cast member, or beat
-while you remain in that editor.
-Keep the project ID, NPC internal name, and existing event IDs stable once a
-player has used the pack in a save.
-
-## Test the arc in Stardew Valley
-
-Install the exported folder with SMAPI and Content Patcher on a backed-up test
-save. Follow the included guide and test events in prerequisite order. Enter
-the scene location under its listed conditions. Check the cast, dialogue,
-movement, effects, completion, and return to normal gameplay. Check that a Once
-scene stays complete on reentry and the following day. Check Daily scenes after
-sleep and save reload with Event Repeater installed. Test each answer on separate
-saves, including skipping before the question and during its closing response.
-Then test the next milestone under its own conditions. Skip before and after
-friendship beats and confirm the intended effects apply once and the arc can
-continue. Inspect SMAPI's log for errors.
-
-Record your findings alongside the scene's outline and revise it in Pixelheart.
-An editor preview or a passing structural check is not evidence that the event
-has been tested in-game. Test external NPCs and custom maps with the mods that
-provide them installed.
-
-The workshop supports structured scenes, final two-answer choices, and relationship
-arcs through linked scenes and player friendship effects. [Dialogue and conditional routines](LIFE_AND_BRANCHING.md)
-connects progress to everyday conversations and routines, including married life.
-[Home & places](WORLD_BUILDING.md) supplies their residence, spouse room, and story locations.
-Arbitrary nested event scripting and private family or relationship simulations
-between NPCs remain outside this structured workflow. See [EXPORT_FORMAT.md](EXPORT_FORMAT.md)
-for the complete supported scope.
-
-References: [Content Patcher event patches](https://github.com/Pathoschild/StardewMods/blob/stable/ContentPatcher/docs/author-guide/action-editdata.md)
-and [Stardew Valley event data](https://stardewvalleywiki.com/Modding:Event_data).
+See [Daily life](LIFE_AND_BRANCHING.md) for dialogue and routines after events,
+[Export](EXPORT_FORMAT.md) for supported output, and [Home](WORLD_BUILDING.md) for locations.

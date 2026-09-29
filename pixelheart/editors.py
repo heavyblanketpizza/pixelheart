@@ -15,6 +15,7 @@ from .birthday_calendar import BirthdayCalendar
 from .location_picker import MapSelector
 from .schedule_time import ScheduleTime, game_minutes, game_time
 from .dialogue_templates import DialogueTemplateDialog
+from .game_connection import game_connection
 from pixelheart_core.dialogue_templates import MAX_DIALOGUES, dialogue_preview
 from pixelheart_core.local_templates import LocalTemplateError, project_dialogue_folder
 from pixelheart_core.validation import infer_legacy_gender
@@ -178,13 +179,13 @@ class IdentityPage(QWidget):
         profile.setMinimumWidth(220)
         profile.setMaximumWidth(330)
         details.addWidget(label("CHARACTER CARD", "eyebrow"))
-        self.portrait = ArtworkPreview("Add a portrait in Artwork")
+        self.portrait = ArtworkPreview("Add a portrait in Portraits & sprites")
         self.portrait.setFixedHeight(150)
         details.addWidget(self.portrait)
         self.profile_name = label("New character", "profileName", True)
         self.profile_tagline = label("A story waiting to be told.", "muted", True)
         self.profile_birthday = label("Spring 1", "muted")
-        self.profile_romance = label("Adult · Romanceable", "badge")
+        self.profile_romance = label("Adult · Romanceable", "badge", True)
         details.addWidget(self.profile_name)
         details.addWidget(self.profile_tagline)
         details.addSpacing(8)
@@ -242,7 +243,7 @@ class DialoguePage(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(16)
-        self.example_prompt = label("Load Abigail’s or Elliott’s full dialogue from your game, then edit the conversations in your character’s voice.", "notice", True)
+        self.example_prompt = label("Start from any villager’s dialogue in your game, then rewrite it in your character’s voice.", "notice", True)
         root.addWidget(self.example_prompt)
         self.project_location = label("Save your NPC project to create its dialogue template folder.", "hint", True)
         self.project_location.setTextFormat(Qt.TextFormat.PlainText)
@@ -343,6 +344,8 @@ class DialoguePage(QWidget):
 
     def set_project_file(self, project_file):
         self.project_file = project_file
+        # The folder only matters for the advanced Content Patcher export route.
+        self.project_location.setVisible(game_connection().state() != "connected")
         if project_file is None:
             self.project_location.setText("Save your NPC project to create its dialogue template folder.")
             return
@@ -354,7 +357,8 @@ class DialoguePage(QWidget):
 
     def open_examples(self):
         if self.project_window is not None:
-            if not self.project_window.ensure_saved():
+            # Reading straight from the game needs no saved project folder.
+            if game_connection().state() != "connected" and not self.project_window.ensure_saved():
                 return
             self.set_project_file(self.project_window.project_file)
         dialog = DialogueTemplateDialog(self.records, self, project_file=self.project_file)

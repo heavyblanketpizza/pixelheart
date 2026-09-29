@@ -1,5 +1,4 @@
 """Name-first actor selection with an explicit custom-ID option."""
-from PySide6.QtCore import Qt
 from pixelheart_core.birthdays import birthdays_on
 from .location_picker import MapSelector
 

@@ -14,7 +14,7 @@ from PySide6.QtCore import QEvent
 from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.app import MainWindow
+from pixelheart.app import MainWindow, SECTION_INDEX
 from pixelheart.item_icons import ItemIconStore
 from pixelheart.theme import apply_theme
 from tests.qt_support import QtTestCase
@@ -33,7 +33,7 @@ class GiftLayoutTests(QtTestCase):
         with patch("pixelheart.gifts_page.ItemIconStore", return_value=store):
             self.window = MainWindow()
         self.page = self.window.gifts
-        self.window.navigation.setCurrentRow(3)
+        self.window.navigation.setCurrentRow(SECTION_INDEX["gifts"])
         self.window.show()
         self.settle_layout()
 

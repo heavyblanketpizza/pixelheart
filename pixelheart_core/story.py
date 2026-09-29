@@ -12,11 +12,13 @@ import hashlib
 import re
 import uuid
 
+from .story_planning import CHAPTER_PATTERNS, _valid_text
+
 
 EVENT_STAGES = ("idea", "outline", "scene", "ready")
 RELATIONSHIP_STAGES = ("idea", "outline", "ready")
 BEAT_KINDS = ("dialogue", "emote", "move", "pause", "friendship", "choice")
-EVENT_TEMPLATES = ("blank", "first_meeting", "conflict", "reconciliation")
+EVENT_TEMPLATES = CHAPTER_PATTERNS
 FACING = {"up": 0, "right": 1, "down": 2, "left": 3}
 EMOTES = (4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 52, 56, 60)
 _IDENTIFIER = re.compile(r"[A-Za-z][A-Za-z0-9_.-]{0,191}\Z")
@@ -53,12 +55,19 @@ def _event_story():
             "relationship_id": "", "previous_event_id": "", "season": "any",
             "weather": "any", "time_start": 600, "time_end": 2400,
             "music": "none", "actors": [], "beats": [], "relationship": "any",
-            "min_house_upgrade": 0, "repeat": "once"}
+            "min_house_upgrade": 0, "repeat": "once", "arc_ids": [], "player_role": "",
+            "before": "", "after": "", "motif": "", "aftermath_notes": "", "planned_effects": []}
 
 
 def _relationship_story():
     return {"stage": "idea", "desire": "", "tension": "", "progression": "",
-            "resolution": "", "target": "farmer"}
+            "resolution": "", "target": "farmer", "kind": "relationship", "independent_desire": "",
+            "boundaries": "", "motif": "", "friendship_payoff": "", "dating": "", "married": ""}
+
+
+def new_planned_effect(description=""):
+    """An explicit unimplemented promise; never compiled as a game command."""
+    return {"id": _id(), "description": description, "resolution": "pending"}
 
 
 def normalize_event(record):
@@ -67,14 +76,15 @@ def normalize_event(record):
               "location": "Town", "description": "", **copy.deepcopy(record)}
     if isinstance(result.get("story", {}), dict):
         result["story"] = {**_event_story(), **result.get("story", {})}
-        for collection, factory in (("actors", new_actor), ("beats", new_beat)):
+        for collection, factory in (("actors", new_actor), ("beats", new_beat),
+                                    ("planned_effects", new_planned_effect)):
             entries = result["story"][collection]
             if isinstance(entries, list):
                 normalized = []
                 for entry in entries:
                     if isinstance(entry, dict):
                         item = {**factory(), **entry}
-                        if isinstance(item.get("facing"), str) and item["facing"] in FACING:
+                        if collection != "planned_effects" and isinstance(item.get("facing"), str) and item["facing"] in FACING:
                             item["facing"] = FACING[item["facing"]]
                         normalized.append(item)
                     else:
@@ -112,12 +122,40 @@ def new_event(character=None, template="blank"):
         "reconciliation": ("Finding common ground", "They meet again after a difficult moment.",
                            "Pride makes it hard to say what they really need.",
                            "They make one concrete promise and take a step toward trust."),
+        "shared_activity": ("Something we can share", "Give the farmer a part in an activity the NPC enjoys.",
+                            "What makes their ways of participating different?",
+                            "Show what they can do together that neither expected."),
+        "private_side": ("An invitation inside", "The NPC chooses to share a habit, place, or private interest.",
+                         "What permission matters before the farmer joins in?",
+                         "Show what the farmer now understands about them."),
+        "boundary": ("Room to be ourselves", "A small situation makes a personal boundary visible.",
+                     "What does the NPC need the farmer to understand?",
+                     "Let respect or disagreement have a deliberate response."),
+        "help_with_cost": ("A part we can play", "The NPC chooses what help to request.",
+                           "What limit makes the support a meaningful decision?",
+                           "The NPC takes the next step on their own terms."),
+        "public_step": ("A moment to share", "The NPC shares work, a skill, or a contribution with others.",
+                        "What makes this public step matter to this person?",
+                        "Show their response to being seen by the community."),
+        "remembered_preference": ("You remembered", "An earlier preference returns in a specific gesture.",
+                                  "What should happen if the earlier answer was never given?",
+                                  "Make attention visible without ranking the player's tastes."),
+        "mutual_invitation": ("An invitation for two", "The NPC offers a specific way to spend time together.",
+                              "How can the farmer accept, decline, or ask for more time?",
+                              "Give each supported response a considered ending."),
+        "life_together": ("Our ordinary day", "Build a shared ritual around two independent lives.",
+                          "What space or time does each person need?",
+                          "Show how they make room for each other in everyday life."),
     }
     if template != "blank":
         name, premise, conflict, outcome = templates[template]
         result["name"] = name
         result["story"].update(stage="outline", premise=premise, conflict=conflict, outcome=outcome)
         result["story"]["beats"] = [new_beat()]
+        if template == "remembered_preference":
+            result["story"]["planned_effects"] = [new_planned_effect(
+                "Remember an earlier player preference and select its later callback. Persistent choices "
+                "are not supported yet; explicitly omit this effect or keep the scene as a draft.")]
     return result
 
 
@@ -169,8 +207,7 @@ def structure_issues(record, kind="events"):
         issues.append({"level": "error", "field": field, "message": message})
 
     def text(obj, field, limit, prefix=""):
-        if field in obj and (not isinstance(obj[field], str) or len(obj[field]) > limit or "\x00" in obj[field]
-                             or any(0xD800 <= ord(ch) <= 0xDFFF for ch in obj[field])):
+        if field in obj and not _valid_text(obj[field], limit):
             add(prefix + field, f"Enter valid Unicode text of at most {limit} characters without null characters.")
 
     def integer(obj, field, low, high, prefix=""):
@@ -202,12 +239,46 @@ def structure_issues(record, kind="events"):
         return issues
     choice(story, "stage", EVENT_STAGES if kind == "events" else RELATIONSHIP_STAGES, "story.")
     if kind == "relationships":
-        for field in ("desire", "tension", "progression", "resolution"):
+        for field in ("desire", "tension", "progression", "resolution", "independent_desire",
+                      "boundaries", "motif", "friendship_payoff", "dating", "married"):
             text(story, field, 8000, "story.")
+        choice(story, "kind", ("relationship", "personal"), "story.")
         text(story, "target", 192, "story.")
         return issues
-    for field in ("premise", "conflict", "outcome"):
+    for field in ("premise", "conflict", "outcome", "player_role", "before", "after", "motif", "aftermath_notes"):
         text(story, field, 8000, "story.")
+    arc_ids = story.get("arc_ids", [])
+    if not isinstance(arc_ids, list) or len(arc_ids) > 100:
+        add("story.arc_ids", "Use a list with up to 100 arc IDs.")
+    else:
+        seen = set()
+        for index, value in enumerate(arc_ids):
+            path = f"story.arc_ids.{index}"
+            if not value or not _valid_text(value, 100):
+                add(path, "Choose an arc with a nonempty text ID of at most 100 characters.")
+            elif value in seen:
+                add(path, "Link each arc only once.")
+            else:
+                seen.add(value)
+    effects = story.get("planned_effects", [])
+    if not isinstance(effects, list) or len(effects) > 100:
+        add("story.planned_effects", "Use a list with up to 100 planned effects.")
+    else:
+        seen = set()
+        for index, effect in enumerate(effects):
+            path = f"story.planned_effects.{index}."
+            if not isinstance(effect, dict):
+                add(path[:-1], "Each planned effect must be an object.")
+                continue
+            text(effect, "id", 100, path)
+            text(effect, "description", 8000, path)
+            choice(effect, "resolution", ("pending", "omitted"), path)
+            if "id" in effect:
+                value = effect["id"]
+                if not isinstance(value, str) or not value or value in seen:
+                    add(path + "id", "Each planned effect needs a unique nonempty text ID.")
+                else:
+                    seen.add(value)
     for field in ("relationship_id", "previous_event_id", "music"):
         text(story, field, 100, "story.")
     choice(story, "season", ("any", "spring", "summer", "fall", "winter"), "story.")
@@ -302,6 +373,18 @@ def event_issues(event, character=None):
         add("id", "Save this event with a stable ID before making it playable.")
     if not record["name"].strip():
         add("name", "Give this event a title.")
+    for index, effect in enumerate(story["planned_effects"]):
+        if effect["resolution"] == "pending":
+            label = effect["description"].strip() or "Untitled planned effect"
+            add(f"story.planned_effects.{index}.resolution",
+                f"{label[:160]}: this planned effect is not implemented. Explicitly omit it from this playable "
+                "version, remove the note after implementing it with supported mechanics, or keep the scene as a draft.")
+    relationships = character.get("relationships", [])
+    relation_ids = {row.get("id") for row in relationships if isinstance(row, dict) and isinstance(row.get("id"), str)} if isinstance(relationships, list) else set()
+    for index, arc_id in enumerate(story["arc_ids"]):
+        if arc_id not in relation_ids:
+            add(f"story.arc_ids.{index}", "The planning arc was removed or cannot be found.",
+                "error" if story["stage"] == "ready" else "warning")
     if character.get("romanceable") is False and record["hearts"] > 10:
         add("hearts", "A villager who cannot be romanced cannot reach 11 hearts. Choose 0–10 hearts, or enable romance.")
     if character.get("romanceable") is False and story["relationship"] in ("dating", "married"):
@@ -428,8 +511,9 @@ def event_issues(event, character=None):
         if relation is None:
             add("story.relationship_id", "The linked relationship was removed or cannot be found.")
         elif not structure_issues(relation, "relationships"):
-            target = normalize_relationship(relation)["story"]["target"]
-            if target and _actor_name(target, character) not in names:
+            relation_story = normalize_relationship(relation)["story"]
+            target = relation_story["target"]
+            if relation_story["kind"] != "personal" and target and _actor_name(target, character) not in names:
                 add("story.actors", f"Add the relationship's target ({target}) to this linked scene, or choose a different relationship.")
     return issues
 
@@ -439,6 +523,8 @@ def story_issues(character):
     issues = []
     if not isinstance(character, dict):
         return [{"level": "error", "field": "events", "message": "Character data must be an object."}]
+    from .story_planning import storyline_issues, relationship_event_ids
+    issues.extend(storyline_issues(character))
     collections = {}
     for key in ("events", "relationships"):
         records = character.get(key, [])
@@ -469,6 +555,8 @@ def story_issues(character):
                     remaining = sum(item["level"] == "error" for item in local)
                     detail = f" Rehearsal has {remaining} readiness {'issue' if remaining == 1 else 'issues'} to resolve." if remaining else " Mark it ready when you want to include it."
                     issues.append({"level": "warning", "field": prefix, "message": f"{record.get('name') or 'Untitled event'} is a story draft; it stays in the project and is not playable yet." + detail})
+                    issues.extend({**item, "field": prefix + "." + item["field"]}
+                                  for item in local if item["field"].startswith("story.arc_ids."))
                 else:
                     issues.extend({**item, "field": prefix + ("." + item["field"] if item["field"] else "")} for item in local)
                     if not any(item["level"] == "error" for item in local):
@@ -479,10 +567,11 @@ def story_issues(character):
                 local = []
                 if not relation["name"].strip():
                     local.append(("name", "Name this relationship arc."))
-                if not _IDENTIFIER.fullmatch(target) or target in (character.get("internal_name"), exported_npc_id(character)):
+                if relation["story"]["kind"] != "personal" and (not _IDENTIFIER.fullmatch(target) or target in (character.get("internal_name"), exported_npc_id(character))):
                     local.append(("story.target", "Choose farmer or another NPC's exact internal ID as this relationship's target."))
+                linked_ids = set(relationship_event_ids(safe_character, relation["id"]))
                 linked = [item for item in collections["events"] if isinstance(item, dict) and isinstance(item.get("story"), dict)
-                          and item["story"].get("relationship_id") == relation["id"]]
+                          and isinstance(item.get("id"), str) and item["id"] in linked_ids]
                 if ready:
                     if not linked:
                         local.append(("story.stage", "Develop at least one linked event into a ready scene to make this relationship playable."))
@@ -604,3 +693,13 @@ def story_repeat_events(character, npc_id=None, *, mod_id=None):
     if not isinstance(mod_id, str) or not _IDENTIFIER.fullmatch(mod_id):
         raise ValueError("Use a valid content-pack ID.")
     return [event_game_id(event, character).replace("{{ModId}}", mod_id) for event in repeatable]
+
+
+# Planning APIs are also exposed here for callers that already use the story
+# authoring module. The planning module imports compiler helpers lazily.
+from .story_planning import (  # noqa: E402
+    CHAPTER_PHASES, STORY_STARTERS, StoryPlanningError,
+    apply_story_starter, event_references, event_removal_issues, remove_event, new_chapter, normalize_storyline,
+    preview_story_starter, related_events, relationship_event_ids,
+    relationship_references, storyline_issues, storyline_structure_issues,
+)

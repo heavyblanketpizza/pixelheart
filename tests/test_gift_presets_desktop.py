@@ -16,7 +16,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.app import MainWindow
+from pixelheart.app import MainWindow, SECTION_INDEX
 from pixelheart.gifts_page import GiftsPage, TASTES
 from pixelheart.item_icons import ItemIconStore
 from pixelheart_core.gift_presets import (
@@ -75,7 +75,7 @@ class GiftPresetDesktopTests(QtTestCase):
 
     def test_fresh_project_and_browsing_starters_stay_clean_until_apply(self):
         window = self.keep(MainWindow())
-        window.navigation.setCurrentRow(3)
+        window.navigation.setCurrentRow(SECTION_INDEX["gifts"])
         page = window.gifts
         before = deepcopy(window.document)
         changed = QSignalSpy(page.changed)

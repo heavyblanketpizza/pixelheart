@@ -18,11 +18,13 @@ from pathlib import Path, PureWindowsPath
 import re
 import tempfile
 from datetime import datetime, timezone
+from copy import deepcopy
 import uuid
 
 from .validation import EDITABLE_FIELDS, NESTED_FIELDS, DraftValidationError, infer_legacy_gender, validate_draft
 from .catalog import validate_catalog, CatalogValidationError
 from .provenance import source_metadata
+from .story_planning import normalize_storyline
 from .world import WorldError, normalize_world, world_asset_references, asset_path as world_asset_path, copy_world_assets
 
 
@@ -50,10 +52,14 @@ class ProjectError(ValueError):
     """A project or artwork file could not be safely read or saved."""
 
 
-def new_project() -> dict:
-    """Return a fresh adult character with stable IDs and editable starter text."""
+def new_project(*, story_starter=None) -> dict:
+    """Return a fresh character; explicitly opt in to a removable story outline.
+
+    Storage and migration call this without an option. Never seed authored
+    chapters into an imported project merely because its storyline is absent.
+    """
     now = datetime.now(timezone.utc).isoformat()
-    return {
+    document = {
         "format": PROJECT_FORMAT,
         "version": PROJECT_VERSION,
         "character": {
@@ -80,11 +86,74 @@ def new_project() -> dict:
             "gifts": {"love": [], "like": [], "dislike": [], "hate": []},
             "events": [],
             "relationships": [],
+            "storyline": normalize_storyline(),
             "created_at": now,
             "updated_at": now,
         },
         "artwork": {"portrait": None, "sprite": None},
     }
+    if story_starter is not None:
+        from .story_planning import preview_story_starter, apply_story_starter
+        character = document["character"]
+        character = apply_story_starter(character, preview_story_starter(character, starter=story_starter))
+        character["storyline"]["starter_origin"] = {
+            "version": 1, "starter": story_starter, "sha256": _story_starter_digest(character),
+        }
+        document["character"] = character
+    return document
+
+
+def _story_starter_digest(character):
+    storyline = deepcopy(character.get("storyline", {}))
+    if isinstance(storyline, dict):
+        storyline.pop("starter_origin", None)
+    payload = {"storyline": storyline, "events": character.get("events", []),
+               "relationships": character.get("relationships", [])}
+    return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True,
+                                     separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest()
+
+
+def untouched_story_starter(character):
+    """Whether bulk removal can discard only the exact preloaded story drafts."""
+    if not isinstance(character, dict) or not isinstance(character.get("storyline"), dict):
+        return False
+    origin = character["storyline"].get("starter_origin")
+    if not isinstance(origin, dict) or origin.get("version") != 1 or not isinstance(origin.get("sha256"), str):
+        return False
+    try:
+        if _story_starter_digest(character) != origin["sha256"]:
+            return False
+    except (TypeError, ValueError, RecursionError):
+        return False
+    events = character.get("events", [])
+    if not isinstance(events, list) or any(not isinstance(event, dict) or not isinstance(event.get("id"), str) for event in events):
+        return False
+    event_ids = {event["id"] for event in events}
+    life = character.get("life", {})
+    if not isinstance(life, dict):
+        return False
+    for kind in ("dialogues", "routines", "spouse_dialogue"):
+        rows = life.get(kind, [])
+        if not isinstance(rows, list):
+            return False
+        for row in rows:
+            if not isinstance(row, dict) or not isinstance(row.get("conditions", {}), dict):
+                return False
+            conditions = row.get("conditions", {})
+            previous = conditions.get("after_event_id", "")
+            if not isinstance(previous, str) or previous in event_ids:
+                return False
+    return True
+
+
+def clear_story_starter(character):
+    """Return a blank story only while the removable preload is untouched."""
+    if not untouched_story_starter(character):
+        raise ProjectError("This starter has authored changes or linked daily-life rules. Remove individual chapters or events, or use Undo to review your changes.")
+    result = deepcopy(character)
+    result["storyline"] = normalize_storyline()
+    result["events"] = []
+    return result
 
 
 def project_path(path: str | os.PathLike) -> Path:
@@ -262,6 +331,8 @@ def _document(value) -> dict:
     character = {**defaults, **document["character"]}
     if "life" in validated:
         character["life"] = validated["life"]
+    if "storyline" in validated:
+        character["storyline"] = validated["storyline"]
     for key in _NESTED_KEYS:
         if key in {"events", "relationships"}:
             # These normalizers already retain every metadata field, including

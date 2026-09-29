@@ -16,10 +16,10 @@ from PIL import Image
 from PySide6.QtCore import Qt, QPoint, QRect
 from PySide6.QtWidgets import QApplication, QScrollArea
 
-from pixelheart.app import MainWindow
+from pixelheart.app import MainWindow, SECTION_INDEX
 from pixelheart.theme import apply_theme
 from pixelheart_core.projects import load_project
-from pixelheart_core.story import event_game_id
+from pixelheart_core.story import event_game_id, new_beat, normalize_relationship
 from tests.qt_support import QtTestCase
 
 
@@ -36,6 +36,7 @@ class StoryDesktopTests(QtTestCase):
         self.windows = []
         self.error_patch = patch.object(MainWindow, "show_error")
         self.errors = self.error_patch.start()
+        self.enterContext(patch("pixelheart.story_page.EventsPage.update_scene_preview"))
         self.window = self.make_window()
 
     def tearDown(self):
@@ -48,7 +49,7 @@ class StoryDesktopTests(QtTestCase):
         self.temporary.cleanup()
 
     def make_window(self):
-        window = MainWindow()
+        window = MainWindow(preload_story=False)
         self.windows.append(window)
         return window
 
@@ -57,6 +58,8 @@ class StoryDesktopTests(QtTestCase):
         document["character"]["events"] = deepcopy(list(events))
         document["character"]["relationships"] = deepcopy(list(relationships))
         self.window.load_document(document)
+        if events:
+            self.window.story.open_event(events[0]["id"])
 
     @staticmethod
     def event(entry_id="river", stage="scene", previous="", relationship=""):
@@ -107,6 +110,7 @@ class StoryDesktopTests(QtTestCase):
         self.assertEqual(reopened.events.dump(), [ready])
         self.assertFalse(reopened.dirty)
 
+        reopened.story.open_event(ready["id"])
         reopened.events.return_to_draft()
         self.assertNotEqual(reopened.events.dump()[0]["story"]["stage"], "ready")
         self.assertEqual(reopened.events.dump()[0]["id"], ready["id"])
@@ -116,60 +120,47 @@ class StoryDesktopTests(QtTestCase):
         self.assertEqual(load_project(self.file)["character"]["events"], reopened.events.dump())
         self.errors.assert_not_called()
 
-    def test_template_can_be_developed_into_a_ready_scene_using_the_editor(self):
+    def test_blank_milestone_can_be_developed_into_a_ready_scene_using_the_editor(self):
         window = self.window
+        window.story.milestones.buttons[6].click()
+        window.story.create_scene_button.click()
         page = window.events
-        page.add("first_meeting")
-        page.fields["name"].setText("A letter at the river")
-        self.assertTrue(page.dump()[0]["story"]["premise"])
-        self.assertEqual(page.dump()[0]["story"]["stage"], "outline")
-        self.assertEqual(len(page.dump()[0]["story"]["actors"]), 2)
-        page.phases.setCurrentIndex(1)
-        page.next_step()
-        self.assertEqual(page.phases.currentIndex(), 2)
-        page.beats.fields["text"].setPlainText("I thought you might come back. 안녕, @.$h")
-        page.mark_ready()
+        page.fields['name'].setText('A letter at the river')
+        self.assertFalse(page.dump()[0]['story']['premise'])
+        self.assertEqual(page.dump()[0]['story']['stage'], 'outline')
+        self.assertEqual(page.dump()[0]['hearts'], 6)
+        self.assertEqual(len(page.dump()[0]['story']['actors']), 2)
+        page.beats.fields['text'].setPlainText('I thought you might come back. 안녕, @.$h')
+        self.assertTrue(page.mark_ready())
         authored = page.dump()[0]
-        self.assertEqual(authored["story"]["stage"], "ready")
-        self.assertEqual(authored["story"]["beats"][0]["text"], "I thought you might come back. 안녕, @.$h")
-        self.assertEqual(window.document["character"]["events"][0], authored)
+        self.assertEqual(authored['story']['beats'][0]['text'], 'I thought you might come back. 안녕, @.$h')
+        self.assertEqual(window.document['character']['events'][0], authored)
         self.assertTrue(window.save_to(self.file))
         reopened = self.make_window()
         self.assertTrue(reopened.open_path(self.file))
         self.assertEqual(reopened.events.dump()[0], authored)
         self.errors.assert_not_called()
 
-    def test_legacy_note_gains_a_starter_scene_without_replacing_its_authored_prose(self):
-        legacy = {
-            "id": "legacy-river", "name": "The promised letter", "hearts": 6,
-            "location": "Forest", "description": "달빛 아래, they meet again.\nA promise kept.",
-        }
+    def test_legacy_note_preserves_its_authored_prose_while_scene_fields_are_edited(self):
+        legacy = {'id': 'legacy-river', 'name': 'The promised letter', 'hearts': 6,
+                  'location': 'Forest', 'description': '달빛 아래, they meet again.\nA promise kept.',
+                  'story': {'premise': 'They want to reconnect.', 'conflict': 'Neither knows what to say.',
+                            'outcome': 'They decide to write again.'}}
         self.load_story(events=[legacy])
         page = self.window.events
-        self.assertEqual(page.dump()[0]["story"]["actors"], [])
-        self.assertEqual(page.dump()[0]["story"]["beats"], [])
-        prose = {"premise": "They want to reconnect.", "conflict": "Neither knows what to say.",
-                 "outcome": "They decide to write again."}
-        for key, text in prose.items():
-            page.story_fields[key].setPlainText(text)
-        page.phases.setCurrentIndex(1)
-        page.next_step()
+        before = page.dump()[0]
+        self.assertEqual(before['story']['actors'], [])
+        self.assertEqual(before['story']['beats'], [])
+        page.fields['name'].setText('A promise beneath the trees')
+        page.story_fields['time_end'].setValue(2200)
         developed = page.dump()[0]
-        self.assertEqual(page.phases.currentIndex(), 2)
-        self.assertEqual({key: developed[key] for key in legacy}, legacy)
-        self.assertEqual({key: developed["story"][key] for key in prose}, prose)
-        self.assertEqual(developed["story"]["stage"], "scene")
-        self.assertEqual([actor["name"] for actor in developed["story"]["actors"]], ["$npc", "farmer"])
-        self.assertEqual(len(developed["story"]["beats"]), 1)
-        self.assertEqual(developed["story"]["beats"][0]["kind"], "dialogue")
-        self.assertEqual(developed["story"]["beats"][0]["text"], "")
-        self.assertEqual(page.beats.list.count(), 1)
-        self.assertEqual(page.actors.table.rowCount(), 2)
-        page.phases.setCurrentIndex(1)
-        page.next_step()
-        self.assertEqual(page.dump()[0], developed)
+        self.assertEqual(developed['description'], legacy['description'])
+        for key in ('premise', 'conflict', 'outcome'):
+            self.assertEqual(developed['story'][key], legacy['story'][key])
+        self.assertEqual(developed['story']['actors'], [])
+        self.assertEqual(developed['story']['beats'], [])
         self.assertTrue(self.window.save_to(self.file))
-        self.assertEqual(load_project(self.file)["character"]["events"][0], developed)
+        self.assertEqual(load_project(self.file)['character']['events'][0], developed)
         self.errors.assert_not_called()
 
     def test_beat_editor_preserves_core_boundary_values_when_editing_another_field(self):
@@ -204,34 +195,66 @@ class StoryDesktopTests(QtTestCase):
         self.errors.assert_not_called()
 
     def test_issue_navigation_scrolls_the_target_editor_into_view_at_minimum_size(self):
-        self.load_story(events=[self.event()])
+        event = self.event()
+        event["story"]["beats"].append(new_beat("choice"))
+        self.load_story(events=[event])
         window = self.window
         window.resize(1020, 700)
         window.show()
-        window.navigation.setCurrentRow(4)
+        window.navigation.setCurrentRow(SECTION_INDEX["story"])
         self.application.processEvents()
         self.assertEqual((window.width(), window.height()), (1020, 700))
         page = window.events
-        page.phases.setCurrentIndex(2)
+        page.phases.setCurrentIndex(page.SCENE)
         self.application.processEvents()
-        scroll = page.phases.widget(2)
+        scroll = page.phases.widget(page.SCENE)
         self.assertIsInstance(scroll, QScrollArea)
         cases = [
-            ("events.0.story.beats.0.text", page.beats.fields["text"], 0),
-            ("events.0.story.actors.1.x", page.actors.table.cellWidget(1, 1), 0),
-            ("events.0.story.actors", page.actors.table, 0),
-            ("events.0.story.time_end", page.story_fields["time_end"], scroll.verticalScrollBar().maximum()),
+            ("events.0.story.beats.0.text", lambda: page.beats.fields["text"], 0),
+            ("events.0.story.beats.1.choices.1.text", lambda: page.beats.choice_fields[1]["text"], 0),
+            ("events.0.story.actors.1.x", lambda: page.actors.table.cellWidget(1, 1), 0),
+            ("events.0.story.actors", lambda: page.actors.table, 0),
+            ("events.0.story.time_end", lambda: page.story_fields["time_end"], scroll.verticalScrollBar().maximum()),
         ]
-        for field, widget, initial_scroll in cases:
+        for field, get_widget, initial_scroll in cases:
             with self.subTest(field=field):
                 scroll.verticalScrollBar().setValue(initial_scroll)
                 page.phases.setCurrentIndex(0)
+                window.story.milestones.buttons[14].click()
                 window.story.open_issue(field)
                 self.application.processEvents()
-                self.assertEqual(page.phases.currentIndex(), 2)
+                widget = get_widget()
+                expected_phase = page.TRIGGER if field.endswith("time_end") else page.SCENE
+                self.assertEqual(page.phases.currentIndex(), expected_phase)
+                scroll = page.phases.currentWidget()
                 target_rect = QRect(widget.mapTo(scroll.viewport(), QPoint(0, 0)), widget.size())
                 self.assertTrue(scroll.viewport().rect().contains(target_rect.center()))
                 self.assertTrue(widget.isVisible())
+                parent = widget.parentWidget()
+                while parent is not None:
+                    if isinstance(parent, QScrollArea):
+                        center = widget.mapTo(parent.viewport(), widget.rect().center())
+                        self.assertTrue(parent.viewport().rect().contains(center),
+                                        f"{field} remains clipped inside a nested editor")
+                    parent = parent.parentWidget()
+        self.assertFalse(window.dirty)
+
+    def test_all_event_phases_fit_minimum_window_and_rehearsal_is_visible(self):
+        self.load_story(events=[self.event()])
+        window = self.window
+        window.resize(1000, 700)
+        window.show()
+        window.open_section("story")
+        window.story.open_event("river")
+        page = window.events
+        for phase in range(page.phases.count()):
+            with self.subTest(phase=phase):
+                page.phases.setCurrentIndex(phase)
+                self.application.processEvents()
+                self.application.processEvents()
+                self.assertEqual(page.phases.currentWidget().horizontalScrollBar().maximum(), 0)
+        self.assertTrue(page.rehearsal_text.isVisibleTo(page.phases.currentWidget()))
+        self.assertIn("I'll write again tomorrow.", page.rehearsal_text.text())
         self.assertFalse(window.dirty)
 
     def test_incomplete_scene_stays_a_draft_and_remains_saveable(self):
@@ -244,44 +267,93 @@ class StoryDesktopTests(QtTestCase):
         self.assertEqual(load_project(self.file)["character"]["events"][0]["story"]["beats"], [])
         self.errors.assert_not_called()
 
-    def test_returning_a_milestone_to_draft_reopens_its_ready_relationship(self):
+    def test_missing_saved_arc_stays_preserved_and_blocks_ready_promotion(self):
+        event = self.event()
+        event['story']['arc_ids'] = ['missing-arc']
+        self.load_story(events=[event])
+        page = self.window.events
+        before = page.dump()
+        self.assertFalse(page.ready_button.isEnabled())
+        self.assertFalse(page.mark_ready())
+        self.window.story.open_issue('events.0.story.arc_ids.0')
+        self.assertFalse(page.notice.isHidden())
+        self.assertIn('preserved', page.notice.text())
+        self.assertEqual(page.dump(), before)
+        self.assertTrue(self.window.save_to(self.file))
+        self.assertEqual(load_project(self.file)['character']['events'][0]['story']['arc_ids'], ['missing-arc'])
+        self.errors.assert_not_called()
+
+    def test_saved_pending_effect_blocks_export_and_survives_scene_edits(self):
+        from pixelheart_core.story import new_planned_effect
+        event = self.event()
+        event['story']['planned_effects'] = [new_planned_effect('Send a letter three days later')]
+        self.load_story(events=[event])
+        page = self.window.events
+        self.assertFalse(page.mark_ready())
+        self.window.story.open_issue('events.0.story.planned_effects.0.resolution')
+        self.assertIn('preserved', page.notice.text())
+        page.fields['name'].setText('A letter to remember')
+        self.assertFalse(page.mark_ready())
+        self.assertTrue(self.window.save_to(self.file))
+        saved = load_project(self.file)['character']['events'][0]
+        self.assertEqual(saved['story']['planned_effects'], event['story']['planned_effects'])
+        self.assertEqual(saved['story']['planned_effects'][0]['resolution'], 'pending')
+        self.errors.assert_not_called()
+
+    def test_scene_edit_preserves_every_saved_arc_and_its_existing_stage(self):
+        arcs = [self.relationship(f'arc-{index}') for index in range(11)]
+        arcs[10]['story']['stage'] = 'ready'
+        event = self.event(stage='ready')
+        event['story']['arc_ids'] = [arcs[1]['id']]
+        self.load_story(events=[event], relationships=arcs)
+        self.window.events.fields['name'].setText('A revised scene')
+        self.assertEqual(self.window.story.dump()['relationships'], arcs)
+        self.assertTrue(self.window.save_to(self.file))
+        self.assertEqual(load_project(self.file)['character']['relationships'], [normalize_relationship(arc) for arc in arcs])
+
+    def test_multiple_saved_arcs_do_not_require_absent_people_in_the_cast(self):
+        arcs = [self.relationship('family'), self.relationship('ambition')]
+        arcs[0]['story']['target'] = 'George'
+        arcs[1]['story'].update(kind='personal', target='')
+        event = self.event()
+        event['story']['arc_ids'] = [arc['id'] for arc in arcs]
+        self.load_story(events=[event], relationships=arcs)
+        page = self.window.events
+        self.assertTrue(page.mark_ready())
+        self.assertEqual(page.dump()[0]['story']['actors'], event['story']['actors'])
+        page.return_to_draft()
+        self.assertEqual(self.window.story.dump()['relationships'], arcs)
+
+    def test_returning_scene_to_draft_keeps_saved_relationship_data_unchanged(self):
         relationship = self.relationship()
-        relationship["story"]["stage"] = "ready"
-        self.load_story(events=[self.event(stage="ready", relationship=relationship["id"])],
-                        relationships=[relationship])
+        relationship['story']['stage'] = 'ready'
+        self.load_story(events=[self.event(stage='ready', relationship=relationship['id'])], relationships=[relationship])
         self.window.events.return_to_draft()
-        self.assertEqual(self.window.relationships.dump()[0]["story"]["stage"], "outline")
-        self.assertFalse(self.window.relationships.ready_button.isEnabled())
-        self.window.events.mark_ready()
-        self.assertTrue(self.window.relationships.ready_button.isEnabled())
-        self.assertTrue(self.window.relationships.mark_ready())
-        self.window.relationships.return_to_draft()
-        self.assertEqual(self.window.relationships.dump()[0]["story"]["stage"], "outline")
-        self.assertEqual(self.window.events.dump()[0]["story"]["stage"], "ready")
+        self.assertEqual(self.window.story.dump()['relationships'], [relationship])
+        self.assertNotEqual(self.window.events.dump()[0]['story']['stage'], 'ready')
+        self.assertTrue(self.window.events.mark_ready())
+        self.assertEqual(self.window.story.dump()['relationships'], [relationship])
         self.assertTrue(self.window.save_to(self.file))
         self.errors.assert_not_called()
 
-    def test_relationship_arc_generation_is_linked_ordered_and_idempotent(self):
+    def test_adding_heart_scene_leaves_saved_relationships_and_chapters_unchanged(self):
         self.load_story(relationships=[self.relationship()])
-        page = self.window.relationships
-        page.create_arc()
+        before = self.window.story.dump()
+        self.window.story.milestones.buttons[8].click()
+        self.window.story.create_scene_button.click()
         events = self.window.events.dump()
-        self.assertEqual(len(events), 4)
-        self.assertEqual([event["hearts"] for event in events], [2, 4, 6, 8])
-        self.assertEqual(len({event["id"] for event in events}), 4)
-        for index, event in enumerate(events):
-            self.assertEqual(event["story"]["relationship_id"], "friendship")
-            self.assertEqual(event["story"]["previous_event_id"], events[index - 1]["id"] if index else "")
-            self.assertNotEqual(event["story"]["stage"], "ready")
-        self.assertEqual(page.linked_events.count(), 4)
-
-        page.create_arc()
-        self.assertEqual(self.window.events.dump(), events)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]['hearts'], 8)
+        for key in ('relationship_id', 'previous_event_id'):
+            self.assertEqual(events[0]['story'][key], '')
+        self.assertEqual(events[0]['story']['arc_ids'], [])
+        self.assertEqual(self.window.story.dump()['relationships'], before['relationships'])
+        self.assertEqual(self.window.story.dump()['storyline'], before['storyline'])
         self.assertTrue(self.window.save_to(self.file))
         reopened = self.make_window()
         self.assertTrue(reopened.open_path(self.file))
         self.assertEqual(reopened.events.dump(), events)
-        self.assertEqual(reopened.relationships.linked_events.count(), 4)
+        self.assertEqual(reopened.story.dump()['relationships'], load_project(self.file)['character']['relationships'])
         self.errors.assert_not_called()
 
     def test_duplicate_ready_event_has_fresh_identities_and_no_prerequisite(self):
@@ -293,7 +365,7 @@ class StoryDesktopTests(QtTestCase):
             relationships=[relationship],
         )
         page = self.window.events
-        original_relationships = self.window.relationships.dump()
+        original_relationships = self.window.story.dump()["relationships"]
         page.list.setCurrentRow(1)
         original = deepcopy(page.dump()[1])
         page.duplicate()
@@ -305,7 +377,7 @@ class StoryDesktopTests(QtTestCase):
         self.assertEqual(duplicated["story"]["stage"], "idea")
         self.assertEqual(duplicated["story"]["previous_event_id"], "")
         self.assertEqual(duplicated["story"]["relationship_id"], "")
-        self.assertEqual(self.window.relationships.dump(), original_relationships)
+        self.assertEqual(self.window.story.dump()["relationships"], original_relationships)
         self.assertEqual(duplicated["story"]["beats"][0]["text"], original["story"]["beats"][0]["text"])
         for key in ("actors", "beats"):
             self.assertTrue(
@@ -336,13 +408,14 @@ class StoryDesktopTests(QtTestCase):
         self.assertEqual(load_project(self.file)["character"]["events"], original)
         self.errors.assert_not_called()
 
-    def test_linked_relationship_cannot_be_removed_while_its_events_still_use_it(self):
-        self.load_story(events=[self.event(relationship="friendship")], relationships=[self.relationship()])
-        before = self.window.relationships.dump()
-        self.window.relationships.remove()
-        self.assertEqual(self.window.relationships.dump(), before)
-        self.assertEqual(self.window.events.dump()[0]["story"]["relationship_id"], "friendship")
-        self.assertFalse(self.window.dirty)
+    def test_saved_relationship_link_survives_scene_title_edits(self):
+        self.load_story(events=[self.event(relationship='friendship')], relationships=[self.relationship()])
+        before = self.window.story.dump()['relationships']
+        self.window.events.fields['name'].setText('Letters between friends')
+        self.assertEqual(self.window.story.dump()['relationships'], before)
+        self.assertEqual(self.window.events.dump()[0]['story']['relationship_id'], 'friendship')
+        self.assertTrue(self.window.save_to(self.file))
+        self.assertEqual(load_project(self.file)['character']['events'][0]['story']['relationship_id'], 'friendship')
 
     def test_removed_cast_and_beats_restore_their_order_identity_and_authored_properties(self):
         event = self.event()
@@ -377,7 +450,7 @@ class StoryDesktopTests(QtTestCase):
         self.load_story(events=[event])
         page = self.window.events
         before = page.dump()
-        page.phases.setCurrentIndex(3)
+        page.phases.setCurrentIndex(page.REHEARSE)
         page.update_preview()
         self.assertIn("I'll write again tomorrow. 안녕, Farmer.", page.rehearsal_text.text())
         self.assertNotIn("$h", page.rehearsal_text.text())
@@ -406,10 +479,10 @@ class StoryDesktopTests(QtTestCase):
         self.assertEqual(page.dump()[0]["story"]["stage"], "ready")
         self.assertEqual(page.dump()[0]["story"]["beats"][0]["text"], "The revised ending.$h")
 
-    def test_continued_typing_under_the_ready_filter_stays_on_the_original_event(self):
+    def test_continued_typing_stays_on_the_chosen_multipart_scene(self):
         self.load_story(events=[self.event("first", "ready"), self.event("second", "ready")])
         page = self.window.events
-        page.filter.setCurrentIndex(page.filter.findData("ready"))
+        self.assertEqual(self.window.story.parts.count(), 2)
         page.list.setCurrentRow(0)
         untouched = deepcopy(page.dump()[1])
         page.beats.fields["text"].setPlainText("A revised first line.")
@@ -424,12 +497,12 @@ class StoryDesktopTests(QtTestCase):
         self.assertEqual(load_project(self.file)["character"]["events"], page.dump())
         self.errors.assert_not_called()
 
-    def test_renaming_a_search_result_does_not_redirect_further_typing_to_another_event(self):
+    def test_renaming_a_multipart_scene_does_not_redirect_further_typing(self):
         first, second = self.event("first"), self.event("second")
         first["name"], second["name"] = "Needle first", "Needle second"
         self.load_story(events=[first, second])
         page = self.window.events
-        page.search.setText("needle")
+        self.assertEqual(self.window.story.parts.count(), 2)
         page.list.setCurrentRow(0)
         untouched = deepcopy(page.dump()[1])
         page.fields["name"].setText("Renamed moment")
@@ -441,59 +514,50 @@ class StoryDesktopTests(QtTestCase):
         self.assertEqual(load_project(self.file)["character"]["events"], page.dump())
         self.errors.assert_not_called()
 
-    def test_changing_a_relationship_target_refreshes_its_linked_scene_checks(self):
-        self.load_story(events=[self.event(relationship="friendship")], relationships=[self.relationship()])
-        window = self.window
-        page = window.events
-        page.phases.setCurrentIndex(3)
-        self.assertTrue(page.ready_button.isEnabled())
-        window.story.tabs.setCurrentWidget(window.relationships)
-        window.relationships.story_fields["target"].setText("Robin")
-        window.story.tabs.setCurrentWidget(page)
+    def test_saved_relationship_target_remains_a_cast_readiness_requirement(self):
+        relationship = self.relationship()
+        relationship['story']['target'] = 'Robin'
+        self.load_story(events=[self.event(relationship='friendship')], relationships=[relationship])
+        page = self.window.events
+        page.phases.setCurrentIndex(page.REHEARSE)
         self.assertFalse(page.ready_button.isEnabled())
         cast_checks = [page.checks.item(index) for index in range(page.checks.count())
-                       if page.checks.item(index).data(Qt.ItemDataRole.UserRole) == "story.actors"]
-        self.assertTrue(any("Robin" in item.text() for item in cast_checks))
+                       if page.checks.item(index).data(Qt.ItemDataRole.UserRole) == 'story.actors']
+        self.assertTrue(any('Robin' in item.text() for item in cast_checks))
         self.assertFalse(page.mark_ready())
-        self.assertEqual(page.dump()[0]["story"]["stage"], "scene")
-        window.relationships.story_fields["target"].setText("farmer")
-        self.assertTrue(page.ready_button.isEnabled())
+        self.assertEqual(self.window.story.dump()['relationships'], [relationship])
+        self.assertTrue(self.window.save_to(self.file))
 
-    def test_selecting_story_tabs_phases_and_records_does_not_dirty_the_project(self):
-        self.load_story(
-            events=[self.event("first"), self.event("second")],
-            relationships=[self.relationship("first-link"), self.relationship("second-link")],
-        )
+    def test_selecting_milestones_phases_and_parts_does_not_dirty_the_project(self):
+        self.load_story(events=[self.event('first'), self.event('second')],
+                        relationships=[self.relationship('first-link'), self.relationship('second-link')])
         window = self.window
         before = deepcopy(window.document)
-        window.navigation.setCurrentRow(4)
-        for index in range(window.story.tabs.count()):
-            window.story.tabs.setCurrentIndex(index)
+        window.navigation.setCurrentRow(SECTION_INDEX["story"])
+        for hearts in (2, 4, 6, 8, 10, 14, 4):
+            window.story.milestones.buttons[hearts].click()
         for index in range(window.events.phases.count()):
             window.events.phases.setCurrentIndex(index)
-        window.events.list.setCurrentRow(1)
-        window.relationships.list.setCurrentRow(1)
-        window.events.list.setCurrentRow(0)
-        window.relationships.list.setCurrentRow(0)
+        window.story.parts.setCurrentIndex(1)
+        window.story.parts.setCurrentIndex(0)
         self.application.processEvents()
         self.assertFalse(window.dirty)
         self.assertEqual(window.document, before)
 
     def test_issue_navigation_opens_the_affected_event_and_scene(self):
-        invalid = self.event("second", "ready")
-        invalid["story"]["beats"][0]["text"] = ""
-        self.load_story(events=[self.event("first"), invalid])
+        invalid = self.event('second', 'ready')
+        invalid['story']['beats'][0]['text'] = ''
+        self.load_story(events=[self.event('first'), invalid])
         window = self.window
-        window.story.tabs.setCurrentWidget(window.relationships)
-        window.events.phases.setCurrentIndex(0)
+        window.story.milestones.buttons[14].click()
         window.export_page.refresh()
         items = [window.export_page.list.item(index) for index in range(window.export_page.list.count())]
-        issue = next(item for item in items if item.data(Qt.ItemDataRole.UserRole)["field"] == "events.1.story.beats.0.text")
+        issue = next(item for item in items if item.data(Qt.ItemDataRole.UserRole)['field'] == 'events.1.story.beats.0.text')
         window.export_page.open_issue(issue)
-        self.assertEqual(window.navigation.currentRow(), 4)
-        self.assertIs(window.story.tabs.currentWidget(), window.events)
+        self.assertEqual(window.navigation.currentRow(), SECTION_INDEX["story"])
+        self.assertEqual(window.story.selected_hearts, 4)
         self.assertEqual(window.events.current, 1)
-        self.assertEqual(window.events.phases.currentIndex(), 2)
+        self.assertEqual(window.events.phases.currentIndex(), window.events.SCENE)
         self.assertEqual(window.events.beats.list.currentRow(), 0)
         self.assertFalse(window.dirty)
 
@@ -529,45 +593,35 @@ class StoryDesktopTests(QtTestCase):
         self.assertEqual(archived["events"][1]["story"]["stage"], "idea")
         self.errors.assert_not_called()
 
-    def test_legacy_story_notes_survive_browsing_and_editing_without_losing_metadata(self):
-        self.load_story(
-            events=[
-                {"id": "old-event", "name": "The river letter", "hearts": 4,
-                 "location": "Forest", "description": "A letter left beneath the willow.",
-                 "extension": {"credit": "은하", "revision": 2}},
-                {"id": "other-event", "name": "The reply", "hearts": 6,
-                 "location": "Town", "description": "A promise for another spring."},
-            ],
-            relationships=[
-                {"id": "old-relationship", "name": "Leah", "relation": "Friend",
-                 "description": "They share a sketchbook.", "extension": {"history": [1, 2]}},
-            ],
-        )
+    def test_legacy_story_notes_survive_browsing_and_scene_edits_without_losing_metadata(self):
+        self.load_story(events=[
+            {'id': 'old-event', 'name': 'The river letter', 'hearts': 4, 'location': 'Forest',
+             'description': 'A letter left beneath the willow.', 'extension': {'credit': '은하', 'revision': 2}},
+            {'id': 'other-event', 'name': 'The reply', 'hearts': 6, 'location': 'Town', 'description': 'A promise for another spring.'},
+        ], relationships=[{'id': 'old-relationship', 'name': 'Leah', 'relation': 'Friend',
+                            'description': 'They share a sketchbook.', 'extension': {'history': [1, 2]}}])
         window = self.window
         original_events = window.events.dump()
-        original_relationships = window.relationships.dump()
-        window.navigation.setCurrentRow(4)
-        window.events.list.setCurrentRow(1)
-        window.events.list.setCurrentRow(0)
+        original_relationships = window.story.dump()['relationships']
+        window.navigation.setCurrentRow(SECTION_INDEX["story"])
+        window.story.milestones.buttons[6].click()
+        window.story.milestones.buttons[4].click()
         self.application.processEvents()
         self.assertFalse(window.dirty)
         self.assertEqual(window.events.dump(), original_events)
-        self.assertEqual(window.relationships.dump(), original_relationships)
-
-        window.events.fields["description"].setPlainText("달빛 아래, a second letter.")
-        window.relationships.fields["relation"].setText("Painting partner")
+        self.assertEqual(window.story.dump()['relationships'], original_relationships)
+        window.events.fields['name'].setText('달빛 아래, a second letter.')
         self.assertTrue(window.save_to(self.file))
         reopened = self.make_window()
         self.assertTrue(reopened.open_path(self.file))
         events = reopened.events.dump()
-        relationships = reopened.relationships.dump()
-        self.assertEqual(events[0]["id"], "old-event")
-        self.assertEqual(events[0]["description"], "달빛 아래, a second letter.")
-        self.assertEqual(events[0]["extension"], {"credit": "은하", "revision": 2})
+        self.assertEqual(events[0]['id'], 'old-event')
+        self.assertEqual(events[0]['name'], '달빛 아래, a second letter.')
+        self.assertEqual(events[0]['description'], original_events[0]['description'])
+        self.assertEqual(events[0]['extension'], {'credit': '은하', 'revision': 2})
         self.assertEqual(events[1], original_events[1])
-        self.assertEqual(relationships[0]["id"], "old-relationship")
-        self.assertEqual(relationships[0]["extension"], {"history": [1, 2]})
-        self.assertEqual(relationships[0]["relation"], "Painting partner")
+        self.assertEqual(reopened.story.dump()['relationships'], load_project(self.file)['character']['relationships'])
+        self.assertEqual(reopened.story.dump()['relationships'][0]['extension'], {'history': [1, 2]})
         self.assertFalse(reopened.dirty)
         self.errors.assert_not_called()
 

@@ -1,9 +1,10 @@
 """Furniture and farmer interaction previews; never a game or document editor.
 
-Coordinates are unscaled sprite pixels. Furniture images are bottom aligned to
-their 16-pixel tile footprint; an explicit seat is a farmer feet position relative
-to that footprint. Walking routes stay outside the solid footprint. Only an
-authored seat/sleep pose may enter it, and rugs deliberately allow crossing.
+Coordinates are unscaled sprite pixels. Floor furniture is bottom aligned to its
+16-pixel tile footprint. Wall art is mounted by its visible outline in a shared
+wall band, with farmer movement on the floor below. An explicit seat is a farmer
+feet position relative to the footprint. Only authored seats/sleep poses enter
+solid furniture; rugs deliberately allow crossing.
 """
 from __future__ import annotations
 
@@ -81,6 +82,8 @@ class CataloguePreviewCanvas(QWidget):
         self._segments = []
         self._duration_ms = 0.0
         self._footprint = (16.0, 16.0)
+        self._visible_bounds = QRectF()
+        self._wall_height = 48
         self._action = "walk"
         self._state = "idle"
         self._clock = QElapsedTimer()
@@ -158,10 +161,68 @@ class CataloguePreviewCanvas(QWidget):
                     "frames": self._load_animation(state.get("animation_frames")),
                 }
         self._base_animation = self._load_animation(self._view.get("animation_frames"))
+        self._visible_bounds = self._measure_visible_bounds()
+        self._wall_height = self.recommended_wall_height
         self._effects_elapsed_ms = 0.0
         self._build_route()
         self._sync_timer()
         self.update()
+
+    @property
+    def is_wall_piece(self):
+        return str(self._side.get("kind", "other")).lower() in _WALLS
+
+    @property
+    def visible_bounds(self):
+        """Stable sprite-local outline across every supported visual state."""
+        return QRectF(self._visible_bounds)
+
+    def _measure_visible_bounds(self):
+        if not self.is_wall_piece or self._image.isNull():
+            return QRectF(self._image.rect())
+        images = [self._image] + [image for image, _ in self._base_animation]
+        for state in self._visual_states.values():
+            images.append(state["image"])
+            images.extend(image for image, _ in state["frames"])
+        bounds = QRectF()
+        for image in images:
+            # Reading the alpha plane avoids treating transparent PNG padding as
+            # part of a wall ornament, without cropping or resampling its pixels.
+            alpha = image.convertToFormat(QImage.Format.Format_Alpha8)
+            data, stride = bytes(alpha.constBits()), alpha.bytesPerLine()
+            for y in range(alpha.height()):
+                row = data[y * stride:y * stride + alpha.width()]
+                opaque = [x for x, value in enumerate(row) if value]
+                if opaque:
+                    bounds = bounds.united(QRectF(opaque[0], y, opaque[-1] - opaque[0] + 1, 1))
+        return bounds if not bounds.isEmpty() else QRectF(self._image.rect())
+
+    @property
+    def recommended_wall_height(self):
+        # Two eight-pixel margins and an eight-pixel baseboard. Tile increments
+        # let the existing wallpaper repeat without stretching its texture.
+        return max(64, math.ceil((self._visible_bounds.height() + 24) / 16) * 16) if self.is_wall_piece else 48
+
+    def set_wall_height(self, height: int):
+        """Share one wall/floor seam across a comparison pair."""
+        self._wall_height = max(self.recommended_wall_height, int(height))
+        self.update()
+
+    def scene_layout(self):
+        """Preview-only mounting; never changes native placements or footprints."""
+        fw, fh = self._footprint
+        width = self.STAGE_SIZE.width()
+        floor_anchor = QPointF(round((width - fw) / 2), round(110 - fh / 2))
+        if not self.is_wall_piece:
+            return {"wall_height": self._wall_height, "anchor": floor_anchor,
+                    "actor_anchor": floor_anchor,
+                    "image_position": QPointF(floor_anchor.x(), floor_anchor.y() + fh - self._image.height())}
+        bounds = self._visible_bounds
+        image_position = QPointF(round((width - bounds.width()) / 2) - bounds.x(),
+                                 round((self._wall_height - 8 - bounds.height()) / 2) - bounds.y())
+        return {"wall_height": self._wall_height, "image_position": image_position,
+                "anchor": QPointF(image_position.x(), image_position.y() + self._image.height() - fh),
+                "actor_anchor": QPointF(floor_anchor.x(), self._wall_height - fh)}
 
     def _load_animation(self, entries):
         frames = []
@@ -219,6 +280,10 @@ class CataloguePreviewCanvas(QWidget):
         lights = [light for light in self._view.get("lights", [])
                   if isinstance(light, dict) and light.get("when", "always") in ("always", self._time_of_day)
                   and (self._power or not light.get("requires_power", True))]
+        if self._window_light_profile() and self._time_of_day == "day":
+            # An explicit pane profile replaces stock window rays in this
+            # preview. Keep the recorded native effects untouched in the pack.
+            lights = [light for light in lights if light.get("blend") != "overlay"]
         return {"image": image, "frame": index, "lights": lights,
                 "ambient": QColor("#526086" if self._time_of_day == "night" else "#ffffff")}
 
@@ -481,25 +546,33 @@ class CataloguePreviewCanvas(QWidget):
         painter.scale(scale, scale)
         painter.setClipRect(QRectF(0, 0, width, height))
         painter.fillRect(QRectF(0, 0, width, height), QColor("#2b3440"))
+        layout = self.scene_layout()
+        wall_height = layout["wall_height"]
         if self._background_mode == "room" and not self._room.isNull():
-            painter.drawImage(QPointF((width - self._room.width()) // 2, 0), self._room)
+            room_x = (width - self._room.width()) // 2
+            extra = wall_height - 48
+            painter.drawImage(QPointF(room_x, 0), self._room.copy(0, 0, self._room.width(), 40))
+            # Extend only wallpaper; keep the original trim and floor pixels.
+            for y in range(40, 40 + extra, 16):
+                painter.drawImage(QPointF(room_x, y), self._room.copy(0, 24, self._room.width(), min(16, 40 + extra - y)))
+            painter.drawImage(QPointF(room_x, 40 + extra),
+                              self._room.copy(0, 40, self._room.width(), self._room.height() - 40))
         else:
-            painter.fillRect(QRectF(0, 48, width, height - 48), QColor("#303c47"))
+            painter.fillRect(QRectF(0, wall_height, width, height - wall_height), QColor("#303c47"))
             painter.setPen(QPen(QColor(255, 255, 255, 12), 1))
-            for y in range(48, height, 16):
+            for y in range(wall_height, height, 16):
                 painter.drawLine(0, y, width, y)
         fw, fh = self._footprint
-        wall_piece = str(self._side.get("kind", "other")).lower() in _WALLS
-        # Wall art ends at the actual wall/floor seam. Its approach route uses
-        # the same anchor, keeping feet below that seam instead of circling
-        # through the wall behind a fictitious floor-standing object.
-        anchor = QPointF(round((width - fw) / 2), 48 - fh if wall_piece else round(110 - fh / 2))
+        anchor, actor_anchor = layout["anchor"], layout["actor_anchor"]
         effects = self.sample_effects(self._effects_elapsed_ms)
         furniture_image = effects["image"]
-        image_position = QPointF(anchor.x(), anchor.y() + fh - furniture_image.height())
-        painter.setPen(QPen(QColor(199, 214, 221, 95), 1, Qt.PenStyle.DotLine))
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawRect(QRectF(anchor.x(), anchor.y(), fw, fh))
+        image_position = layout["image_position"]
+        self._draw_window_daylight(painter, layout)
+        light_occluders = []
+        if not self.is_wall_piece:
+            painter.setPen(QPen(QColor(199, 214, 221, 95), 1, Qt.PenStyle.DotLine))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRect(QRectF(anchor.x(), anchor.y(), fw, fh))
         if furniture_image.isNull():
             painter.setPen(QColor("#b6c2cc"))
             painter.drawText(QRectF(8, 60, width - 16, 40), Qt.AlignmentFlag.AlignCenter, "Preview unavailable")
@@ -528,20 +601,101 @@ class CataloguePreviewCanvas(QWidget):
                     # canvas seat describes feet. Keep the captured native pose
                     # offset instead of treating its image like a standing body.
                     left, top = x - native_anchor[0] + offset[0], y - native_anchor[1] + offset[1]
-            position = QPointF(round((anchor.x() + left) * scale) / scale,
-                               round((anchor.y() + top) * scale) / scale)
+            position = QPointF(round((actor_anchor.x() + left) * scale) / scale,
+                               round((actor_anchor.y() + top) * scale) / scale)
             painter.drawImage(position, actor)
+            light_occluders.append((position, actor))
 
         if state["occlusion"] == "behind":
             draw_actor()
         painter.drawImage(image_position, furniture_image)
+        light_occluders.append((image_position, furniture_image))
         if state["occlusion"] != "behind":
             draw_actor()
         if actor is not None and state["occlusion"] == "seated" and not self._foreground.isNull():
             painter.drawImage(image_position, self._foreground)
+            light_occluders.append((image_position, self._foreground))
         painter.end()
         self._apply_lighting(scene, anchor, scale, effects)
+        self._apply_window_night_projection(scene, layout, scale, light_occluders)
         return scene
+
+    def _window_light_profile(self):
+        profile = self._view.get("window_light")
+        return profile if str(self._side.get("kind", "")).lower() == "window" and isinstance(profile, dict) else None
+
+    def _draw_window_daylight(self, painter, layout):
+        """Pane-sized daylight projected onto the room, behind solid artwork.
+
+        This is a development preview convention, not a native lighting capture.
+        Native-resolution alpha keeps the room's pixel grid intact at any zoom.
+        """
+        if self._time_of_day != "day":
+            return
+        beam = self._window_daylight_image(layout)
+        if beam is not None:
+            painter.drawImage(QPointF(0, 0), beam)
+
+    def _window_daylight_image(self, layout):
+        """One unchanged beam image shared by the day and optional night effect."""
+        profile = self._window_light_profile()
+        if not profile:
+            return None
+        pane = profile.get("pane")
+        if not isinstance(pane, (list, tuple)) or len(pane) != 4:
+            return None
+        color = QColor(profile.get("color", "#ffffff"))
+        intensity = profile.get("intensity", .22)
+        if not color.isValid() or not isinstance(intensity, (int, float)) or not math.isfinite(intensity):
+            return None
+        origin = layout["image_position"]
+        key = ("window_daylight", tuple(pane), color.rgba(), intensity,
+               origin.x(), origin.y(), layout["wall_height"])
+        if key not in self._image_cache:
+            beam = QImage(self.STAGE_SIZE, QImage.Format.Format_ARGB32_Premultiplied)
+            beam.fill(Qt.GlobalColor.transparent)
+            x, y, w, h = pane
+            top = origin.y() + y + h - 1
+            bottom = layout["wall_height"] + 32
+            for py in range(max(0, math.floor(top)), min(beam.height(), math.ceil(bottom))):
+                progress = (py + .5 - top) / max(1, bottom - top)
+                if not 0 <= progress < 1:
+                    continue
+                center = origin.x() + x + w / 2 + 12 * progress
+                half_width = w * (.5 + .3 * progress)
+                for px in range(max(0, math.floor(center - half_width)), min(beam.width(), math.ceil(center + half_width))):
+                    edge = min(1.0, max(0.0, (half_width - abs(px + .5 - center)) / 2))
+                    color.setAlpha(round(255 * max(0, min(1, intensity)) * edge * (1 - progress) ** 1.3))
+                    beam.setPixelColor(px, py, color)
+            self._image_cache[key] = beam
+        return self._image_cache[key]
+
+    def _apply_window_night_projection(self, scene, layout, scale, occluders):
+        profile = self._window_light_profile()
+        if self._time_of_day != "night" or not profile:
+            return
+        opacity = profile.get("night_opacity", 0)
+        if not isinstance(opacity, (int, float)) or not math.isfinite(opacity) or not 0 < opacity <= 1:
+            return
+        beam = self._window_daylight_image(layout)
+        if beam is None:
+            return
+        # Apply the chosen fraction once, after ambient darkness. The daytime
+        # effect's shape, color and fade are reused exactly; a second ambient
+        # multiplication would make "half strength" much darker than requested.
+        layer = QImage(scene.size(), QImage.Format.Format_ARGB32_Premultiplied)
+        layer.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(layer)
+        painter.scale(scale, scale)
+        painter.drawImage(QPointF(0, 0), beam)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationOut)
+        for position, image in occluders:
+            painter.drawImage(position, image)
+        painter.end()
+        painter = QPainter(scene)
+        painter.setOpacity(opacity)
+        painter.drawImage(0, 0, layer)
+        painter.end()
 
     def _apply_lighting(self, scene, anchor, scale, effects):
         # Multiply the finished room, furniture, and actor together. A light

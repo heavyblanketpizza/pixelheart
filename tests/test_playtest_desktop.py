@@ -1,4 +1,4 @@
-"""Install and playtest the authored NPC from Review & export."""
+"""Install and playtest the authored NPC from Play in Stardew."""
 import os
 os.environ['QT_QPA_PLATFORM'] = 'offscreen'
 

@@ -18,6 +18,7 @@ from .artwork import ArtworkValidationError, MAX_ARTWORK_BYTES, inspect_artwork
 from .dialogue_templates import MAX_DIALOGUES
 from .projects import project_path
 from .wiki_dialogue import _annotated_entries
+from .xnb_preview import XnbError, string_dictionary, texture_image
 
 
 CONTENT_PATCHER_EXPORT_URL = (
@@ -43,6 +44,16 @@ _SOURCE = {
     ),
     "modified_game_possible": True,
 }
+GAME_SOURCE = {
+    "provider": "local-game",
+    "source_name": "From my game",
+    "source_url": "https://stardewvalleywiki.com/Modding:Dialogue",
+    "attribution": ("Stardew Valley content © ConcernedApe, read from your own installed game. "
+                    "Importing does not grant redistribution rights."),
+    "modified_game_possible": False,
+}
+_VILLAGER = re.compile(r"[A-Z][A-Za-z]{1,30}\Z")
+MAX_GAME_ASSET_BYTES = 16 * 1024 * 1024
 
 
 class LocalTemplateError(ValueError):
@@ -234,8 +245,8 @@ def _unique_object(pairs):
     return result
 
 
-def _source(asset, payload):
-    return {**_SOURCE, "asset": asset, "sha256": hashlib.sha256(payload).hexdigest()}
+def _source(asset, payload, base=_SOURCE):
+    return {**base, "asset": asset, "sha256": hashlib.sha256(payload).hexdigest()}
 
 
 def load_local_dialogue(template_id, export_root, *, cancelled=None) -> dict:
@@ -257,20 +268,29 @@ def _load_dialogue_from_root(template_id, root, *, cancelled=None) -> dict:
         data = json.loads(payload.decode("utf-8-sig"), object_pairs_hook=_unique_object)
     except (UnicodeError, ValueError, RecursionError) as exc:
         raise LocalTemplateError("Export dialogue as a JSON object with unique trigger names and text values.") from exc
+    return _dialogue_result(template_id, name, asset, payload, data, _SOURCE, cancelled)
+
+
+def _supported_entry(trigger, text):
+    return (isinstance(trigger, str) and bool(_TRIGGER.fullmatch(trigger))
+            and isinstance(text, str) and bool(text.strip())
+            and len(text) <= MAX_TEXT_LENGTH and "{{" not in text
+            and not any(ord(char) < 32 and char not in "\n\r\t" for char in trigger + text)
+            and not any(0xD800 <= ord(char) <= 0xDFFF for char in trigger + text))
+
+
+def _dialogue_result(template_id, name, asset, payload, data, base, cancelled):
+    """Validate complete dialogue and annotate each entry with its source."""
     if not isinstance(data, dict) or not data or len(data) > MAX_DIALOGUE_ENTRIES:
         raise LocalTemplateError(f"Dialogue must contain 1 to {MAX_DIALOGUE_ENTRIES} entries; nothing was imported.")
     for trigger, text in data.items():
         _check_cancelled(cancelled)
-        if (not isinstance(trigger, str) or not _TRIGGER.fullmatch(trigger)
-                or not isinstance(text, str) or not text.strip()
-                or len(text) > MAX_TEXT_LENGTH or "{{" in text
-                or any(ord(char) < 32 and char not in "\n\r\t" for char in trigger + text)
-                or any(0xD800 <= ord(char) <= 0xDFFF for char in trigger + text)):
+        if not _supported_entry(trigger, text):
             raise LocalTemplateError(
                 "A dialogue entry is unsupported: use valid triggers and nonempty text up to "
                 "8000 characters, without Content Patcher tokens. Nothing was imported."
             )
-    source = _source(asset, payload)
+    source = _source(asset, payload, base)
     # Use general key explanations. A mod can replace any line, so the archive's
     # command-specific teaching notes need not describe this user's actual text.
     entries = _annotated_entries(data, {"examples": []})
@@ -279,7 +299,18 @@ def _load_dialogue_from_root(template_id, root, *, cancelled=None) -> dict:
             entry["title"] = "Dialogue entry"
         entry["source"] = dict(source)
     _check_cancelled(cancelled)
-    return {"id": template_id, "name": name, **_SOURCE, "source": source, "examples": entries}
+    return {"id": template_id, "name": name, **base, "source": source, "examples": entries}
+
+
+def _check_sheet(kind, width, height, *, portrait_rows=3, sprite_rows=13):
+    columns, minimum_width, minimum_rows = (2, 128, portrait_rows) if kind == "portrait" else (4, 64, sprite_rows)
+    frame_height = width // 2
+    if (width < minimum_width or width % columns or not frame_height or height % frame_height
+            or height < minimum_rows * frame_height):
+        raise LocalTemplateError(
+            f"Export the complete {kind} sheet: {columns} columns and at least "
+            f"{minimum_rows} complete rows, at standard size or a larger proportional size."
+        )
 
 
 def load_local_artwork(template_id, export_root, *, cancelled=None) -> dict:
@@ -296,20 +327,84 @@ def load_local_artwork(template_id, export_root, *, cancelled=None) -> dict:
             info = inspect_artwork(path)
         except ArtworkValidationError as exc:
             raise LocalTemplateError("The exported artwork must be a complete, readable static PNG within the artwork size limits.") from exc
-        width, height = info["width"], info["height"]
-        columns, minimum_width, minimum_rows = (2, 128, 3) if kind == "portrait" else (4, 64, 13)
-        frame_height = width // 2
-        if (width < minimum_width or width % columns or height % frame_height
-                or height < minimum_rows * frame_height):
-            raise LocalTemplateError(
-                f"Export the complete {kind} sheet: {columns} columns and at least "
-                f"{minimum_rows} complete rows, at standard size or a larger proportional size."
-            )
+        _check_sheet(kind, info["width"], info["height"])
         # Detect edits during inspection so recorded provenance matches the file
         # which was validated, rather than mixing two versions of an export.
         if _read_bounded(root, path, MAX_ARTWORK_BYTES, cancelled) != payload:
             raise LocalTemplateError("The exported artwork changed while loading. Finish exporting and retry.")
         result[kind] = path
         result[f"{kind}_source"] = _source(asset, payload)
+    _check_cancelled(cancelled)
+    return result
+
+
+def game_villagers(content) -> list[str]:
+    """Villagers with a dialogue file in the installed game, by asset name."""
+    try:
+        folder = _safe_path(Path(content).resolve(strict=True), "Characters/Dialogue", directory=True)
+        entries = sorted(os.listdir(folder))[:4096] if folder is not None else []
+    except (LocalTemplateError, OSError, TypeError):
+        return []
+    names = []
+    for entry in entries:
+        stem, _, suffix = entry.rpartition(".")
+        if suffix == "xnb" and _VILLAGER.fullmatch(stem) and not stem.startswith("MarriageDialogue"):
+            names.append(stem)
+    return names
+
+
+def _game_asset(root, asset, cancelled):
+    path = _safe_path(root, asset + ".xnb")
+    if path is None:
+        return None, None
+    return path, _read_bounded(root, path, MAX_GAME_ASSET_BYTES, cancelled)
+
+
+def load_game_dialogue(content, name, *, cancelled=None) -> dict:
+    """Read one villager's complete dialogue straight from the installed game."""
+    _check_cancelled(cancelled)
+    if not isinstance(name, str) or not _VILLAGER.fullmatch(name):
+        raise LocalTemplateError("Choose a villager from your game.")
+    root = Path(content).resolve(strict=True)
+    asset = f"Characters/Dialogue/{name}"
+    path, payload = _game_asset(root, asset, cancelled)
+    if path is None:
+        raise LocalTemplateError(f"{name}'s dialogue isn't in your game's files.")
+    try:
+        data = string_dictionary(payload, maximum=MAX_DIALOGUE_ENTRIES)
+    except XnbError as exc:
+        raise LocalTemplateError(f"{name}'s dialogue couldn't be read from your game.") from exc
+    # Some vanilla keys are blank or use spaces the editor can't represent;
+    # skip just those lines instead of refusing the whole villager.
+    supported = {key: value for key, value in data.items() if _supported_entry(key, value)}
+    result = _dialogue_result(name.casefold(), name, asset, payload, supported, GAME_SOURCE, cancelled)
+    result["skipped"] = len(data) - len(supported)
+    return result
+
+
+def load_game_artwork(content, name, destination, *, cancelled=None) -> dict:
+    """Decode a villager's portrait and sprite sheets into PNG files in ``destination``."""
+    _check_cancelled(cancelled)
+    if not isinstance(name, str) or not _VILLAGER.fullmatch(name):
+        raise LocalTemplateError("Choose a villager from your game.")
+    root = Path(content).resolve(strict=True)
+    result = {"id": name.casefold(), "name": name, **GAME_SOURCE, "source": dict(GAME_SOURCE)}
+    for kind, asset in (("portrait", f"Portraits/{name}"), ("sprite", f"Characters/{name}")):
+        path, payload = _game_asset(root, asset, cancelled)
+        if path is None:
+            raise LocalTemplateError(f"{name}'s {kind} isn't in your game's files.")
+        try:
+            image = texture_image(payload)
+        except XnbError as exc:
+            raise LocalTemplateError(f"{name}'s {kind} couldn't be read from your game.") from exc
+        # References only need whole frames; export checks still apply on import.
+        _check_sheet(kind, image.width, image.height, portrait_rows=1, sprite_rows=4)
+        output = Path(destination) / f"{name}-{kind}.png"
+        image.save(output, "PNG")
+        result[kind] = output
+        # Import verifies the PNG it copies; keep the game file's hash alongside.
+        result[f"{kind}_source"] = {**_source(asset, payload, GAME_SOURCE),
+                                    "sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
+                                    "game_sha256": hashlib.sha256(payload).hexdigest()}
     _check_cancelled(cancelled)
     return result
