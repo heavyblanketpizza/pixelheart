@@ -216,7 +216,8 @@ class ProjectHistoryPlaytestTests(QtTestCase):
         self.assertEqual(load_project(self.project_file)["creator"], evidence)
         self.assertFalse(self.window.dirty)
         self.assertFalse(self.history().can_undo)
-        self.assertFalse(self.history().can_redo)
+        # Saving keeps undo history, so the redone records can come back.
+        self.assertTrue(self.history().can_redo)
         self.errors.assert_not_called()
 
 

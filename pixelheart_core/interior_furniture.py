@@ -351,6 +351,25 @@ def validate_definition(value):
             normalized_offsets[key] = [_integer(part, "Tabletop preview offset", -MAX_FRAME_PIXELS, MAX_FRAME_PIXELS)
                                        for part in offset]
         effects["held_item_offsets"] = normalized_offsets
+    origin = value.get("painted_from")
+    if origin not in (None, {}):
+        if not isinstance(origin, dict):
+            raise FurnitureValidationError("A painted piece records the furniture it was painted from.")
+        effects["painted_from"] = {
+            "id": qualified_furniture_id(origin.get("id")),
+            "texture": _relative(origin.get("texture"), "Original game texture"),
+            "sprite_index": _integer(origin.get("sprite_index", 0), "Original sprite index", 0, 2_147_483_647),
+            "row_offset": _integer(origin.get("row_offset", 0), "Painted row offset", 0, 65535),
+            "price": _integer(origin.get("price", 0), "Furniture price", 0, 2_147_483_647),
+        }
+    front_asset = value.get("front_asset", "")
+    if front_asset:
+        front_asset = _relative(front_asset, "Front texture")
+        if PurePosixPath(front_asset).suffix.lower() != ".png":
+            raise FurnitureValidationError("A front texture must be a PNG file.")
+        effects["front_asset"] = front_asset
+    elif front_asset != "":
+        raise FurnitureValidationError("Front texture must be a relative PNG path or empty text.")
     mod_data = value.get("mod_data", {})
     if not isinstance(mod_data, dict) or len(mod_data) > 128:
         raise FurnitureValidationError("Furniture mod data must be an object with at most 128 entries.")
@@ -863,7 +882,7 @@ def import_catalog_textures(definitions, texture_dir, project_dir):
 def definition_assets(definition):
     """Return the optional portable PNG reference used by this definition."""
     definition = validate_definition(definition)
-    return [definition["preview_asset"]] if definition["preview_asset"] else []
+    return [reference for reference in (definition["preview_asset"], definition.get("front_asset")) if reference]
 
 
 def frame_at(definition, rotation=0, elapsed_ms=0, *, time_of_day="day", lights_on=True):

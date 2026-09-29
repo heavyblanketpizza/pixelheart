@@ -13,10 +13,13 @@ from PySide6.QtWidgets import (
 from .widgets import label, button, card, ArtworkPreview
 from .birthday_calendar import BirthdayCalendar
 from .location_picker import MapSelector
+from .route_map import RouteMapPanel
 from .schedule_time import ScheduleTime, game_minutes, game_time
 from .dialogue_templates import DialogueTemplateDialog
 from .game_connection import game_connection
-from pixelheart_core.dialogue_templates import MAX_DIALOGUES, dialogue_preview
+from pixelheart_core.dialogue_templates import MAX_DIALOGUES
+from pixelheart_core.dialogue_keys import describe_trigger
+from .dialogue_tools import DialogueBoxPreview, EmotionBar, TriggerPicker, portrait_frames
 from pixelheart_core.local_templates import LocalTemplateError, project_dialogue_folder
 from pixelheart_core.validation import infer_legacy_gender
 
@@ -43,7 +46,7 @@ def number(low=0, high=1000):
 
 
 def value(widget):
-    if isinstance(widget, MapSelector):
+    if isinstance(widget, (MapSelector, TriggerPicker)):
         return widget.value()
     if isinstance(widget, QLineEdit):
         return widget.text()
@@ -58,7 +61,7 @@ def value(widget):
 
 
 def set_value(widget, content):
-    if isinstance(widget, MapSelector):
+    if isinstance(widget, (MapSelector, TriggerPicker)):
         widget.set_value(str(content))
     elif isinstance(widget, ScheduleTime):
         widget.setText(str(content))
@@ -77,7 +80,7 @@ def set_value(widget, content):
 
 
 def connect_change(widget, callback):
-    if isinstance(widget, MapSelector):
+    if isinstance(widget, (MapSelector, TriggerPicker)):
         widget.changed.connect(callback)
     elif isinstance(widget, (QLineEdit, QPlainTextEdit)):
         widget.textChanged.connect(callback)
@@ -265,21 +268,19 @@ class DialoguePage(QWidget):
         self.list.setAccessibleName("Everyday dialogue")
         splitter.addWidget(self.list)
         self.editor, content = card("Write their voice")
-        form = QFormLayout()
-        form.setSpacing(12)
-        self.fields = {"trigger": line("Introduction, Mon, spring_Mon2…", 120), "text": QPlainTextEdit()}
-        form.addRow("When they say it", self.fields["trigger"])
-        content.addLayout(form)
+        self.fields = {"trigger": TriggerPicker(items=self.gift_items), "text": QPlainTextEdit()}
+        content.addWidget(label("When they say it", "muted"))
+        content.addWidget(self.fields["trigger"])
         content.addWidget(label("Dialogue", "muted"))
-        self.fields["text"].setPlaceholderText("Hey, @. I was hoping I'd run into you today.$h")
-        self.fields["text"].setMinimumHeight(190)
+        self.fields["text"].setPlaceholderText("Hey, @. I was hoping I'd run into you today.")
+        self.fields["text"].setMinimumHeight(150)
+        self.emotion_bar = EmotionBar(self.fields["text"])
+        content.addWidget(self.emotion_bar)
         content.addWidget(self.fields["text"])
-        content.addWidget(label("@ = farmer's name    $h = happy    $s = sad    $l = love    #$b# = next dialogue box", "hint", True))
-        preview, preview_layout = card("A first listen")
-        self.preview = label("Your dialogue preview will appear here.", "profileName", True)
-        self.preview.setStyleSheet("font-size: 20px;")
-        preview_layout.addWidget(self.preview)
-        preview_layout.addWidget(label("Text preview · Game commands and portrait changes need in-game review.", "hint", True))
+        content.addWidget(label("Put the cursor in a box and choose how they feel. New box continues in the next dialogue box.", "hint", True))
+        preview, preview_layout = card("In the game's dialogue box")
+        self.box = DialogueBoxPreview()
+        preview_layout.addWidget(self.box)
         content.addWidget(preview)
         content.addStretch()
         splitter.addWidget(self.editor)
@@ -292,8 +293,21 @@ class DialoguePage(QWidget):
             widget.setAccessibleName(key.replace("_", " ").capitalize())
             connect_change(widget, self.edit)
 
+    def gift_items(self):
+        """Gift choices for the picker: every item in this project's gift catalogue."""
+        gifts = getattr(self.project_window, "gifts", None)
+        catalog = getattr(gifts, "catalog", None) or {}
+        return [(item["id"] if item["id"].startswith("(") else "(O)" + item["id"], item["name"])
+                for item in catalog.get("items", [])]
+
     def title(self, record):
-        return record.get("trigger") or "Untitled"
+        places = {}
+        if self.project_window is not None and hasattr(self.project_window, "document"):
+            places = {location.get("internal_name", ""): location.get("name") or "your place"
+                      for location in self.project_window.document.get("world", {}).get("locations", [])
+                      if location.get("internal_name")}
+        names = {identity: name for identity, name in self.gift_items()}
+        return describe_trigger(record.get("trigger", ""), places=places, item_names=names)
 
     def load(self, records):
         self.records = deepcopy(records)
@@ -339,8 +353,15 @@ class DialoguePage(QWidget):
         self.changed.emit()
 
     def update_preview(self):
-        text = dialogue_preview(value(self.fields["text"]))
-        self.preview.setText(text or "Your dialogue preview will appear here.")
+        window = self.project_window
+        name = window.document["character"].get("name", "") if window is not None and hasattr(window, "document") else ""
+        self.box.set_dialogue(value(self.fields["text"]), name=name)
+
+    def set_portrait(self, path):
+        """Show the character's own expressions on the feeling buttons and in the box."""
+        frames = portrait_frames(path)
+        self.emotion_bar.set_portraits(frames)
+        self.box.set_portraits(frames)
 
     def set_project_file(self, project_file):
         self.project_file = project_file
@@ -418,7 +439,7 @@ class SchedulePage(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(18)
-        root.addWidget(label("One daily routine is the default before marriage. Add alternatives in Conditional routines. Times must increase in ten-minute steps from 06:00 to 26:00.", "notice", True))
+        root.addWidget(label("One daily routine is the default before marriage. Add alternatives in Conditional routines. Times go in ten-minute steps from 6:00 AM to 2:00 AM, each later than the one before.", "notice", True))
         row = QHBoxLayout()
         if compact:
             row.setSpacing(6)
@@ -447,7 +468,51 @@ class SchedulePage(QWidget):
         self.table.setMinimumHeight(180 if compact else 310)
         root.addWidget(self.table)
         root.addWidget(label("Choose existing locations from the map selector. Custom locations must be added by a mod. Activity notes describe intent; they do not create animations.", "muted", True))
+        # The selected stop's place: click a tile to stand there, or drag a stop.
+        self.map_panel = RouteMapPanel(compact=compact)
+        root.addWidget(self.map_panel)
+        self.table.currentCellChanged.connect(lambda *_: self._sync_map())
+        self.map_panel.stopSelected.connect(self.table.selectRow)
+        self.map_panel.stopMoved.connect(self._move_stop)
+        self.map_panel.facingChosen.connect(self._face_stop)
         root.addStretch()
+
+    def set_map_source(self, source):
+        self.map_panel.set_map_source(source)
+        self._sync_map()
+
+    def set_sprite(self, image):
+        self.map_panel.set_sprite(image)
+        self._sync_map()
+
+    def _sync_map(self):
+        row = self.table.currentRow()
+        self.map_panel.show_route(self.records, row if 0 <= row < len(self.records) else None)
+
+    def _set_cell(self, row, column, content):
+        widget = self.table.cellWidget(row, column)
+        if widget is None:
+            return
+        self.loading = True
+        try:
+            set_value(widget, content)
+        finally:
+            self.loading = False
+
+    def _move_stop(self, row, x, y):
+        if not 0 <= row < len(self.records) or (self.records[row].get("x"), self.records[row].get("y")) == (x, y):
+            return
+        self.records[row].update(x=x, y=y)
+        self._set_cell(row, 2, x)
+        self._set_cell(row, 3, y)
+        self.changed.emit()
+
+    def _face_stop(self, row, facing):
+        if not 0 <= row < len(self.records) or self.records[row].get("facing") == facing:
+            return
+        self.records[row]["facing"] = facing
+        self._set_cell(row, 4, facing)
+        self.changed.emit()
 
     def load(self, records):
         self.records = deepcopy(records)
@@ -473,8 +538,9 @@ class SchedulePage(QWidget):
         last_time = game_minutes(self.records[-1].get("time", "")) if self.records else None
         can_add = len(self.records) < 100 and last_time != 1560
         self.add_button.setEnabled(can_add)
-        self.add_button.setToolTip("The last stop is at 26:00. Move it earlier to add another stop." if last_time == 1560 else "Add the next stop to the daily routine.")
+        self.add_button.setToolTip("The last stop is at 2:00 AM. Move it earlier to add another stop." if last_time == 1560 else "Add the next stop to the daily routine.")
         self.loading = False
+        self._sync_map()
 
     def edit(self, widget):
         if not self.loading:
@@ -483,7 +549,8 @@ class SchedulePage(QWidget):
                 self.table.setRowHeight(widget.property("row"), max(56, widget.sizeHint().height() + 6))
             last_time = game_minutes(self.records[-1].get("time", "")) if self.records else None
             self.add_button.setEnabled(len(self.records) < 100 and last_time != 1560)
-            self.add_button.setToolTip("The last stop is at 26:00. Move it earlier to add another stop." if last_time == 1560 else "Add the next stop to the daily routine.")
+            self.add_button.setToolTip("The last stop is at 2:00 AM. Move it earlier to add another stop." if last_time == 1560 else "Add the next stop to the daily routine.")
+            self._sync_map()
             self.changed.emit()
 
     def add(self):

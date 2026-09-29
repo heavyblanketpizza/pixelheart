@@ -113,3 +113,11 @@ class ProjectHistory:
         should leave the history intact (``close_group`` may still be called).
         """
         self.reset(self._current if document is None else document)
+
+    def mark_clean(self, document: dict[str, Any] | None = None) -> None:
+        """Record an automatic save as the clean baseline, keeping undo and redo.
+
+        ``document`` is what was written when that differs from the current
+        project (for example, a Home room that could not be saved yet).
+        """
+        self._saved = deepcopy(self._current if document is None else document)

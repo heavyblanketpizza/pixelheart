@@ -30,6 +30,7 @@ from .storyline_page import StorylinePage
 from .story_aftermath import EventAftermath
 from .schedule_time import EventTime
 from .story_icons import story_icon
+from .dialogue_tools import EmotionBar
 
 
 STAGES = {"idea": "Idea", "outline": "Outline", "scene": "Scene", "ready": "Ready"}
@@ -164,14 +165,14 @@ class CastEditor(QWidget):
         grid_action.toggled.connect(self.grid_toggle.setChecked)
         self.grid_toggle.toggled.connect(grid_action.setChecked)
         menu.addSeparator()
-        menu.addAction("Locate Stardew Valley…", self.choose_game_artwork)
+        menu.addAction("Find Stardew Valley…", self.choose_game_artwork)
         view.setMenu(menu)
         preview_heading.insertWidget(3, view)
         preview_layout.addWidget(self.canvas, 1)
         self.source_note = label("", "hint", True)
         self.source_note.setMaximumHeight(50)
         preview_layout.addWidget(self.source_note)
-        self.game_artwork = button("Locate Stardew Valley…", self.choose_game_artwork, "quiet")
+        self.game_artwork = button("Find Stardew Valley…", self.choose_game_artwork, "quiet")
         preview_layout.addWidget(self.game_artwork, 0, Qt.AlignmentFlag.AlignLeft)
         layout.addWidget(self.preview_panel, 1)
         self.grid_toggle.toggled.connect(self.canvas.set_grid_visible)
@@ -417,13 +418,19 @@ class BeatsEditor(QWidget):
         self.fields = {
             "kind": choices([(caption, kind) for kind, caption in KINDS.items()]),
             "actor": ActorSelector(cast_only=True),
-            "text": prose("What do they say? Use @ for the farmer’s name and $h for a happy portrait.", 100),
+            "text": prose("What do they say?", 100),
             "x": number(-100, 100), "y": number(-100, 100),
             "facing": choices([("Up", 0), ("Right", 1), ("Down", 2), ("Left", 3)]),
             "duration": number(1, 60000), "amount": number(-1000, 1000), "emote": number(0, 100),
         }
         captions = {"kind": "Beat", "actor": "Character", "text": "Their words", "x": "Move X tiles", "y": "Move Y tiles", "facing": "Then face", "duration": "Milliseconds", "amount": "Friendship points", "emote": "Emote number"}
         self.form = add_form(layout, [(captions[key], widget) for key, widget in self.fields.items()])
+        # Feelings sit right above the words they change; the narrow inspector
+        # keeps its compact menu in the footer so the words stay in view.
+        self.emotion_bar = EmotionBar(self.fields["text"], compact=inspector)
+        if not inspector:
+            text_row, _ = self.form.getWidgetPosition(self.fields["text"])
+            self.form.insertRow(text_row, "Feeling", self.emotion_bar)
         if inspector:
             self.fields["text"].setMinimumHeight(85)
             self.form.setSpacing(8)
@@ -461,6 +468,7 @@ class BeatsEditor(QWidget):
             for kind, caption in KINDS.items():
                 type_menu.addAction(caption, lambda _checked=False, kind=kind: self.fields["kind"].setCurrentIndex(self.fields["kind"].findData(kind)))
             change_type.setMenu(type_menu)
+            footer.addWidget(self.emotion_bar)
             footer.addWidget(change_type)
             footer.addWidget(self.delete)
             root.addLayout(footer)
@@ -548,6 +556,10 @@ class BeatsEditor(QWidget):
         self.choice_panel.setVisible(kind == "choice")
         for key, widget in self.fields.items():
             self.form.setRowVisible(widget, key in active and not (self.inspector_mode and key == "kind"))
+        if self.inspector_mode:
+            self.emotion_bar.setVisible("text" in active)
+        else:
+            self.form.setRowVisible(self.emotion_bar, "text" in active)
         self.help.setText({"dialogue": "Farmer lines appear as narration. Use typographic quotes (“ ”) inside dialogue. Rehearsal checks game syntax before export.", "move": "Movement is relative to their current tile. Negative X moves left; negative Y moves up. Check the path in-game.", "pause": "Give a moment room to breathe. 1,000 milliseconds = 1 second.", "emote": "Use a game emote number, such as 20 for a heart. Verify the expression in-game.", "friendship": "Changes the farmer’s friendship with this NPC. 250 points equals one heart; this does not change NPC-to-NPC friendship."}.get(kind, ""))
 
         self.details.setToolTip(self.help.text())

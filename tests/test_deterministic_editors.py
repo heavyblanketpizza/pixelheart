@@ -113,8 +113,8 @@ class DeterministicEditorTests(QtTestCase):
         self.assertFalse(picker.isEditable())
         self.assertEqual(len(values), 121)
         self.assertEqual([game_minutes(value) for value in values], list(range(360, 1561, 10)))
-        self.assertEqual(picker.itemText(picker.findData("2400")), "24:00 (+1 day)")
-        self.assertEqual(picker.itemText(picker.findData("2600")), "26:00 (+1 day)")
+        self.assertEqual(picker.itemText(picker.findData("2400")), "12:00 AM (next day)")
+        self.assertEqual(picker.itemText(picker.findData("2600")), "2:00 AM (next day)")
 
     def test_time_choices_update_actual_stop_and_keep_other_record_fields(self):
         page = self.schedule()
@@ -130,7 +130,7 @@ class DeterministicEditorTests(QtTestCase):
         page = self.schedule([stop("06:10")])
         picker = page.table.cellWidget(0, 0)
         self.assertEqual(picker.currentData(), "610")
-        self.assertEqual(picker.currentText(), "06:10")
+        self.assertEqual(picker.currentText(), "6:10 AM")
         # Loading only changes presentation; a new selection writes canonical HHMM.
         self.assertEqual(page.dump()[0]["time"], "06:10")
         picker.setCurrentIndex(picker.findData("620"))
@@ -175,10 +175,10 @@ class DeterministicEditorTests(QtTestCase):
         picker = page.table.cellWidget(0, 0)
         picker.setCurrentIndex(picker.findData("2500"))
         self.assertTrue(page.add_button.isEnabled())
-        self.assertNotIn("last stop is at 26:00", page.add_button.toolTip())
+        self.assertNotIn("last stop is at 2:00 AM", page.add_button.toolTip())
         picker.setCurrentIndex(picker.findData("2600"))
         self.assertFalse(page.add_button.isEnabled())
-        self.assertIn("last stop is at 26:00", page.add_button.toolTip())
+        self.assertIn("last stop is at 2:00 AM", page.add_button.toolTip())
 
     def test_custom_schedule_location_expands_row_and_updates_exact_saved_id(self):
         page = self.schedule()

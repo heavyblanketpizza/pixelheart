@@ -826,6 +826,8 @@ def interior_asset_references(data):
     for definition in data["catalog"]:
         if definition.get("preview_asset"):
             yield definition["preview_asset"]
+        if definition.get("front_asset"):
+            yield definition["front_asset"]
     from .interior_spouse_context import spouse_context_asset_refs
     yield from spouse_context_asset_refs(data)
 
@@ -1250,11 +1252,12 @@ def compile_interior(data, identity, npc_id, root, prefix):
     if not default:
         # '0' is truthy; the empty string alone means no valid default.
         raise InteriorError("The default room configuration is unavailable.")
+    furniture, painted = _exported_furniture(data, npc_id, root)
     runtime = {"version": 1, "location": identity, "spouse_npc": npc_id if data["kind"] == "spouse" else "",
                "width": data["width"], "height": data["height"], "entry": data["entry"],
                "spouse_stand": data["spouse_stand"], "spouse_marker_x": data["spouse_stand"][0],
                "spouse_marker_y": data["spouse_stand"][1], "rooms": deepcopy(data["rooms"]),
-               "variants": variants, "default_variant": default, "furniture": deepcopy(data["furniture"])}
+               "variants": variants, "default_variant": default, "furniture": furniture}
     used_surfaces = {style.get(key, {}).get("surface_id") for style in (data["style"], *data.get("room_styles", {}).values()) for key in ("floor_pattern", "wall_pattern")}
     used_furniture = {item["item_id"] for item in data["furniture"]}
     used_furniture.update(item["held_item"]["item_id"] for item in data["furniture"] if "held_item" in item)
@@ -1262,4 +1265,35 @@ def compile_interior(data, identity, npc_id, root, prefix):
                           {d["dependency"] for d in data.get("surfaces", []) if d.get("dependency") and d["id"] in used_surfaces})
     return {"files": files, "patches": patches, "runtime": runtime,
             "map_asset": next(v["map_asset"] for v in variants if v["id"] == default),
-            "dependencies": dependencies}
+            "dependencies": dependencies, "painted_furniture": painted}
+
+
+def _exported_furniture(data, npc_id, root):
+    """Placements with painted pieces renamed to the pack's own items, and those items.
+
+    Returns the runtime placements and ``{Data/Furniture key: piece}`` where a
+    piece holds its native record, texture asset name and PNG bytes.
+    """
+    from .painted_furniture import (
+        exported_furniture_id, is_painted, native_record, painted_front_png, painted_texture_png, texture_asset,
+    )
+    definitions = {definition["id"]: definition for definition in data["catalog"]}
+    painted = {}
+
+    def exported(item_id):
+        definition = definitions.get(item_id)
+        if definition is None or not is_painted(definition):
+            return item_id
+        key, record = native_record(definition, npc_id)
+        if key not in painted:
+            painted[key] = {"record": record, "texture_asset": texture_asset(definition, npc_id),
+                            "texture": painted_texture_png(definition, root),
+                            "front": painted_front_png(definition, root)}
+        return exported_furniture_id(definition, npc_id)
+
+    furniture = deepcopy(data["furniture"])
+    for item in furniture:
+        item["item_id"] = exported(item["item_id"])
+        if "held_item" in item:
+            item["held_item"]["item_id"] = exported(item["held_item"]["item_id"])
+    return furniture, painted

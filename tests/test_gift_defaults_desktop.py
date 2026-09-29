@@ -99,7 +99,7 @@ class GiftDefaultsDesktopTests(QtTestCase):
         for row in range(len(values)):
             item = self.page.lists["love"].item(row)
             self.assertIn("not in catalog", item.text())
-            self.assertIn("Saved assignment retained", item.toolTip())
+            self.assertIn("Kept from an earlier item list", item.toolTip())
         self.assertTrue(self.page.assign_items(values, None))
         self.assertEqual(self.page.dump(), {**saved, "love": []})
         self.assertEqual(self.page.feedback.text(), "")

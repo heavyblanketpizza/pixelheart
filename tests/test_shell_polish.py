@@ -58,9 +58,17 @@ class ShellPolishTests(QtTestCase):
             self.app.processEvents()
         editor = self.window.world.interior_editor
         self.assertIsNotNone(editor)
-        for widget in (editor.rotate_button, editor.duplicate_button, editor.remove_button):
+        for widget in (editor.rotate_button, editor.duplicate_button, editor.remove_button,
+                       editor.paint_button, editor.original_button):
             if widget.isVisible():
                 self.assertGreaterEqual(widget.width(), widget.sizeHint().width(), widget.text())
+
+    def test_dialogue_fits_the_minimum_window_without_sideways_scrolling(self):
+        self.window.open_section("dialogue")
+        for _ in range(5):
+            self.app.processEvents()
+        scroll = self.window.dialogue_tabs.widget(0)
+        self.assertEqual(scroll.horizontalScrollBar().maximum(), 0)
 
     def test_overview_fits_the_minimum_window_without_sideways_scrolling(self):
         self.window.open_section("overview")

@@ -40,7 +40,10 @@ from pixelheart_core.interior_furniture import (
 )
 from pixelheart_core.world import asset_path, _read_asset, _write_new_file
 from pixelheart_core.pixel_layers import LayerFileError, blank_painting, open_painting, save_layers
-from pixelheart_core.pixel_sheets import open_png
+from pixelheart_core.pixel_sheets import encode_png, open_png
+from pixelheart_core.painted_furniture import (
+    SEAT_KINDS, build_painted, game_extras, is_painted, paintable, painting_canvas,
+)
 from pixelheart_core.interior_runtime import INTERIORS_MIN_VERSION, INTERIORS_MIN_GAME_VERSION, INTERIORS_MIN_SMAPI_VERSION
 from .widgets import label, button
 from .game_import import game_import_settings
@@ -482,7 +485,7 @@ class InteriorEditor(QDialog):
         self.undo_button.setVisible(not project_history)
         self.redo_button.setVisible(not project_history)
         toolbar.addStretch()
-        self.play = button("Play", lambda: None)
+        self.play = button("Animate", lambda: None)
         self.play.setCheckable(True)
         self.play.toggled.connect(self.toggle_playback)
         self.play.setToolTip("Preview animated decorations")
@@ -610,9 +613,19 @@ class InteriorEditor(QDialog):
         self.rotate_button = button("Rotate ↻", self.rotate_active)
         self.duplicate_button = button("Duplicate", self.duplicate_selected)
         self.remove_button = button("Put away", self.put_away)
+        self.paint_button = button("Paint…", self.paint_selected)
+        self.paint_button.setAccessibleName("Paint this piece")
+        self.original_button = button("Use original", self.use_original, "quiet")
         for widget in (self.rotate_button, self.duplicate_button, self.remove_button):
             selected.addWidget(widget)
         selected.addStretch()
+        # Painting sits on its own row so every label fits the narrowest window.
+        painting = QHBoxLayout()
+        painting.setSpacing(6)
+        painting.addWidget(self.paint_button)
+        painting.addWidget(self.original_button)
+        painting.addStretch()
+        stacked.addLayout(painting)
         right_layout.addWidget(self.selection_bar)
         split.addWidget(right)
         split.setStretchFactor(1, 1)
@@ -2325,6 +2338,13 @@ class InteriorEditor(QDialog):
         self.duplicate_button.setEnabled(selected is not None)
         for widget in (self.selected_x, self.selected_y, self.move_button, self.rotate_button, self.remove_button):
             widget.setEnabled(selected is not None)
+        reason = paintable(definition, self.stage_root) if definition else "Select a piece in the room to paint it."
+        self.paint_button.setEnabled(reason is None)
+        # Painting only matters once a piece is picked.
+        self.paint_button.setVisible(definition is not None)
+        self.original_button.setVisible(definition is not None)
+        self.paint_button.setToolTip(reason or "Repaint this piece. The game's own furniture stays as it is.")
+        self.original_button.setEnabled(bool(definition and is_painted(definition)))
         if selected:
             self.selected_x.setValue(selected["x"])
             self.selected_y.setValue(selected["y"])
@@ -2350,6 +2370,88 @@ class InteriorEditor(QDialog):
     def move_selected(self):
         if self.selected_furniture:
             self.move_furniture(self.selected_furniture, self.selected_x.value(), self.selected_y.value())
+
+    def _selected_piece(self):
+        item = next((entry for entry in self.draft.data["furniture"] if entry["id"] == self.selected_furniture), None)
+        definition = next((d for d in self.draft.data["catalog"] if item and d["id"] == item["item_id"]), None)
+        return item, definition
+
+    @staticmethod
+    def _without_unused(design, identity):
+        """Drop a painted piece nothing in the room uses any more."""
+        used = {entry["item_id"] for entry in design["furniture"]}
+        used.update(entry["held_item"]["item_id"] for entry in design["furniture"] if "held_item" in entry)
+        if identity not in used:
+            design["catalog"] = [d for d in design["catalog"] if d["id"] != identity]
+
+    def paint_selected(self):
+        """Repaint the selected piece as a new piece for this home; the game's own is unchanged."""
+        item, definition = self._selected_piece()
+        if definition is None:
+            return
+        reason = paintable(definition, self.stage_root)
+        if reason:
+            self.notice(reason)
+            return
+        from .game_connection import game_connection
+        front_sheet, price = game_extras(game_connection().content_root(), definition)
+        root = self.project_file.parent
+        try:
+            payload = encode_png(painting_canvas(definition, self.stage_root))
+            document, restored = open_painting(payload, "furniture", project_root=root)
+        except (ValueError, OSError) as exc:
+            self.notice(str(exc))
+            return
+        dialog = PixelPainterDialog(document, kind="furniture", title=f"Paint the {definition['name']}",
+                                    context="Home · a new piece for this home", save_text="Use painted furniture",
+                                    parent=self)
+        if definition["kind"] in SEAT_KINDS and front_sheet is None:
+            dialog.show_message("Connect your game so a sitting villager stays behind this seat's front edge. "
+                                "Without it, they're drawn in front of the whole seat.")
+        elif restored:
+            dialog.show_message("Your layers from last time are back.")
+        try:
+            if dialog.exec() != QDialog.DialogCode.Accepted or dialog.result_png is None:
+                return
+
+            def change():
+                painted = build_painted(definition, dialog.result_png, self.stage_root, front_sheet=front_sheet, price=price)
+                candidate = self.draft.snapshot()
+                if not any(entry["id"] == painted["id"] for entry in candidate["catalog"]):
+                    candidate["catalog"].append(painted)
+                repainting = is_painted(definition)
+                for entry in candidate["furniture"]:
+                    if (entry["item_id"] == definition["id"]) if repainting else (entry["id"] == item["id"]):
+                        entry["item_id"] = painted["id"]
+                if repainting and painted["id"] != definition["id"]:
+                    self._without_unused(candidate, definition["id"])
+                self.draft.apply(candidate)
+                return painted
+            if self.run_change(change) is None:
+                return
+            try:
+                save_layers(root, document, dialog.result_png)
+            except LayerFileError as exc:
+                self.notice(f"The painted piece is in use, but its layers could not be kept: {exc}")
+        finally:
+            dialog.deleteLater()
+
+    def use_original(self):
+        """Put the game's own piece back in place of a painted one."""
+        item, definition = self._selected_piece()
+        if definition is None or not is_painted(definition):
+            return
+        original = definition["painted_from"]["id"]
+        if not any(entry["id"] == original for entry in self.draft.data["catalog"]):
+            self.notice("The original piece isn't in this home's catalogue any more. Refresh your game library.")
+            return
+
+        def change():
+            candidate = self.draft.snapshot()
+            next(entry for entry in candidate["furniture"] if entry["id"] == item["id"])["item_id"] = original
+            self._without_unused(candidate, definition["id"])
+            self.apply_layout(candidate)
+        self.run_change(change)
 
     def rotate_selected(self):
         if self.selected_furniture:
@@ -2396,7 +2498,7 @@ class InteriorEditor(QDialog):
             self.timer.start()
         else:
             self.timer.stop()
-        self.play.setText("Pause" if playing else "Play")
+        self.play.setText("Pause" if playing else "Animate")
 
     def advance_animation(self):
         self.elapsed_ms = self._playing_base + int((time.monotonic() - self._started) * 1000)

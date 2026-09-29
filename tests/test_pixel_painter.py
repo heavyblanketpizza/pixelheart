@@ -378,5 +378,15 @@ class TilesheetSizeTests(PainterTestCase):
             self.assertIsNone(choose_tilesheet_size())
 
 
+class FurniturePainterTests(PainterTestCase):
+    def test_furniture_painting_shows_the_whole_piece_and_keeps_its_size(self):
+        dialog = self.painter(blank_painting("furniture", 48, 32), kind="furniture", title="Paint the Oak Chair")
+        self.assertFalse(dialog.actions["add_row"].isEnabled())
+        self.assertFalse(dialog.actions["remove_row"].isEnabled())
+        self.assertEqual(dialog.preview.caption.text(), "The whole piece · 48 × 32")
+        dialog.preview.set_frame(2)
+        self.assertEqual(dialog.preview.images[0].size().width(), 48)
+
+
 if __name__ == "__main__":
     unittest.main()

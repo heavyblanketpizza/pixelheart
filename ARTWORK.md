@@ -28,7 +28,9 @@ Everything you paint is your own work: the painter places exactly the pixels you
 
 **Colors.** The color panel lists every color in the sheet, most used first. Click one to paint with it, or choose **Replace…** to swap it for another color on the current layer, on every unlocked layer, or only inside the selection. Recent colors are kept while you paint, and the first color can be typed as `#rrggbb` or `#rrggbbaa`.
 
-**Preview.** The preview shows the flattened sheet at game size: the active walking row playing (with a speed control), the active expression, or a tile repeated 3 × 3 so seams show.
+**Preview.** The preview shows the flattened sheet at game size: the active walking row playing (with a speed control), the active expression, a tile repeated 3 × 3 so seams show, or a whole piece of furniture.
+
+**Furniture.** In Home, select a placed piece and choose **Paint…** to repaint it for this home only. See [Paint a piece of furniture](WORLD_BUILDING.md#paint-a-piece-of-furniture).
 
 **Undo.** Each stroke, fill, move, or layer change is one step in the painter's **Edit → Undo**, up to 200 steps. Choosing **Use painted sheet** adds one step to the project's **Edit → Undo**, which returns to the previous version.
 

@@ -61,8 +61,10 @@ Preview both choice outcomes. The preview does not run the game or verify walkab
 
 ## Save, review, and test
 
-Use **File → Save** at any stage. **Edit → Undo / Redo** follows edits across
-the project, including scene removal. A successful save starts a fresh history.
+Pixelheart saves as you work. **Edit → Undo / Redo** follows edits across the
+project, including scene removal, and keeps working after automatic saves. With
+**File → Save automatically** turned off, a successful **File → Save** starts a
+fresh history.
 Older chapter, relationship, and aftermath data remains in the saved project;
 Heart events does not expose those former editors or silently discard their settings.
 

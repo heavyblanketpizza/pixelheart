@@ -198,6 +198,37 @@ class ProjectHistoryTests(unittest.TestCase):
         self.assertEqual(history.undo(), project(name="River"))
         self.assertEqual(history.undo(), project())
 
+    def test_automatic_save_keeps_undo_and_redo(self):
+        history = ProjectHistory(project())
+        history.record(project(name="River"))
+        history.record(project(name="River", room_name="Studio"))
+        history.undo()
+        history.mark_clean()
+        self.assertFalse(history.is_dirty)
+        self.assertEqual((history.undo_count, history.redo_count), (1, 1))
+        self.assertEqual(history.redo(), project(name="River", room_name="Studio"))
+        self.assertTrue(history.is_dirty)
+
+    def test_undo_back_to_an_automatic_save_is_clean(self):
+        history = ProjectHistory(project())
+        history.record(project(name="River"))
+        history.mark_clean()
+        history.record(project(name="Juniper"))
+        self.assertTrue(history.is_dirty)
+        history.undo()
+        self.assertFalse(history.is_dirty)
+
+    def test_automatic_save_can_record_a_partial_document(self):
+        history = ProjectHistory(project())
+        history.record(project(name="River", room_name="Studio"))
+        saved = project(name="River")
+        history.mark_clean(saved)
+        saved["character"]["name"] = "changed after saving"
+        self.assertTrue(history.is_dirty)
+        history.record(project(name="River"))
+        self.assertFalse(history.is_dirty)
+        self.assertEqual(history.undo_count, 2)
+
     def test_project_switch_discards_history_and_copies_the_new_baseline(self):
         history = ProjectHistory(project())
         history.record(project(name="River"))

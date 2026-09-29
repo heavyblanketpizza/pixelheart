@@ -3,7 +3,8 @@
 Portraits are two columns of square expressions, sprites four columns of
 frames twice as tall as they are wide, and tilesheets 16 × 16 cells. Painting
 keeps a sheet's width, so frame columns and tile numbers never shift; rows are
-added or removed at the bottom only.
+added or removed at the bottom only. Furniture is painted on 16 × 16 cells and
+keeps its size exactly, because the game finds each frame by position.
 """
 from __future__ import annotations
 
@@ -15,8 +16,9 @@ from PIL import Image
 
 MAX_CANVAS_PIXELS = 4_194_304
 MAX_TILESHEET_SIDE = 2048
-KINDS = {"portrait": "Portrait sheet", "sprite": "Sprite sheet", "tilesheet": "Tilesheet"}
-_MIN_ROWS = {"portrait": 3, "sprite": 4, "tilesheet": 1}
+KINDS = {"portrait": "Portrait sheet", "sprite": "Sprite sheet", "tilesheet": "Tilesheet", "furniture": "Furniture"}
+_MIN_ROWS = {"portrait": 3, "sprite": 4, "tilesheet": 1, "furniture": 1}
+_FIXED_SIZE = {"furniture"}
 
 
 class SheetError(ValueError):
@@ -59,12 +61,12 @@ class SheetSpec:
 
     def can_add_row(self, height):
         new_height = height + self.frame_height
-        if not self.regular or self.width * new_height > MAX_CANVAS_PIXELS:
+        if not self.regular or self.kind in _FIXED_SIZE or self.width * new_height > MAX_CANVAS_PIXELS:
             return False
         return self.kind != "tilesheet" or new_height <= MAX_TILESHEET_SIDE
 
     def can_remove_row(self, height):
-        return self.regular and self.rows(height) > _MIN_ROWS[self.kind]
+        return self.regular and self.kind not in _FIXED_SIZE and self.rows(height) > _MIN_ROWS[self.kind]
 
 
 def _check_canvas(width, height):
@@ -77,9 +79,9 @@ def _check_canvas(width, height):
 def sheet_spec(kind, width, height):
     """Frame geometry for a sheet; irregular sizes are painted as one frame."""
     if kind not in KINDS:
-        raise SheetError("Choose a portrait sheet, sprite sheet, or tilesheet.")
+        raise SheetError("Choose a portrait sheet, sprite sheet, tilesheet, or furniture.")
     _check_canvas(width, height)
-    if kind == "tilesheet":
+    if kind in ("tilesheet", "furniture"):
         frame = (16, 16)
     elif kind == "portrait":
         frame = (width // 2, width // 2)

@@ -15,6 +15,7 @@ from pixelheart_core.life import (
 )
 from .editors import SchedulePage, line, number, set_value, value, connect_change
 from .widgets import button, card, label
+from .dialogue_tools import DialogueBoxPreview, EmotionBar, portrait_frames
 
 
 def _choices(options):
@@ -105,10 +106,15 @@ class LifeRules(QWidget):
             detail.addWidget(button("+ Return to farmhouse", self.add_home, "quiet"))
         else:
             self.fields["text"] = QPlainTextEdit()
-            self.fields["text"].setPlaceholderText("Write their words. Use @ for the farmer's name.")
-            self.fields["text"].setMinimumHeight(170)
+            self.fields["text"].setPlaceholderText("Write their words.")
+            self.fields["text"].setMinimumHeight(140)
             self.fields["text"].setAccessibleName("Their dialogue")
+            self.emotion_bar = EmotionBar(self.fields["text"])
+            detail.addWidget(self.emotion_bar)
             detail.addWidget(self.fields["text"])
+            self.box = DialogueBoxPreview()
+            detail.addWidget(self.box)
+            self.fields["text"].textChanged.connect(self.update_box)
         self.checks = label("", "notice", True)
         detail.addWidget(self.checks)
         detail.addStretch()
@@ -153,6 +159,18 @@ class LifeRules(QWidget):
             self.list.setCurrentRow(max(0, min(selected, len(self.records) - 1)))
         else:
             self.select(-1)
+
+    def update_box(self):
+        window = getattr(self.page, "window", None)
+        document = getattr(window, "document", None)
+        name = document["character"].get("name", "") if isinstance(document, dict) else ""
+        self.box.set_dialogue(self.fields["text"].toPlainText(), name=name)
+
+    def set_portrait(self, path):
+        if hasattr(self, "box"):
+            frames = portrait_frames(path)
+            self.emotion_bar.set_portraits(frames)
+            self.box.set_portraits(frames)
 
     def select(self, index):
         if self.loading:
@@ -230,7 +248,7 @@ class LifeRules(QWidget):
         from .schedule_time import game_minutes, game_time
         last = game_minutes(stops[-1].get("time", "")) if stops else 360
         if last is None or last >= 1560:
-            self.checks.setText("Move the last stop earlier than 26:00 before adding a return home.")
+            self.checks.setText("Move the last stop earlier than 2:00 AM before adding a return home.")
             return
         time = game_time(max(1320, min(1560, last + 60)))
         stops.append({"id": str(uuid.uuid4()), "time": time, "location": "bed", "x": 0, "y": 0,

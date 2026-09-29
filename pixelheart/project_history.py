@@ -79,6 +79,8 @@ class ProjectHistoryController(QObject):
         if changed:
             self._last_recorded_at = now if merge_key is not None else None
         self.sync()
+        if changed:
+            self._notify_edit()
         return changed
 
     def record_current(self, merge_key=_AUTO_MERGE):
@@ -90,6 +92,21 @@ class ProjectHistoryController(QObject):
         self._last_recorded_at = None
         self._typing_timer.stop()
         self._finish_typing_event()
+
+    @property
+    def gesture_open(self):
+        """Whether a pointer gesture is still adding to one undo step."""
+        return self._gesture_key is not None and self._gesture_key[0] == "gesture"
+
+    def mark_clean(self, snapshot):
+        """Record an automatic save without starting a fresh history."""
+        self.history.mark_clean(snapshot)
+        self.sync()
+
+    def _notify_edit(self):
+        edited = getattr(self.window, "project_edited", None)
+        if edited is not None:
+            edited()
 
     def begin_gesture(self, key):
         """Group live updates until a pointer gesture finishes or loses focus."""
@@ -120,6 +137,7 @@ class ProjectHistoryController(QObject):
         finally:
             self._restoring = False
             self.sync()
+        self._notify_edit()
         return True
 
     def undo(self):
