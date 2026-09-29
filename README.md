@@ -40,7 +40,7 @@ Pixelheart keeps to warm white and black pixel lines, so the portraits, sprites 
 | **Daily routine** | Where they go each day, and how that changes with seasons, weather and marriage |
 | **Gifts** | The gifts they love, like, dislike and hate, picked from the game's items |
 | **Heart events** | The scenes at 2, 4, 6, 8, 10 and 14 hearts, staged on real maps from your game |
-| **Portraits & sprites** | Their portrait expressions, walking sprites, and seasonal outfits |
+| **Portraits & sprites** | Their portrait expressions, walking sprites, and seasonal outfits, uploaded or painted in layers |
 | **Home** *(optional)* | Their home before marriage and their spouse room after |
 | **Play in Stardew** | Check everything, put them in your game, and keep playtest notes |
 
@@ -54,6 +54,10 @@ Stuck on a blank page? Borrow a starting point from any villager in your game:
 - **Portraits & sprites → From my game…** shows a villager's portraits and walking sprites as a reference, or as starting artwork to paint over.
 
 These read straight from your installed game. There are no console commands and no files to copy. (Want to start from a *modded* villager instead? Both windows have an **Advanced** option for Content Patcher exports.)
+
+## Paint your own pixels
+
+Choose **Paint…** on a portrait or sprite sheet to touch it up, recolor an outfit, or draw a new sheet from scratch. The pixel painter has layers with transparency, undo and redo, selections, mirror drawing, onion skin, a live game-size preview, and a faded reference layer you can trace. Only the finished, flattened PNG goes into the game; your layers stay in the project for next time. Your own map and Home tilesheets can be painted the same way. See the [artwork guide](ARTWORK.md#pixel-painter).
 
 Pixelheart has no built-in AI artwork generation. If you want to use AI image tools, use them outside Pixelheart and import the finished PNG like any other artwork. Use art you made or have permission to use; see the [artwork guide](ARTWORK.md) for the sheet layouts.
 

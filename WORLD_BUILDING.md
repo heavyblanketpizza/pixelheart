@@ -146,7 +146,11 @@ help with placement, and **Play** previews available animations. The layout
 protects occupied rooms, the doorway, and the spouse's standing spot.
 
 **Advanced…** holds custom tilesheet imports, exact dimensions, furniture item
-details, raw library imports, and tile animation authoring. These are not needed
+details, raw library imports, and tile animation authoring. **Tile art → Paint
+tilesheet…** paints your custom tilesheet in the [pixel painter](ARTWORK.md#pixel-painter),
+or starts a new one. Floor, wall, and animation tile choices keep their numbers, and
+one **Undo** returns to the previous sheet. Tile art composed from your game
+library is not repainted here. These are not needed
 for ordinary decorating with a connected library. Each placed piece retains its
 actual game item ID and mod metadata. Tabletop arrangements and arbitrary custom
 drawing effects are not simulated by the Python preview; installed items and

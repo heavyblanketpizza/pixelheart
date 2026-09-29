@@ -20,7 +20,9 @@ from PySide6.QtWidgets import (
     QScrollArea, QFileDialog, QCheckBox, QSplitter,
 )
 
+from pixelheart_core.pixel_layers import LayerFileError, blank_painting, open_painting, save_layers
 from pixelheart_core.world import WorldError, import_map, map_bundle, asset_path
+from .pixel_painter import PixelPainterDialog, choose_tilesheet_size
 from .skin import COLORS
 from .widgets import label, button
 
@@ -39,6 +41,16 @@ def inspect_tilesheet(path):
         if path.stat().st_size > MAX_SHEET_BYTES:
             raise WorldError("Choose a PNG tilesheet of at most 16 MiB.")
         payload = path.read_bytes()
+    except OSError as exc:
+        raise WorldError(f"Cannot read the tilesheet: {exc}") from exc
+    return inspect_tilesheet_bytes(payload)
+
+
+def inspect_tilesheet_bytes(payload):
+    """Check tilesheet PNG bytes, such as a sheet from the pixel painter."""
+    try:
+        if len(payload) > MAX_SHEET_BYTES:
+            raise WorldError("Choose a PNG tilesheet of at most 16 MiB.")
         with Image.open(io.BytesIO(payload)) as image:
             width, height = image.size
             if image.format != "PNG":
@@ -412,6 +424,9 @@ class MapWorkshop(QDialog):
         top = QHBoxLayout()
         self.open_button = button("Open tilesheet PNG…", self.choose_sheet, "primary")
         top.addWidget(self.open_button)
+        self.paint_button = button("Paint tilesheet…", self.paint_tilesheet)
+        self.paint_button.setToolTip("Paint the open tilesheet in layers, or start a new one.")
+        top.addWidget(self.paint_button)
         self.preset = QComboBox()
         self.preset.addItem("Small location · 20 × 20 tiles", "small_location")
         self.preset.addItem("Spouse room · 6 × 9 tiles", "spouse_room")
@@ -518,17 +533,58 @@ class MapWorkshop(QDialog):
             except WorldError as exc:
                 self.notice.setText(str(exc))
 
-    def load_tilesheet(self, path):
-        sheet = inspect_tilesheet(path)
+    def _check_tiles(self, sheet):
         highest = max(tile for tiles in self.draft.layers.values() for tile in tiles)
         if highest > sheet["tile_count"]:
             raise WorldError("This sheet has fewer tiles than your map uses. Keep the original sheet or clear those map tiles first.")
+
+    def _use_sheet(self, sheet):
+        self._check_tiles(sheet)
         self.sheet = sheet
         self.canvas.load(sheet)
         self.palette.load(sheet)
         self.palette_scroll.setFixedHeight(min(320, max(100, self.palette.height() + 4)))
         self.save_button.setEnabled(True)
+
+    def load_tilesheet(self, path):
+        sheet = inspect_tilesheet(path)
+        self._use_sheet(sheet)
         self.notice.setText(f"{Path(path).name} · {sheet['width']} × {sheet['height']} pixels · {sheet['tile_count']} tiles. Choose a floor tile and fill Back to begin.")
+
+    def paint_tilesheet(self):
+        """Paint the open tilesheet in layers, or a new blank one, and use the result."""
+        root = self.project_file.parent
+        try:
+            if self.sheet is not None:
+                document, restored = open_painting(self.sheet["bytes"], "tilesheet", project_root=root)
+            else:
+                size = choose_tilesheet_size(self)
+                if size is None:
+                    return
+                document, restored = blank_painting("tilesheet", *size), False
+        except ValueError as exc:
+            self.notice.setText(str(exc))
+            return
+        dialog = PixelPainterDialog(document, kind="tilesheet", title="Paint your tilesheet", context="16 × 16 game tiles",
+                                    save_text="Use painted tilesheet", max_bytes=MAX_SHEET_BYTES,
+                                    validate=lambda payload: self._check_tiles(inspect_tilesheet_bytes(payload)), parent=self)
+        if restored:
+            dialog.show_message("Your layers from last time are back.")
+        try:
+            if dialog.exec() != QDialog.DialogCode.Accepted or dialog.result_png is None:
+                return
+            sheet = inspect_tilesheet_bytes(dialog.result_png)
+            self._use_sheet(sheet)
+            message = f"Painted tilesheet · {sheet['width']} × {sheet['height']} pixels · {sheet['tile_count']} tiles."
+            try:
+                save_layers(root, document, dialog.result_png)
+            except LayerFileError as exc:
+                message += f" Its layers could not be kept: {exc}"
+            self.notice.setText(message + " Save place to project to keep it.")
+        except WorldError as exc:
+            self.notice.setText(str(exc))
+        finally:
+            dialog.deleteLater()
 
     def load_map(self, reference):
         """Open a saved painter map; saving creates another immutable revision."""

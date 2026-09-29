@@ -2,7 +2,9 @@
 
 Artwork references are relative to the JSON file. A reference is either a string
 or ``{"original": path, "prepared": path | None, "selected": "original"}``.
-The selected value may be ``prepared`` when a prepared file is available. Optional
+The selected value may be ``prepared`` when a prepared file is available, or
+``painted`` for a version saved from the pixel painter. A sheet drawn from
+scratch has a ``painted`` path and no original. Optional
 ``artwork.variants`` contains seasonal and beach sets with their own portrait and
 sprite references. Unknown JSON metadata is retained throughout; storage does
 not require an export-ready character. None of the public functions mutate the
@@ -11,6 +13,7 @@ supplied document.
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import math
 import os
@@ -26,6 +29,7 @@ from .catalog import validate_catalog, CatalogValidationError
 from .provenance import source_metadata
 from .story_planning import normalize_storyline
 from .world import WorldError, normalize_world, world_asset_references, asset_path as world_asset_path, copy_world_assets
+from .pixel_layers import LayerFileError, copy_layer_files
 
 
 PROJECT_FORMAT = "pixelheart-project"
@@ -33,6 +37,7 @@ PROJECT_VERSION = 1
 PROJECT_FILENAME = "character.json"
 MAX_PROJECT_BYTES = 64 * 1024 * 1024
 ARTWORK_KINDS = {"portrait", "sprite"}
+ARTWORK_VERSIONS = ("original", "prepared", "painted")
 APPEARANCE_VARIANTS = {
     "spring": "Spring",
     "summer": "Summer",
@@ -231,15 +236,15 @@ def _validate_artwork(record):
         return
     if not isinstance(record, dict):
         raise ProjectError("Artwork must be a relative path, a preparation record, or null.")
-    for key in ("original", "prepared"):
+    for key in ARTWORK_VERSIONS:
         if record.get(key) is not None:
             _relative_path(record[key])
     selected = record.get("selected", "original")
-    if not isinstance(selected, str) or selected not in {"original", "prepared"}:
-        raise ProjectError("Artwork selection must be 'original' or 'prepared'.")
+    if not isinstance(selected, str) or selected not in ARTWORK_VERSIONS:
+        raise ProjectError("Artwork selection must be 'original', 'prepared' or 'painted'.")
     if record.get(selected) is None:
         raise ProjectError(f"Artwork selection '{selected}' needs a relative file path.")
-    if record.get("original") is None:
+    if record.get("original") is None and record.get("painted") is None:
         raise ProjectError("An artwork preparation record must preserve its original file path.")
     try:
         record.update(source_metadata(record))
@@ -375,7 +380,7 @@ def _check_asset_locations(document: dict, file: Path):
     for appearance in _artwork_sets(document["artwork"]):
         for kind in ARTWORK_KINDS:
             record = appearance.get(kind)
-            references = [record] if isinstance(record, str) else [record.get(key) for key in ("original", "prepared")] if record else []
+            references = [record] if isinstance(record, str) else [record.get(key) for key in ARTWORK_VERSIONS] if record else []
             for reference in references:
                 if reference is not None:
                     _asset_path(reference, file.parent)
@@ -451,7 +456,7 @@ def resolve_artwork(document: dict, project_file: str | os.PathLike, kind: str, 
     return _asset_path(reference, project_path(project_file).parent)
 
 
-def _copy_artwork(source, project_file, kind, category):
+def _copy_artwork(source, project_file, kind, category, *, payload=None):
     if kind not in ARTWORK_KINDS:
         raise ProjectError("Artwork kind must be 'portrait' or 'sprite'.")
     root = project_path(project_file).parent
@@ -461,7 +466,8 @@ def _copy_artwork(source, project_file, kind, category):
         directory = _asset_path(f"artwork/{category}", root)
         directory.mkdir(parents=True, exist_ok=True)
         digest = hashlib.sha256()
-        with source.open("rb") as incoming, tempfile.NamedTemporaryFile(mode="wb", dir=directory, prefix=".import-", suffix=".tmp", delete=False) as outgoing:
+        opened = io.BytesIO(payload) if payload is not None else source.open("rb")
+        with opened as incoming, tempfile.NamedTemporaryFile(mode="wb", dir=directory, prefix=".import-", suffix=".tmp", delete=False) as outgoing:
             temporary = Path(outgoing.name)
             while chunk := incoming.read(1024 * 1024):
                 digest.update(chunk)
@@ -496,8 +502,15 @@ def import_artwork(source: str | os.PathLike, project_file: str | os.PathLike, k
     return _copy_artwork(source, project_file, kind, "originals")
 
 
+def import_painted_artwork(payload: bytes, project_file: str | os.PathLike, kind: str) -> str:
+    """Store a flattened PNG from the painter under a content-addressed name."""
+    return _copy_artwork("painted.png", project_file, kind, "painted", payload=bytes(payload))
+
+
 def copy_project(document: dict, source_project_file: str | os.PathLike, destination_project_file: str | os.PathLike) -> Path:
-    """Save As with all originals and prepared images, leaving the source untouched.
+    """Save As with all original, prepared and painted images and their layer files.
+
+    The source project is left untouched.
 
     Load the returned path to obtain the copied document's new artwork references.
     The destination JSON is replaced only after all required images are copied.
@@ -518,7 +531,7 @@ def copy_project(document: dict, source_project_file: str | os.PathLike, destina
             if isinstance(record, str):
                 appearance[kind] = import_artwork(_asset_path(record, source_file.parent), destination_file, kind)
             elif record:
-                for key, category in (("original", "originals"), ("prepared", "prepared")):
+                for key, category in (("original", "originals"), ("prepared", "prepared"), ("painted", "painted")):
                     if record.get(key) is not None:
                         record[key] = _copy_artwork(_asset_path(record[key], source_file.parent), destination_file, kind, category)
     if "world" in copied:
@@ -526,4 +539,8 @@ def copy_project(document: dict, source_project_file: str | os.PathLike, destina
             copy_world_assets(copied["world"], source_file.parent, destination_file.parent)
         except WorldError as exc:
             raise ProjectError(str(exc)) from exc
+    try:
+        copy_layer_files(source_file.parent, destination_file.parent)
+    except LayerFileError as exc:
+        raise ProjectError(str(exc)) from exc
     return save_project(copied, destination_file)

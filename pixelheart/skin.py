@@ -112,6 +112,17 @@ QListWidget#catalogueGallery {{ background: {c['highlight']}; border: 1px solid 
 QListWidget#catalogueGallery::item {{ border: 1px solid {c['rule']}; background: {c['paper']}; padding: 4px; }}
 QListWidget#catalogueGallery::item:selected {{ background: {c['selected']}; border: 2px solid {c['outline']}; color: {c['text']}; }}
 QListWidget#catalogueGallery::item:hover {{ background: {c['hover']}; }}
+QLabel#painterHeading {{ color: {c['muted']}; font-size: 11px; font-weight: bold; letter-spacing: 1px; }}
+QToolButton#painterTool {{ background: {c['paper']}; border: 2px solid {c['rule']}; padding: 4px; }}
+QToolButton#painterTool:hover {{ background: {c['hover']}; border-color: {c['rule_strong']}; }}
+QToolButton#painterTool:checked {{ background: {c['selected']}; border-color: {c['outline']}; }}
+QToolButton#painterToggle {{ background: {c['paper']}; border: 2px solid {c['rule']}; padding: 2px 8px; color: {c['text']}; }}
+QToolButton#painterToggle:hover {{ border-color: {c['rule_strong']}; }}
+QToolButton#painterToggle:checked {{ background: {c['selected']}; border-color: {c['outline']}; }}
+QScrollArea#painterCanvasArea {{ background: {c['sidebar']}; border: 2px solid {c['rule']}; }}
+QScrollArea#painterCanvasArea > QWidget > QWidget {{ background: {c['sidebar']}; }}
+QScrollArea#painterSide {{ border: none; }}
+QListWidget#painterLayers::item {{ padding: 4px 6px; }}
 """
 
 
