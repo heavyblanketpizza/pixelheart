@@ -171,7 +171,7 @@ class WorldPage(QWidget):
         self.home_switch = QTabBar()
         self.home_switch.setAccessibleName("Home workspace")
         self.home_switch.addTab("Rooms")
-        self.home_switch.addTab("Catalogue development")
+        self.home_switch.addTab("Furniture catalogue · for mod makers")
         self.home_switch.setExpanding(False)
         root.addWidget(self.home_switch)
         self.home_stack = QStackedWidget()
@@ -188,8 +188,8 @@ class WorldPage(QWidget):
         switch = QHBoxLayout()
         self.room_switch = QTabBar()
         self.room_switch.setAccessibleName("Interior to edit")
-        self.room_switch.addTab("Pre-spouse residence")
-        self.room_switch.addTab("Spouse room")
+        self.room_switch.addTab("Their home")
+        self.room_switch.addTab("Spouse room (after marriage)")
         self.room_switch.setExpanding(False)
         self.room_switch.currentChanged.connect(self.switch_room)
         switch.addWidget(self.room_switch)
@@ -246,11 +246,24 @@ class WorldPage(QWidget):
         """Make restored artwork portable before committing a project save."""
         if self.draft_project_file is None:
             return True
+        problem = self.copy_history_assets(self._interior_project_file())
+        if problem:
+            self.window.show_error("Could not save project", problem)
+            return False
+        return True
+
+    def copy_history_assets(self, project_file):
+        """Copy undo-restored room textures into a project, add-only.
+
+        Returns an error message, or None when every texture is in place.
+        """
+        if self.draft_project_file is None:
+            return None
         from pixelheart_core.interiors import interior_asset_references
         source_root = self.draft_project_file.parent
-        target_root = self._interior_project_file().parent
+        target_root = Path(project_file).parent
         if source_root == target_root:
-            return True
+            return None
         created = []
         try:
             references = {reference for record in self.world["locations"] if record.get("interior")
@@ -263,12 +276,38 @@ class WorldPage(QWidget):
                     _write_new_file(destination, _read_asset(source))
                     if not existed:
                         created.append(destination)
-            return True
+            return None
         except (ValueError, OSError) as exc:
             for destination in created:
                 destination.unlink(missing_ok=True)
-            self.window.show_error("Could not save project", str(exc))
-            return False
+            return str(exc)
+
+    def room_draft_open(self):
+        """Whether the open room has changes that are not applied to the project yet."""
+        editor = self.interior_editor
+        return editor is not None and editor.draft.data != self._editor_baseline
+
+    def quiet_save_document(self, document, project_file):
+        """Project the open room for an automatic save without closing or finalizing it.
+
+        Returns the projected document and None, or an unprojected copy and
+        the reason the room could not be included. Textures are copied add-only.
+        """
+        if not self.room_draft_open():
+            return deepcopy(document), None
+        from pixelheart_core.interiors import interior_asset_references
+        editor = self.interior_editor
+        projected = self.history_snapshot(document)
+        target_root = Path(project_file).parent
+        try:
+            for reference in sorted(set(interior_asset_references(editor.draft.snapshot()))):
+                source = asset_path(reference, editor.stage_root)
+                if not source.is_file():
+                    raise ValueError("A texture in this room is missing. Attach it again.")
+                _write_new_file(asset_path(reference, target_root), _read_asset(source))
+        except (ValueError, OSError) as exc:
+            return deepcopy(document), str(exc)
+        return projected, None
 
     def history_snapshot(self, document):
         """Project the live room into a document without changing its editors.
@@ -731,6 +770,11 @@ class WorldPage(QWidget):
         if not preserve_history:
             self._removed_places.clear()
             self.undo_remove_button.hide()
+        if not preserve_history and not from_history:
+            # The catalogue tool is for mod makers; show it only when there is a pack to work on.
+            project_file = getattr(self.window, "project_file", None)
+            self.home_switch.setVisible(self.home_stack.currentIndex() == 1
+                                        or self.catalogue_workshop.has_packs(project_file))
         selected_ids = {}
         for collection, index in (("locations", self.location_index), ("dependencies", self.dependency_index)):
             if 0 <= index < len(self.world[collection]):

@@ -76,7 +76,7 @@ and marked for review instead of disappearing when a catalog changes.
 
 The imported catalog replaces the vanilla catalog for that project. It includes
 the currently loaded `Data/Objects` asset after mod patches, rather than guesses
-from scanning mod source files. **File → Save** keeps a normalized snapshot
+from scanning mod source files. The project keeps a normalized snapshot
 inside `character.json`; Save As carries it along. The original export is not
 needed to reopen the project. No game artwork or item descriptions are copied.
 

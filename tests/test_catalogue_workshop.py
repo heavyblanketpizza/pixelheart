@@ -294,6 +294,22 @@ class CatalogueWorkshopTests(QtTestCase):
         self.page.search.clear()
         self.assertTrue(self.page.play_button.isEnabled())
 
+    def test_home_shows_the_catalogue_tool_only_when_there_are_packs(self):
+        window = MainWindow(auto_download_icons=False)
+        try:
+            window.world.catalogue_workshop._workspace_root = self.root / "nowhere"
+            window.load_document(new_project())
+            self.assertTrue(window.world.home_switch.isHidden())
+            self.assertEqual(window.world.home_switch.tabText(1), "Furniture catalogue · for mod makers")
+            window.world.catalogue_workshop._workspace_root = self.root
+            window.load_document(new_project())
+            self.assertFalse(window.world.home_switch.isHidden())
+        finally:
+            window.world.reset_workspace()
+            window.dirty = False
+            window.close()
+            window.deleteLater()
+
     def test_home_catalogue_switch_keeps_rooms_and_project_clean(self):
         window = MainWindow(auto_download_icons=False)
         try:

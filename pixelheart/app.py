@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QSize, QSaveFile, QIODevice, QTimer
-from PySide6.QtGui import QAction, QKeySequence, QPainter, QPixmap
+from PySide6.QtGui import QAction, QImage, QKeySequence, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QScrollArea,
     QListWidget, QListWidgetItem, QFrame, QFileDialog, QMessageBox, QTabWidget,
@@ -44,9 +44,11 @@ from .new_character import NewCharacterDialog
 from . import game_import
 from pixelheart_core.library import default_library_root, internal_name_for, new_project_path, remember_recent
 from pixelheart_core.progress import project_progress
+from pixelheart_core.route_maps import load_route_map
 from .navigation_icons import navigation_icon
 from .widgets import label, button, card
 from .project_history import ProjectHistoryController
+from .autosave import AutosaveController
 
 
 # Stable keys keep issue links and editor actions independent of sidebar order.
@@ -223,6 +225,10 @@ class MainWindow(QMainWindow):
         self.dirty = False
         self._external_dirty = False
         self.loading = True
+        self.autosave_error = None
+        self.room_save_issue = None
+        self._last_saved_at = None
+        self.autosave = AutosaveController(self)
         self.project_history = ProjectHistoryController(self)
         self.setWindowIcon(heart_icon())
         self.setMinimumSize(1020, 700)
@@ -379,6 +385,10 @@ class MainWindow(QMainWindow):
         for editor in self.history_record_editors():
             editor.list.currentRowChanged.connect(self.project_history.close_group)
         self.playtest.tests.currentRowChanged.connect(self.project_history.close_group)
+        for page in self.route_pages():
+            page.set_map_source(self.route_map)
+            page.map_panel.gestureStarted.connect(lambda page=page: self.project_history.begin_gesture(("route", id(page))))
+            page.map_panel.gestureFinished.connect(self.project_history.end_gesture)
         self.schedule.table.currentCellChanged.connect(self.project_history.close_group)
         self.life.editors["routines"].schedule.table.currentCellChanged.connect(self.project_history.close_group)
         self.events.actors.table.currentCellChanged.connect(self.project_history.close_group)
@@ -400,6 +410,12 @@ class MainWindow(QMainWindow):
             action.setShortcut(shortcut)
             action.triggered.connect(callback)
             file_menu.addAction(action)
+            if callback == self.save:
+                self.autosave_action = QAction("Save &automatically", self)
+                self.autosave_action.setCheckable(True)
+                self.autosave_action.setChecked(self.autosave.enabled)
+                self.autosave_action.toggled.connect(self.toggle_autosave)
+                file_menu.addAction(self.autosave_action)
         file_menu.addSeparator()
         close = QAction("&Close", self)
         close.setShortcut(QKeySequence.StandardKey.Close)
@@ -513,13 +529,23 @@ class MainWindow(QMainWindow):
     def project_snapshot(self):
         """Read all editors, including the uncommitted Home draft, without closing it."""
         self.collect()
-        snapshot = self.world.history_snapshot(self.document)
+        return self._history_form(self.world.history_snapshot(self.document))
+
+    @staticmethod
+    def _history_form(document):
+        """A document as undo history compares it, without external bookkeeping."""
+        snapshot = deepcopy(document)
         creator = snapshot.get("creator", {})
         for key in EXTERNAL_HISTORY_FIELDS:
             creator.pop(key, None)
         if not creator:
             snapshot.pop("creator", None)
         return snapshot
+
+    def project_edited(self):
+        """Called by project history after each recorded change, undo or redo."""
+        self.autosave.schedule()
+        self.update_title()
 
     def refresh_progress(self):
         """Update sidebar hearts and the Overview from the current document."""
@@ -536,6 +562,7 @@ class MainWindow(QMainWindow):
         self._progress_timer.start()
         self.project_history.close_group()
         self.project_history.sync()
+        self.project_edited()
 
     def restore_project_snapshot(self, snapshot):
         """Restore authored content in place, retaining the user's workspace."""
@@ -689,11 +716,85 @@ class MainWindow(QMainWindow):
         section = SECTIONS[max(0, self.navigation.currentRow())][1]
         self.breadcrumb.setText(name.upper() + "  /  " + section.upper())
         self.setWindowModified(self.dirty)
-        self.save_state.setText("Unsaved changes" if self.dirty else "Saved locally" if self.project_file else "New project")
-        self.save_state.setToolTip(str(self.project_file or "Choose Save project to select a portable project folder."))
+        text, tip, action = self._save_status()
+        self.save_state.setText(text)
+        self.save_state.setToolTip(tip)
+        self.save_button.setText(action or "Save")
+        self.save_button.setVisible(action is not None)
+
+    def _save_status(self):
+        """Status text, its tooltip, and the save button's text (None hides the button)."""
+        if not self.project_file:
+            return ("Unsaved changes" if self.dirty else "New project"), "Choose Save to pick a portable project folder.", "Save"
+        where = str(self.project_file)
+        if not self.autosave.enabled:
+            return ("Unsaved changes" if self.dirty else "Saved locally"), where, "Save"
+        if self.autosave_error:
+            return "Couldn't save your changes", self.autosave_error, "Try again"
+        if self.dirty and self.room_save_issue and not self.autosave.pending():
+            return ("Saved, except the room you're editing",
+                    f"The room you're editing in Home isn't saved yet: {self.room_save_issue}", None)
+        if self.dirty:
+            return "Saving…", where, None
+        if self._last_saved_at is not None:
+            moment = self._last_saved_at
+            where += f"\nLast saved at {moment.hour % 12 or 12}:{moment.minute:02d} {'AM' if moment.hour < 12 else 'PM'}"
+        return "All changes saved", where, None
+
+    def toggle_autosave(self, enabled):
+        self.autosave.set_enabled(enabled)
+        self.update_title()
+
+    def quiet_save(self):
+        """Write the project without finalizing Home or starting a fresh undo history.
+
+        An open Home room is saved as it is. If the project refuses it, the
+        rest is saved with the room's last applied version, and the room's
+        changes stay in the editor and in Undo.
+        """
+        if not self.project_file:
+            return False
+        self.collect()
+        problem = self.world.copy_history_assets(self.project_file)
+        if problem:
+            return self._autosave_failed(problem)
+        projected, room_issue = self.world.quiet_save_document(self.document, self.project_file)
+        candidates = [projected]
+        if room_issue is None and self.world.room_draft_open():
+            candidates.append(deepcopy(self.document))
+        stamp = datetime.now(timezone.utc).isoformat()
+        error = None
+        for index, candidate in enumerate(candidates):
+            candidate["character"]["updated_at"] = stamp
+            try:
+                save_project(candidate, self.project_file)
+            except (ValueError, OSError) as exc:
+                error = str(exc)
+                continue
+            if index:
+                room_issue = error
+            break
+        else:
+            return self._autosave_failed(error)
+        self._external_dirty = False
+        self.autosave_error = None
+        self.room_save_issue = room_issue
+        self._last_saved_at = datetime.now()
+        # Compare later edits with what was written: the whole live project, or
+        # everything except the room that could not be saved yet.
+        saved = self.project_snapshot() if room_issue is None else self._history_form(self.document)
+        self.project_history.mark_clean(saved)
+        return room_issue is None
+
+    def _autosave_failed(self, message):
+        self.autosave_error = message or "The project could not be written."
+        self.update_title()
+        return False
 
     def load_document(self, document, path=None):
         self.loading = True
+        self.autosave.timer.stop()
+        self.autosave_error = self.room_save_issue = self._last_saved_at = None
         self.world.reset_workspace()
         self.document = deepcopy(document)
         self.project_file = project_path(path) if path else None
@@ -731,6 +832,15 @@ class MainWindow(QMainWindow):
         else:
             self.statusBar().clearMessage()
 
+    def route_pages(self):
+        return (self.schedule, self.life.editors["routines"].schedule)
+
+    def route_map(self, location):
+        """The picture of a routine stop's place, from the project or the connected game."""
+        connection = game_connection()
+        game_root = connection.install().root if connection.state() == "connected" else None
+        return load_route_map(self.document, self.project_file, location, game_root=game_root)
+
     def update_portrait(self):
         try:
             path = resolve_artwork(self.document, self.project_file, "portrait") if self.project_file else None
@@ -738,12 +848,33 @@ class MainWindow(QMainWindow):
                 inspect_artwork(path)
             self.identity.portrait.set_image(path, portrait=True)
         except (ProjectError, ArtworkValidationError):
+            path = None
             self.identity.portrait.set_image()
+        # Dialogue shows the character's own expressions on its feeling buttons and box.
+        self.dialogue.set_portrait(path)
+        for editor in self.life.editors.values():
+            editor.set_portrait(path)
+        # Routine maps show the character standing at each stop.
+        try:
+            sprite = resolve_artwork(self.document, self.project_file, "sprite") if self.project_file else None
+        except ProjectError:
+            sprite = None
+        image = QImage(str(sprite)) if sprite else QImage()
+        for page in self.route_pages():
+            page.set_sprite(image)
 
     def confirm_discard(self):
+        autosaving = bool(self.project_file) and self.autosave.enabled
+        if self.dirty and autosaving:
+            self.autosave.flush()
         if not self.dirty:
             return True
-        answer = QMessageBox.warning(self, "Save your character?", "Your project has unsaved changes.",
+        message = "Your project has unsaved changes."
+        if autosaving and self.room_save_issue:
+            message = f"The room you're editing in Home isn't saved yet: {self.room_save_issue}"
+        elif autosaving and self.autosave_error:
+            message = f"Pixelheart couldn't save your changes: {self.autosave_error}"
+        answer = QMessageBox.warning(self, "Save your character?", message,
                                      QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
                                      QMessageBox.StandardButton.Save)
         if answer == QMessageBox.StandardButton.Save:
@@ -810,11 +941,16 @@ class MainWindow(QMainWindow):
     def _application_state_changed(self, state):
         if state == Qt.ApplicationState.ApplicationActive:
             game_connection().refresh()
+        elif self.dirty:
+            # Leaving Pixelheart is a natural moment to save.
+            self.autosave.flush()
 
     def _game_changed(self):
         apply_theme(QApplication.instance())
         self.welcome.refresh_game()
         self.dialogue.set_project_file(self.project_file)
+        for page in self.route_pages():
+            page.set_map_source(self.route_map)
         if not self.loading:
             self.story.refresh_context()
 
@@ -864,6 +1000,12 @@ class MainWindow(QMainWindow):
     def save(self):
         if not self.project_file:
             return self.save_as()
+        if self.autosave.enabled:
+            saved = self.autosave.flush(force=True)
+            if not saved and self.autosave_error:
+                # Saving on request reports failures as it always has; automatic saves stay quiet.
+                self.show_error("Could not save project", self.autosave_error)
+            return saved
         return self.save_to(self.project_file)
 
     def save_as(self):
@@ -902,6 +1044,9 @@ class MainWindow(QMainWindow):
             self.world.reset_history_resources()
             self.loading = False
             self._external_dirty = False
+            self.autosave.timer.stop()
+            self.autosave_error = self.room_save_issue = None
+            self._last_saved_at = datetime.now()
             self.project_history.reset(self.project_snapshot())
             self.clear_text_history()
             self.artwork.refresh()

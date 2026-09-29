@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QApplication, QWidget, QDialog, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLineEdit, QComboBox, QListWidget, QListWidgetItem, QAbstractItemView,
     QFileDialog, QDialogButtonBox, QCheckBox, QSizePolicy, QPlainTextEdit,
-    QStyledItemDelegate,
+    QStyledItemDelegate, QMenu, QToolButton,
 )
 
 from pixelheart_core.catalog import load_catalog, validate_catalog, CatalogValidationError
@@ -414,65 +414,74 @@ class GiftsPage(QWidget):
         self.preset_status.hide()
         starter_layout.addWidget(self.preset_status)
         root.addWidget(starter)
+        # One quiet row about the item list; its rarely needed options share a menu.
         source_row = QHBoxLayout()
         self.source_label = label("", "badge")
         source_row.addWidget(self.source_label)
         source_row.addStretch()
-        self.reset_catalog_button = button("Use vanilla catalog", self.reset_catalog)
-        source_row.addWidget(self.reset_catalog_button)
-        self.import_button = button("Load from my game…", self.import_game)
-        source_row.addWidget(self.import_button)
-        root.addLayout(source_row)
-        icon_row = QHBoxLayout()
-        self.icon_status = label("", "hint", True)
-        icon_row.addWidget(self.icon_status, 1)
         self.wiki_button = button("Download icons", self.download_wiki_icons, "quiet")
-        icon_row.addWidget(self.wiki_button)
-        icon_row.addWidget(button("Use local textures…", self.import_icons, "quiet"))
-        root.addLayout(icon_row)
+        source_row.addWidget(self.wiki_button)
+        self.item_list_button = QToolButton()
+        self.item_list_button.setText("Item list ▾")
+        self.item_list_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.item_list_button.setAccessibleName("Item list options")
+        item_menu = QMenu(self.item_list_button)
+        self.import_button = item_menu.addAction("Load items from my game…", self.import_game)
+        self.reset_catalog_button = item_menu.addAction("Use the game's usual items", self.reset_catalog)
+        item_menu.addAction("Use item pictures from my game…", self.import_icons)
+        self.item_list_button.setMenu(item_menu)
+        source_row.addWidget(self.item_list_button)
+        root.addLayout(source_row)
         defaults_row = QHBoxLayout()
         defaults_row.setSpacing(12)
-        self.show_game_defaults = QCheckBox("Show game defaults")
+        self.show_game_defaults = QCheckBox("Show gifts everyone shares")
         self.show_game_defaults.setChecked(True)
-        self.show_game_defaults.setAccessibleName("Show inherited game gift tastes")
+        self.show_game_defaults.setAccessibleName("Show gift tastes most villagers share")
         defaults_row.addWidget(self.show_game_defaults)
-        self.defaults_hint = label("Vanilla 1.6.15 defaults · Drag gifts to change a taste. Reset selected restores the default.", "hint", True)
+        self.defaults_hint = label("Villagers share some tastes: nearly everyone loves a Prismatic Shard. "
+                                   "Shared tastes count for them too unless you choose otherwise.", "hint", True)
         defaults_row.addWidget(self.defaults_hint, 1)
         root.addLayout(defaults_row)
         self.catalog_notice = label("", "hint", True)
         root.addWidget(self.catalog_notice)
         columns = QHBoxLayout()
         columns.setSpacing(12)
-        library, content = card("Gift catalog")
+        library, content = card("All gifts")
         library.setMinimumWidth(250)
         content.setContentsMargins(12, 12, 12, 12)
         content.setSpacing(8)
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Search items or IDs…")
+        self.search.setPlaceholderText("Search gifts…")
         self.search.setClearButtonEnabled(True)
         self.search.setAccessibleName("Search gift items")
         content.addWidget(self.search)
         self.filter = QComboBox()
         self.filter.setAccessibleName("Filter gift items by type")
         content.addWidget(self.filter)
-        self.unassigned_only = QCheckBox("Without personal tastes")
+        self.unassigned_only = QCheckBox("Only gifts not chosen yet")
         content.addWidget(self.unassigned_only)
         self.library = GiftList(self)
         self.library.set_drop_area(library)
-        self.library.setToolTip("Drag an item into a taste panel. Drop it back here to restore the game default.")
+        self.library.setToolTip("Pick gifts, then choose Love, Like, Dislike or Hate below. You can also drag them into a panel.")
         self.library.setMinimumHeight(140)
         content.addWidget(self.library, 1)
         self.results = label("", "hint")
         content.addWidget(self.results)
+        # One click gives the picked gifts a taste; Clear returns them to the shared taste.
         assign_row = QHBoxLayout()
-        self.target = QComboBox()
-        self.target.setAccessibleName("Gift assignment category")
-        for taste in TASTES:
-            self.target.addItem(taste.title(), taste)
-        self.target.addItem("Game default", None)
-        assign_row.addWidget(self.target)
-        assign_row.addWidget(button("Assign", self.assign_selected))
+        assign_row.setSpacing(4)
+        self.taste_buttons = {}
+        for taste in (*TASTES, None):
+            key = taste or "clear"
+            widget = button(taste.title() if taste else "Clear",
+                            lambda checked=False, choice=taste: self.assign_selected(choice),
+                            "primary" if taste == "love" else "quiet")
+            widget.setToolTip(f"{taste.title()} the picked gifts" if taste else "Return the picked gifts to the shared taste")
+            assign_row.addWidget(widget)
+            self.taste_buttons[key] = widget
         content.addLayout(assign_row)
+        self.icon_status = label("", "hint", True)
+        content.addWidget(self.icon_status)
         columns.addWidget(library, 1)
         grid = QGridLayout()
         grid.setSpacing(12)
@@ -491,19 +500,19 @@ class GiftsPage(QWidget):
             self.counts[taste] = label("0 items", "hint")
             title_row.addWidget(self.counts[taste])
             content.addLayout(title_row)
-            content.addWidget(label(f"Drop items here to set {taste.title()}", "hint"))
+            content.addWidget(label("Drag gifts here", "hint"))
             target = GiftList(self, taste)
             target.set_drop_area(frame)
-            target.setToolTip(f"Drop an item anywhere in this panel to set {taste.title()}.")
+            target.setToolTip(f"Drop gifts anywhere in this panel to set {taste.title()}.")
             self.lists[taste] = target
             content.addWidget(target, 1)
-            content.addWidget(button("Reset selected", lambda checked=False, key=taste: self.assign_items(self.lists[key].selected_values(), None), "quiet"))
+            content.addWidget(button("Clear selected", lambda checked=False, key=taste: self.assign_items(self.lists[key].selected_values(), None), "quiet"))
             grid.addWidget(frame, index // 2, index % 2)
         columns.addLayout(grid, 2)
         root.addLayout(columns, 1)
         self.feedback = label("", "muted", True)
         root.addWidget(self.feedback)
-        root.addWidget(label("An item can have one personal taste. Drag it between categories to move it, or back to the catalog to use the game default. Ctrl/Cmd-click selects multiple items.", "hint", True))
+        root.addWidget(label("Each gift has one taste. Pick gifts in All gifts and choose a taste, or drag them between panels. Ctrl/Cmd-click picks several. Clear returns a gift to the shared taste.", "hint", True))
         self.search.textChanged.connect(self.render_library)
         self.filter.currentIndexChanged.connect(self.render_library)
         self.unassigned_only.toggled.connect(self.render_library)
@@ -620,13 +629,19 @@ class GiftsPage(QWidget):
         index = self.filter.findData(previous)
         self.filter.setCurrentIndex(max(0, index))
         self.filter.blockSignals(False)
-        self.source_label.setText(("My game" if self.custom_catalog else self.catalog["label"]) + f"  ·  {len(self.items)} items")
+        self.source_label.setText(f"{len(self.items)} gifts " + ("from your game and mods" if self.custom_catalog else "from Stardew Valley"))
         self.reset_catalog_button.setVisible(self.custom_catalog is not None)
         imported = self.catalog.get("imported_at")
-        self.source_label.setToolTip(self.catalog["label"] + ("\nImported: " + imported if imported else ""))
-        self.catalog_notice.setText("Defaults shown for matching vanilla item IDs. This item import does not include your game's modified gift rules; mod items have no assumed default." if self.custom_catalog else "Vanilla object gifts. Neutral defaults stay in the catalog. Trinkets and dynamically flavored variants are outside this catalog.")
+        # Catalog details stay one hover away instead of filling the page.
+        details = ("Shared tastes are shown for items the base game knows. Items added by mods have no shared taste, "
+                   "and this list doesn't include gift rules changed by mods." if self.custom_catalog else
+                   "Every object you can give. Trinkets and flavored variants (like a specific jelly) aren't listed.")
+        self.source_label.setToolTip(self.catalog["label"] + ("\nImported: " + imported if imported else "") + "\n" + details)
+        self.catalog_notice.setText("")
         self.catalog_notice.setToolTip("\n".join(self.catalog.get("warnings", [])))
-        self.catalog_notice.setVisible(bool(self.catalog_notice.text()))
+        self.catalog_notice.setVisible(bool(self.catalog.get("warnings")))
+        if self.catalog.get("warnings"):
+            self.catalog_notice.setText("Some items in this list had problems. Hover here for details.")
         self.icon_store.prepare(self.catalog["items"])
         self.update_icon_status()
         self.render()
@@ -790,9 +805,9 @@ class GiftsPage(QWidget):
             item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
             item.setData(Qt.ItemDataRole.UserRole, "(O)" + item_id)
             if taste:
-                detail = "Personal taste: " + taste.title()
+                detail = "Chosen: " + taste.title()
             elif item_id in self.game_defaults:
-                detail = "Game default: " + self.game_defaults[item_id].title() + " · Vanilla 1.6.15"
+                detail = "Shared by most villagers: " + self.game_defaults[item_id].title()
                 if self.custom_catalog:
                     detail += "\nThis item import does not include modified gift rules."
             elif item_id == "StardropTea":
@@ -821,7 +836,7 @@ class GiftsPage(QWidget):
                 item.setIcon(self.item_icon(value))
                 item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
                 item.setData(Qt.ItemDataRole.UserRole, value)
-                detail = f"Personal taste: {taste.title()} · {value}" if known else "Saved assignment retained. Import the matching game catalog or return this item to default."
+                detail = f"Chosen: {taste.title()} · {value}" if known else "Kept from an earlier item list. Load the matching items, or clear it to use the shared taste."
                 item.setToolTip(self.title(value) + "\n" + detail)
                 target.addItem(item)
                 item.setSelected(key in selected)
@@ -833,21 +848,21 @@ class GiftsPage(QWidget):
                 if item_id in personal or visible.get(item_id) != taste:
                     continue
                 value = "(O)" + item_id
-                item = QListWidgetItem(record["name"] + "\nDefault")
+                item = QListWidgetItem(record["name"] + "\nEveryone")
                 item.setIcon(self.item_icon(value))
                 item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
                 item.setForeground(QColor(COLORS["muted"]))
                 item.setData(Qt.ItemDataRole.UserRole, value)
-                detail = f"Game default: {taste.title()} · Vanilla 1.6.15 · {value}\nDrag to another taste to make a personal choice."
+                detail = f"Most villagers {taste} this · {value}\nPick it and choose a taste to decide for them."
                 if self.custom_catalog:
                     detail += "\nThis item import does not include modified gift rules."
                 item.setToolTip(record["name"] + "\n" + detail)
                 target.addItem(item)
                 item.setSelected(item_id in selected)
                 default_count += 1
-            count = f"{len(self.assignments[taste])} personal"
+            count = f"{len(self.assignments[taste])} chosen"
             if show_defaults:
-                count += f" · {default_count} default"
+                count += f" · {default_count} shared"
             self.counts[taste].setText(count)
             target.blockSignals(False)
         self.feedback.setText(f"{len(missing)} saved assignment(s) are outside this catalog. They are preserved; review them before export." if missing else "")
@@ -865,9 +880,10 @@ class GiftsPage(QWidget):
                 other.clearSelection()
                 other.blockSignals(False)
 
-    def assign_selected(self):
+    def assign_selected(self, taste):
+        """Give the gifts picked in the last list a taste (None returns them to the shared taste)."""
         if self.active_list is not None:
-            self.assign_items(self.active_list.selected_values(), self.target.currentData())
+            self.assign_items(self.active_list.selected_values(), taste)
 
     def assign_items(self, values, taste):
         if taste is not None and taste not in TASTES:

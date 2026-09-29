@@ -18,6 +18,7 @@ def image_from_pixels(pixels):
 
 
 class StageCanvas(QWidget):
+    empty_caption = "Add an actor to stage this scene."
     actorSelected = Signal(int)
     actorMoved = Signal(int, int, int)
     gestureStarted = Signal()
@@ -505,7 +506,7 @@ class StageCanvas(QWidget):
                 painter.drawPolygon(QPolygonF([tip, base + cross, base - cross]))
         notice = ""
         if self.background.isNull():
-            notice = "Map artwork unavailable · actor positions remain editable"
+            notice = "No map picture here yet · you can still place everyone"
         elif not map_rect.intersects(viewport):
             notice = "Outside the map · use Fit map to return"
         if notice:
@@ -540,7 +541,7 @@ class StageCanvas(QWidget):
             missing = " · artwork unavailable" if frames[self.selected].isNull() else ""
             caption = f"{self.actor_name(self.selected)} · tile {actor.get('x', 0)}, {actor.get('y', 0)}{missing}"
         else:
-            caption = "Add an actor to stage this scene."
+            caption = self.empty_caption
         font.setBold(False)
         font.setPixelSize(11)
         painter.setFont(font)

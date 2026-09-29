@@ -1,13 +1,13 @@
 # Give your character a home
 
 Open **Home** to go straight to the interior editor. The two tabs above the
-canvas are **Pre-spouse residence**, their home before marriage, and **Spouse
-room**, their room in the farmhouse after marriage. Existing designs open in
+canvas are **Their home**, where they live before marriage, and **Spouse room
+(after marriage)**, their room in the farmhouse. Existing designs open in
 place; an empty tab lets you start decorating immediately.
 
 You can begin before saving the project for the first time. Edits stay with the
-project when you switch rooms or leave Home; use **File → Save** to write them
-to disk. There is no separate Apply step. Simply visiting an empty room does not
+project when you switch rooms or leave Home, and Pixelheart saves the room you're
+decorating as you go, without closing it. There is no separate Apply step. Simply visiting an empty room does not
 add it to the project. If an edit needs correction, the editor explains the
 problem and keeps the room open before switching or saving.
 
@@ -24,7 +24,7 @@ scenes that referenced a removed character before exporting.
 
 ## Design an interior
 
-Choose **Pre-spouse residence** or **Spouse room** and work directly on the
+Choose **Their home** or **Spouse room (after marriage)** and work directly on the
 canvas. The spouse canvas stays 6×9 tiles. A residence can contain connected
 floor regions and up to four optional rooms.
 
@@ -50,6 +50,28 @@ is unavailable.
   nearby edges snap together. Select a room to reveal its eight resize handles.
   Drag an edge or corner to resize while its contents stay in place. Escape
   cancels a gesture, and Undo restores the previous layout.
+
+### Paint a piece of furniture
+
+Select a placed piece and choose **Paint…** to recolor it or draw over it in the
+[pixel painter](ARTWORK.md#pixel-painter). The painter shows every direction the
+piece can face, its animation frames, and a lamp's lit look side by side, exactly
+where the game looks for them. **Use painted furniture** turns it into a new piece
+for this home: the selected piece changes, other copies stay as they are, and the
+painted piece joins the catalogue so you can place it again. The game's own
+furniture never changes. Pieces the game faces left by flipping the right-facing
+picture show your painting flipped too.
+
+Choose **Paint…** on a painted piece to change it again; your layers come back, and
+every copy of that painted piece in the room updates. **Use original** puts the
+game's piece back. Chairs, benches, couches and armchairs also get the front edge
+the game draws over a sitting villager. It is made from the game's own front
+picture, so connect your game first; otherwise the villager is drawn in front of
+the whole seat. Beds, fish tanks, televisions and the randomly shaped cactus
+can't be painted yet.
+
+The exported pack adds each painted piece as its own furniture item, with its own
+picture, kept out of shops. Your installed game and other mods are unchanged.
 
 Under **Rooms & hallways**, **Draw a room…** creates a connected rectangular
 addition, and **Draw hallway** creates a narrow connecting floor region. Draw
@@ -142,7 +164,7 @@ use **Refresh game library…**. Artwork is read from your installed game and
 stored privately with the design.
 
 Use **Edit → Undo / Redo** while experimenting. **Grid**, zoom, and **Fit room**
-help with placement, and **Play** previews available animations. The layout
+help with placement, and **Animate** previews available animations. The layout
 protects occupied rooms, the doorway, and the spouse's standing spot.
 
 **Advanced…** holds custom tilesheet imports, exact dimensions, furniture item
@@ -165,10 +187,13 @@ Spouse rooms use the same finish-and-furniture approach demonstrated by
 
 Undo and redo follow changes across the whole character project. Switching
 rooms, opening room settings, or leaving Home preserves that history and keeps
-valid edits in the project. **File → Save** writes the project and its private
-tilesheets and preview textures to disk, then starts a fresh undo history.
-A cancelled or failed save keeps the history. Incomplete artwork can stay in a
-draft, but export remains blocked until the required setup is ready.
+valid edits in the project. Pixelheart saves the project, its private tilesheets
+and preview textures a moment after each change, and Undo keeps working. If the
+room you're editing can't be saved yet, everything else is saved, the top of the
+window says so, and the room stays open with its changes. With **File → Save
+automatically** turned off, **File → Save** writes the project and starts a fresh
+undo history; a cancelled or failed save keeps the history. Incomplete artwork
+can stay in a draft, but export remains blocked until the required setup is ready.
 
 Designed interiors require the separate **Pixelheart Interiors 0.2.0+** SMAPI companion,
 Stardew Valley 1.6.14+, SMAPI 4.3.2+, and Content Patcher. The companion source is in
@@ -217,7 +242,7 @@ before treating an exported design as ready for play.
 
 ## Connect the entrance and exit
 
-On **Pre-spouse residence**, choose **Connect entrance…** above the editor to
+On **Their home**, choose **Connect entrance…** above the editor to
 open the entrance settings. For an existing connection, this button reads
 **Entrance…**. A new residence remains unconnected until you choose **Use this
 entrance**:
@@ -228,7 +253,7 @@ entrance**:
    **Move doorway in designer…** returns you to the canvas with the doorway
    tool selected. Imported or painted maps expose separate **Arrive inside**
    and **Exit from** coordinates.
-4. Choose **Use this entrance**, then **File → Save**. Editing its map or
+4. Choose **Use this entrance**. Editing its map or
    coordinates requires confirming the entrance again. Existing projects retain
    their saved connections.
 

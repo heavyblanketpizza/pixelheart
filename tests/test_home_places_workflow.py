@@ -19,6 +19,7 @@ from pixelheart_core.projects import load_project, new_project
 from pixelheart_core.story import new_event
 from pixelheart_core.world import exported_location_id, new_companion, new_location, new_world, world_issues
 from tests.qt_support import QtTestCase
+from pixelheart.autosave import set_autosave_enabled
 
 
 class HomePlacesWorkflowTests(QtTestCase):
@@ -153,6 +154,9 @@ class HomePlacesWorkflowTests(QtTestCase):
         self.assertEqual(self.window.identity.dump()["home_map"], game_id)
 
     def test_save_finishes_removal_and_clears_undo_history(self):
+        # With File → Save automatically off, Save keeps its classic fresh history.
+        self.window.autosave_action.setChecked(False)
+        self.addCleanup(set_autosave_enabled, True)
         self.open_places(self.place())
         self.page.remove_location()
         self.assertTrue(self.page.undo_remove_button.isHidden())

@@ -763,6 +763,7 @@ def compile_world(world, character, project_root):
                     files[prefix + name.removeprefix(folder + "assets/")] = archive.read(name)
             repeat_events.extend(story_repeat_events(companion, mod_id=exported_mod_id(character)))
     prepared_interiors, map_targets, runtime_designs, interior_dependencies = {}, {}, {}, set()
+    painted_furniture = {}
     for location in world["locations"]:
         identity = exported_location_id(location, character)
         map_targets[location["internal_name"]] = ["Maps/" + identity]
@@ -785,6 +786,7 @@ def compile_world(world, character, project_root):
                         protected.append([int(stop["x"]), int(stop["y"])])
             compiled["runtime"]["protected_tiles"] = protected
             prepared_interiors[location["id"]] = compiled
+            painted_furniture.update(compiled["painted_furniture"])
             runtime_designs[identity] = compiled["runtime"]
             interior_dependencies.update(compiled["dependencies"])
             map_targets[location["internal_name"]].extend(v["map_asset"] for v in compiled["runtime"]["variants"])
@@ -829,6 +831,20 @@ def compile_world(world, character, project_root):
     dependencies = [{"UniqueID": item["id"], "IsRequired": item.get("required", True),
                      **({"MinimumVersion": item["minimum_version"]} if item.get("minimum_version") else {})}
                     for item in world["dependencies"]]
+    if painted_furniture:
+        # Painted pieces are the pack's own furniture items; one entry each, however many rooms use them.
+        entries = {}
+        for key, piece in sorted(painted_furniture.items()):
+            name = key.rsplit("_", 1)[1]
+            texture_file = "assets/furniture/" + name + ".png"
+            files[texture_file] = piece["texture"]
+            patches.append({"Action": "Load", "Target": piece["texture_asset"], "FromFile": texture_file})
+            if piece["front"] is not None:
+                front_file = "assets/furniture/" + name + "Front.png"
+                files[front_file] = piece["front"]
+                patches.append({"Action": "Load", "Target": piece["texture_asset"] + "Front", "FromFile": front_file})
+            entries[key] = piece["record"]
+        patches.append({"Action": "EditData", "Target": "Data/Furniture", "Entries": entries})
     if runtime_designs:
         patches.append({"Action": "EditData", "Target": "Pixelheart.Interiors/Designs", "Entries": runtime_designs})
         for identity in sorted(interior_dependencies | {INTERIORS_MOD_ID}):
@@ -854,7 +870,9 @@ def compile_world(world, character, project_root):
             "4. Use F8 to add/remove optional rooms in single-player. Occupied rooms must refuse removal.\n"
             "5. Follow the resident's schedules and verify every home destination remains reachable.\n"
             "6. After marriage, check the spouse room's actual position, furniture, and standing point.\n"
-            "7. Apply wallpaper/flooring, change rooms, and reload; check that player choices persist.\n\n"
+            "7. Apply wallpaper/flooring, change rooms, and reload; check that player choices persist.\n"
+            + ("8. Check each painted piece in every rotation (and lit, for lamps). Sit on painted seats: the front "
+               "edge should stay in front of whoever sits.\n" if painted_furniture else "") + "\n"
             "If placement was deferred, resolve the reported obstruction or missing item and run pixelheart_interiors_retry. "
             "Structural room changes are not enabled in multiplayer. Preview animations do not add custom game item behavior.\n").encode("utf-8")
     return {"patches": patches, "files": files, "npc_fields": npc_fields,

@@ -26,7 +26,7 @@ uv downloads the right Python and everything else Pixelheart needs.
 ## Your first visit
 
 1. **Pixelheart finds your game.** It checks the usual Steam and GOG places, including Steam libraries on external drives. The welcome screen says what it found, for example *Stardew Valley 1.6.15 found on Just for Fun*, and whether SMAPI and Content Patcher are installed. If it can't find the game, choose **Find Stardew Valley…** and point it at the game folder. If your game lives on a drive that's unplugged, Pixelheart waits patiently and draws its own hearts and headings until you plug it back in.
-2. **Choose New character** and type a name. That's it: Pixelheart saves them in `Documents/Pixelheart/<their name>/` for you.
+2. **Choose New character** and type a name. That's it: Pixelheart saves them in `Documents/Pixelheart/<their name>/` for you, and keeps saving every change as you work.
 3. **Follow the hearts.** The **Overview** page shows your character's journey as eight hearts, one per step, with a *Next up* suggestion and anything that still needs fixing.
 
 Pixelheart keeps to warm white and black pixel lines, so the portraits, sprites and rooms you make carry the color. The hearts and heading lettering come from your installed game. Long writing sessions are easier on the eyes with **View → Easier-to-read text**, which keeps the pixel frames but uses a plain font.
@@ -45,6 +45,14 @@ Pixelheart keeps to warm white and black pixel lines, so the portraits, sprites 
 | **Play in Stardew** | Check everything, put them in your game, and keep playtest notes |
 
 Each finished step earns a heart in the sidebar and on the Overview.
+
+## Write their voice
+
+On **Conversations**, choose when a line is said in plain words: the first time you meet, on Mondays, on summer Thursdays once you're friends, on Summer 1, at the Saloon on Fridays, or when you give them a Poppy. The game's own key is shown underneath for modders. Put the cursor in a box and choose **Happy**, **Sad**, **Love** or another feeling to change their portrait; **New box** continues in the next dialogue box and **Farmer's name** greets the player by name. The preview shows each box the way the game's dialogue box does, with their portrait and name, one box at a time. Line breaks there are approximate, because the game measures its own font.
+
+## Plan their day
+
+On **Daily routine**, each stop has a time, a place and a spot to stand. Times read like the game's clock, from 6:00 AM to 2:00 AM. Select a stop to see its place (a map from your game, a map you supplied, or a room you designed in Home) with every stop there numbered and joined in order, drawn with your character's walking sprite. Click a tile to move the stop there or drag it, and use the arrows under the map to choose which way they face. **Conditional routines** work the same way.
 
 ## Start from a villager
 
@@ -72,8 +80,9 @@ Only heart events marked ready go into the game. Unfinished drafts stay safely i
 ## Keeping your characters safe
 
 - Characters live in `Documents/Pixelheart/`. Back up that folder to keep everything, including imported artwork and homes.
+- Pixelheart saves each change a moment after you make it. The top of the window says **All changes saved**, or explains what couldn't be saved. **File → Save automatically** turns this off if you'd rather save yourself.
 - **File → Save a copy…** saves a character somewhere else.
-- **Edit → Undo / Redo** works across the whole character, including Home.
+- **Edit → Undo / Redo** works across the whole character, including Home, and keeps working after Pixelheart saves.
 - Keep a character's internal name the same once you've used them in a save file.
 
 ## Guides

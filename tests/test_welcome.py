@@ -127,7 +127,7 @@ class WelcomeTests(QtTestCase):
         menus = {action.text(): action.menu() for action in window.menuBar().actions()}
         self.assertEqual(list(menus), ["&File", "&Edit", "&View", "&Help"])
         file_items = [action.text() for action in menus["&File"].actions() if action.text()]
-        self.assertEqual(file_items[:6], ["&Home", "&New character", "&Open…", "&Save", "Save a &copy…", "&Play in Stardew…"])
+        self.assertEqual(file_items[:7], ["&Home", "&New character", "&Open…", "&Save", "Save &automatically", "Save a &copy…", "&Play in Stardew…"])
         view_items = {action.text(): action for action in menus["&View"].actions()}
         self.assertIn("&Find Stardew Valley…", view_items)
         easy = view_items["&Easier-to-read text"]

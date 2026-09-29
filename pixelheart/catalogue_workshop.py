@@ -157,6 +157,11 @@ class CatalogueWorkshop(QWidget):
         root.addWidget(splitter, 1)
         self.update_interaction()
 
+    def has_packs(self, project_file=None):
+        """Whether any furniture catalogue packs exist where this workshop looks."""
+        roots = ([Path(project_file).parent] if project_file else []) + [self._workspace_root / "projects"]
+        return bool(discover_development_packs(roots))
+
     def refresh(self, project_file=None):
         self._project_file = Path(project_file) if project_file else None
         roots = ([Path(project_file).parent] if project_file else []) + [self._workspace_root / "projects"]

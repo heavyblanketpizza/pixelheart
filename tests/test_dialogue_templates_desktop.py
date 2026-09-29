@@ -344,7 +344,7 @@ class DialogueTemplateDesktopTests(QtTestCase):
         self.assertEqual(changed.count(), 1)
         self.assertEqual(page.dump()[0]["id"], self.records[0]["id"])
         self.assertEqual(page.current, 0)
-        self.assertEqual(page.preview.text(), "Hello, Farmer.\nNice to meet you.")
+        self.assertEqual([box.lines for box in page.box.pages], [("Hello, Farmer.",), ("Nice to meet you.",)])
         self.assertTrue(page.example_prompt.isHidden())
 
     def test_project_source_ignores_remembered_artwork_folder_and_has_no_folder_picker(self):

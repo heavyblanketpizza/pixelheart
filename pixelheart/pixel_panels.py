@@ -623,7 +623,7 @@ class PreviewPanel(QWidget):
 
     def _frames(self):
         document = self.document
-        if document.frame_count <= 1:
+        if document.frame_count <= 1 or self.kind == "furniture":
             return [None]
         if self.kind == "sprite":
             columns = document.frame_columns
@@ -645,7 +645,8 @@ class PreviewPanel(QWidget):
     def _caption(self):
         document = self.document
         if not self.framed:
-            return f"Whole sheet · {document.width} × {document.height}"
+            whole = "The whole piece" if self.kind == "furniture" else "Whole sheet"
+            return f"{whole} · {document.width} × {document.height}"
         index = min(self.frame, document.frame_count - 1)
         column, row = index % document.frame_columns, index // document.frame_columns
         if self.kind == "sprite":

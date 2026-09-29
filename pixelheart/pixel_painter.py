@@ -26,7 +26,7 @@ __all__ = ["PixelPainterDialog", "choose_tilesheet_size", "image_from_qimage", "
 
 TIP = ("Left button paints, right button paints the second color. Alt-click picks a color, "
        "Shift-click draws a straight line, and Space-drag moves around.")
-ROW_NAMES = {"portrait": "expression row", "sprite": "frame row", "tilesheet": "tile row"}
+ROW_NAMES = {"portrait": "expression row", "sprite": "frame row", "tilesheet": "tile row", "furniture": "tile row"}
 
 
 class PixelPainterDialog(QDialog):

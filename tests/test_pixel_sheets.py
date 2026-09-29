@@ -29,6 +29,15 @@ class SheetSpecTests(unittest.TestCase):
         self.assertEqual((spec.frame_width, spec.frame_height), (16, 16))
         self.assertEqual(spec.columns, 16)
 
+    def test_furniture_uses_tiles_and_keeps_its_size(self):
+        spec = sheet_spec("furniture", 48, 32)
+        self.assertEqual((spec.frame_width, spec.frame_height, spec.columns), (16, 16, 3))
+        self.assertEqual(spec.label, "Furniture")
+        self.assertFalse(spec.can_add_row(32))
+        self.assertFalse(spec.can_remove_row(32))
+        with self.assertRaises(SheetError):
+            new_sheet_size("furniture")
+
     def test_irregular_sheet_is_one_frame_without_rows(self):
         spec = sheet_spec("portrait", 100, 90)
         self.assertEqual((spec.frame_width, spec.frame_height), (100, 90))

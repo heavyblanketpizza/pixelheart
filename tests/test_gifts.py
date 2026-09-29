@@ -303,17 +303,42 @@ class GiftEditorTests(QtTestCase):
         self.use_import()
         for row in range(self.page.library.count()):
             self.page.library.item(row).setSelected(True)
-        self.page.target.setCurrentIndex(self.page.target.findData("dislike"))
-        self.page.assign_selected()
+        self.page.taste_buttons["dislike"].click()
         self.assertEqual(set(self.list_ids(self.page.lists["dislike"])), {"66", "395", MOD_ITEM})
+
+    def test_clear_returns_a_chosen_gift_to_the_shared_taste(self):
+        self.use_import()
+        self.page.assign_items(["66"], "love")
+        self.select(self.page.lists["love"], "66")
+        self.page.taste_buttons["clear"].click()
+        self.assertEqual(self.page.dump()["love"], [])
+
+    def test_plain_words_for_chosen_and_shared_tastes(self):
+        page = self.page
+        self.assertEqual(page.show_game_defaults.text(), "Show gifts everyone shares")
+        self.assertEqual(page.unassigned_only.text(), "Only gifts not chosen yet")
+        self.assertEqual([page.taste_buttons[key].text() for key in ("love", "like", "dislike", "hate", "clear")],
+                         ["Love", "Like", "Dislike", "Hate", "Clear"])
+        page.assign_items(["(O)74"], "love")
+        self.assertRegex(page.counts["love"].text(), r"^1 chosen · \d+ shared$")
+        shared = [page.lists["love"].item(row).text() for row in range(page.lists["love"].count())
+                  if page.lists["love"].item(row).data(Qt.ItemDataRole.UserRole) != "(O)74"]
+        self.assertTrue(shared and all(text.endswith("\nEveryone") for text in shared))
+        page.show_game_defaults.setChecked(False)
+        self.assertEqual(page.counts["love"].text(), "1 chosen")
+        self.assertEqual(page.source_label.text(), f"{len(page.items)} gifts from Stardew Valley")
+
+    def test_item_list_options_live_in_one_menu(self):
+        actions = [action.text() for action in self.page.item_list_button.menu().actions()]
+        self.assertEqual(actions, ["Load items from my game…", "Use the game's usual items", "Use item pictures from my game…"])
+        self.assertFalse(self.page.reset_catalog_button.isVisible())
 
     def test_assign_uses_last_taste_selection_instead_of_stale_library_selection(self):
         self.use_import()
         self.page.assign_items(["66"], "love")
         self.select(self.page.library, "395")
         self.select(self.page.lists["love"], "66")
-        self.page.target.setCurrentIndex(self.page.target.findData("hate"))
-        self.page.assign_selected()
+        self.page.taste_buttons["hate"].click()
         self.assertEqual(self.page.dump()["love"], [])
         self.assertEqual(self.page.dump()["hate"], ["(O)66"])
         self.assertNotIn("395", self.page.memberships())

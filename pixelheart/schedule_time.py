@@ -24,6 +24,14 @@ def game_time(minutes):
     return str(hours * 100 + remainder)
 
 
+def clock_label(minutes):
+    """The game's 12-hour clock, e.g. 6:00 AM or 1:00 AM (next day)."""
+    hours, remainder = divmod(minutes, 60)
+    day_hours = hours % 24
+    text = f"{day_hours % 12 or 12}:{remainder:02d} {'AM' if day_hours < 12 else 'PM'}"
+    return text + (" (next day)" if hours >= 24 else "")
+
+
 class ScheduleTime(QComboBox):
     """Only valid ten-minute choices; retain invalid legacy text for review."""
 
@@ -32,9 +40,8 @@ class ScheduleTime(QComboBox):
         self.setEditable(False)
         self.setMaxVisibleItems(14)
         for minutes in range(360, 1561, 10):
-            hours, remainder = divmod(minutes, 60)
-            self.addItem(f"{hours:02}:{remainder:02}" + (" (+1 day)" if hours >= 24 else ""), game_time(minutes))
-        self.setToolTip("Stardew game time, in ten-minute steps. 24:00–26:00 is after midnight.")
+            self.addItem(clock_label(minutes), game_time(minutes))
+        self.setToolTip("Stardew game time, in ten-minute steps. The day ends at 2:00 AM.")
 
     def setText(self, text):
         # Compatibility with saved HH:MM values and older editor integrations.
