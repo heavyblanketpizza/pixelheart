@@ -15,6 +15,8 @@ from pixelheart.theme import apply_theme
 from tests.qt_support import QtTestCase
 from tests import test_game_ui
 
+GAME_CROPS = r"/game-[0-9a-f]{16}/"
+
 
 class SkinTests(QtTestCase):
     @classmethod
@@ -35,7 +37,7 @@ class SkinTests(QtTestCase):
     def test_stylesheet_uses_every_piece_by_object_name(self):
         pieces, source = skin.refresh_pieces(None)
         sheet = skin.build_stylesheet(pieces)
-        self.assertEqual(source, "original")
+        self.assertEqual(source, "paper")
         for selector in ("QFrame#card", "QPushButton#primary", "QPushButton#quiet", "QPushButton#danger",
                          "QLineEdit", "QComboBox::drop-down", "QCheckBox::indicator:checked",
                          "QWidget#sidebar", "QListWidget#navigation::item:selected", "QScrollBar::handle:vertical",
@@ -68,11 +70,11 @@ class SkinTests(QtTestCase):
     def test_unwritable_cache_falls_back_to_a_temporary_folder(self):
         from pixelheart_core.game_ui import ui_pieces as real
         calls = []
-        def flaky(content, cache_root):
+        def flaky(content, cache_root, **options):
             calls.append(cache_root)
             if len(calls) == 1:
                 raise PermissionError("read-only home")
-            return real(content, cache_root)
+            return real(content, cache_root, **options)
         with patch("pixelheart.skin.ui_pieces", side_effect=flaky):
             apply_theme(self.app, content_root=None)
         self.assertEqual(len(calls), 2)
@@ -87,15 +89,44 @@ class SkinTests(QtTestCase):
         self.assertNotIn("url(", sheet)
         self.assertEqual(skin.current_pieces(), {})
 
-    def test_skin_uses_game_pieces_when_connected(self):
+    def connected_game(self):
         fixture = test_game_ui.GameUiTests("test_fallback_draws_every_required_role")
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
-        apply_theme(self.app, content_root=fixture.content)
+        return fixture.content
+
+    def test_paper_is_the_default_look_even_with_a_game(self):
+        apply_theme(self.app, content_root=self.connected_game())
+        self.assertEqual(skin.current_look(), "paper")
+        self.assertEqual(skin.current_source(), "paper")
+        self.assertEqual(skin.COLORS, skin.PAPER_COLORS)
+        self.assertEqual(self.app.palette().window().color().name(), skin.PAPER_COLORS["page"])
+        sheet = self.app.styleSheet()
+        self.assertIn("/paper-v", sheet)
+        self.assertNotRegex(sheet, GAME_CROPS)
+        # Hearts and the bold title font still come from the player's game.
+        self.assertIn("game-", skin.current_pieces()["heart_full"].path.parent.name)
+        self.assertEqual(skin.current_pieces()["font"].path.name, "font_ink.png")
+
+    def test_stardew_menu_colors_bring_back_the_game_look(self):
+        self.addCleanup(skin.set_stardew_colors, False)
+        skin.set_stardew_colors(True)
+        self.assertEqual(self.settings.value("view/stardewColors"), "true")
+        apply_theme(self.app, content_root=self.connected_game())
+        self.assertEqual(skin.current_look(), "stardew")
         self.assertEqual(skin.current_source(), "game")
-        self.assertIn("game-", self.app.styleSheet())
+        self.assertEqual(skin.COLORS, skin.STARDEW_COLORS)
+        self.assertRegex(self.app.styleSheet(), GAME_CROPS)
+        skin.set_stardew_colors(False)
+        apply_theme(self.app, content_root=None)
+        self.assertEqual(skin.COLORS, skin.PAPER_COLORS)
+
+    def test_looks_share_every_color_name(self):
+        self.assertEqual(set(skin.PAPER_COLORS), set(skin.STARDEW_COLORS))
 
     def test_skin_falls_back_when_game_disappears(self):
+        self.addCleanup(skin.set_stardew_colors, False)
+        skin.set_stardew_colors(True)
         apply_theme(self.app, content_root=self.folder / "gone")
         self.assertEqual(skin.current_source(), "original")
         self.assertIn("original-v", self.app.styleSheet())

@@ -3,14 +3,16 @@
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap
 
+from .skin import COLORS
+
 
 def navigation_icon(section: str) -> QIcon:
-    """Return a crisp 20px icon with matching light and selected-row inks."""
+    """Return a crisp 20px icon in the current look's sidebar and selected-row inks."""
     icon = QIcon()
     for mode, ink, accent in (
-        (QIcon.Mode.Normal, "#c9bba4", "#c6a569"),
-        (QIcon.Mode.Active, "#f1e6cf", "#d8b477"),
-        (QIcon.Mode.Selected, "#66553e", "#aa8447"),
+        (QIcon.Mode.Normal, COLORS["nav_ink"], COLORS["nav_accent"]),
+        (QIcon.Mode.Active, COLORS["nav_ink_hover"], COLORS["nav_accent_hover"]),
+        (QIcon.Mode.Selected, COLORS["nav_ink_selected"], COLORS["nav_accent_selected"]),
     ):
         pixmap = QPixmap(40, 40)
         pixmap.setDevicePixelRatio(2)

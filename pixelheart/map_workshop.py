@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from pixelheart_core.world import WorldError, import_map, map_bundle, asset_path
+from .skin import COLORS
 from .widgets import label, button
 
 
@@ -270,9 +271,9 @@ class TilesetPalette(QWidget):
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.fillRect(event.rect(), QColor("#e7e4dd"))
+        painter.fillRect(event.rect(), QColor(COLORS["surface_muted"]))
         if self.sheet is None:
-            painter.setPen(QColor("#635c6a"))
+            painter.setPen(QColor(COLORS["ink_soft"]))
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "Open your tilesheet\nto choose a tile.")
             return
         start = max(0, event.rect().top() // self.CELL) * self.COLUMNS
@@ -281,7 +282,7 @@ class TilesetPalette(QWidget):
             x, y = index % self.COLUMNS * self.CELL, index // self.COLUMNS * self.CELL
             source = QRect(index % self.sheet["columns"] * 16, index // self.sheet["columns"] * 16, 16, 16)
             painter.drawPixmap(QRect(x + 1, y + 1, 32, 32), self.pixmap, source)
-            painter.setPen(QPen(QColor("#ab677e") if index + 1 == self.current else QColor("#c6c1b8"), 3 if index + 1 == self.current else 1))
+            painter.setPen(QPen(QColor(COLORS["accent" if index + 1 == self.current else "rule"]), 3 if index + 1 == self.current else 1))
             painter.drawRect(x + 1, y + 1, self.CELL - 2, self.CELL - 2)
 
     def mousePressEvent(self, event):

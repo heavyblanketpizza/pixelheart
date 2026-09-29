@@ -42,6 +42,7 @@ from pixelheart_core.world import asset_path, _read_asset, _write_new_file
 from pixelheart_core.interior_runtime import INTERIORS_MIN_VERSION, INTERIORS_MIN_GAME_VERSION, INTERIORS_MIN_SMAPI_VERSION
 from .widgets import label, button
 from .game_import import game_import_settings
+from .skin import COLORS
 from .interior_canvas import FURNITURE_MIME, ROOM_MIME, InteriorCanvas
 from .architecture_panel import ArchitecturePanel
 
@@ -68,15 +69,15 @@ class CatalogueTile(QStyledItemDelegate):
         selected = bool(option.state & QStyle.StateFlag.State_Selected)
         hovered = bool(option.state & QStyle.StateFlag.State_MouseOver)
         rect = option.rect.adjusted(2, 2, -2, -2)
-        painter.setPen(QPen(QColor("#6b8051" if selected else "#d8c8a9"), 2 if selected else 1))
-        painter.setBrush(QColor("#e5e9d5" if selected else "#f0e4c7" if hovered else "#fffbf0"))
+        painter.setPen(QPen(QColor(COLORS["accent_rule" if selected else "rule"]), 2 if selected else 1))
+        painter.setBrush(QColor(COLORS["accent_soft" if selected else "surface_hover" if hovered else "surface"]))
         painter.drawRoundedRect(rect, 3, 3)
         icon = index.data(Qt.ItemDataRole.DecorationRole)
         if isinstance(icon, QIcon):
             pixmap = icon.pixmap(QSize(64, 64))
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
             painter.drawPixmap(rect.center().x() - pixmap.width() // 2, rect.top() + 6 + (64 - pixmap.height()) // 2, pixmap)
-        painter.setPen(QColor("#354425" if selected else "#554833"))
+        painter.setPen(QColor(COLORS["accent" if selected else "ink"]))
         font = painter.font()
         font.setPixelSize(12)
         painter.setFont(font)
@@ -148,23 +149,23 @@ class RoomPreset(QWidget):
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.setPen(QPen(QColor("#8c9d73"), 2, Qt.PenStyle.DashLine))
-        painter.setBrush(QColor("#eef0e3"))
+        painter.setPen(QPen(QColor(COLORS["rule_strong"]), 2, Qt.PenStyle.DashLine))
+        painter.setBrush(QColor(COLORS["surface_muted"]))
         painter.drawRoundedRect(self.rect().adjusted(2, 2, -2, -2), 5, 5)
         width, height = self.editor.room_size.currentData()
         raised = self.editor.room_type.currentData() == "raised"
         total_height = height + (4 if raised else 0)
         cell = min(7, 64 // max(width, total_height))
         room = QRect(20, (self.height() - total_height * cell) // 2, width * cell, height * cell)
-        painter.setBrush(QColor("#d8c596"))
-        painter.setPen(QPen(QColor("#796747"), 2))
+        painter.setBrush(QColor(COLORS["rule"]))
+        painter.setPen(QPen(QColor(COLORS["ink_soft"]), 2))
         painter.drawRect(room)
         if raised:
             steps = QRect(room.center().x() - cell, room.bottom() + 1, 2 * cell, 4 * cell)
             painter.drawRect(steps)
             for row in (1, 2, 3):
                 painter.drawLine(steps.left(), steps.top() + row * cell, steps.right(), steps.top() + row * cell)
-        painter.setPen(QColor("#354425"))
+        painter.setPen(QColor(COLORS["ink"]))
         painter.drawText(QRect(98, 15, self.width()-110, self.height()-30),
                          Qt.AlignmentFlag.AlignVCenter | Qt.TextFlag.TextWordWrap,
                          f"{'Drag raised room + steps' if raised else 'Drag room into layout'}\n{width} × {height} tiles")
@@ -223,15 +224,15 @@ class InteriorPalette(QWidget):
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.fillRect(event.rect(), QColor("#e8e2d5"))
+        painter.fillRect(event.rect(), QColor(COLORS["surface_muted"]))
         if self.pixmap.isNull():
-            painter.setPen(QColor("#796b56"))
+            painter.setPen(QColor(COLORS["ink_soft"]))
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "Choose a tilesheet PNG")
         else:
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
             painter.drawPixmap(self.rect(), self.pixmap)
             if self.columns:
-                painter.setPen(QPen(QColor("#61734d"), 2))
+                painter.setPen(QPen(QColor(COLORS["accent"]), 2))
                 painter.drawRect(self.selection % self.columns * 32 + 1,
                                  self.selection // self.columns * 32 + 1, 30, 30)
         painter.end()
@@ -574,7 +575,7 @@ class InteriorEditor(QDialog):
         self.canvas.preview_changed.connect(self.preview_feedback)
         self.canvas_scroll = QScrollArea()
         self.canvas_scroll.setObjectName("interiorStage")
-        self.canvas_scroll.setStyleSheet("QScrollArea#interiorStage { background: #292d30; border: 2px solid #8e8068; border-radius: 4px; } QScrollArea#interiorStage > QWidget > QWidget { background: #292d30; }")
+        self.canvas_scroll.setStyleSheet(f"QScrollArea#interiorStage {{ background: #292d30; border: 2px solid {COLORS['rule_strong']}; border-radius: 4px; }} QScrollArea#interiorStage > QWidget > QWidget {{ background: #292d30; }}")
         self.canvas_stage = QWidget()
         self.canvas.setParent(self.canvas_stage)
         self.canvas_scroll.setWidget(self.canvas_stage)
@@ -859,7 +860,8 @@ class InteriorEditor(QDialog):
         widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         widget.setAccessibleName(name)
-        widget.setStyleSheet("QListWidget { background: #f6eedb; border: 1px solid #c6b38f; border-radius: 4px; padding: 4px; } QListWidget::item { border: 1px solid #ded0b3; border-radius: 3px; background: #fffbf0; padding: 4px; } QListWidget::item:selected { background: #e5e9d5; border: 2px solid #6b8051; color: #354425; } QListWidget::item:hover { background: #f0e4c7; }")
+        # Styled by the app's look (skin.py), so it follows View → Stardew menu colors.
+        widget.setObjectName("catalogueGallery")
 
     def _build_furniture(self):
         _, layout = self._tab("Furnish")
@@ -1722,7 +1724,7 @@ class InteriorEditor(QDialog):
         if getattr(self, "_stage_background", None) != background:
             self._stage_background = background
             self.canvas_scroll.setStyleSheet(
-                f"QScrollArea#interiorStage {{ background: {background}; border: 2px solid #8e8068; border-radius: 4px; }} "
+                f"QScrollArea#interiorStage {{ background: {background}; border: 2px solid {COLORS['rule_strong']}; border-radius: 4px; }} "
                 f"QScrollArea#interiorStage > QWidget > QWidget {{ background: {background}; }}")
         try:
             options = self.preview_options()

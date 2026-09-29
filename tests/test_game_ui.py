@@ -4,10 +4,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from PIL import Image
+from PIL import Image, ImageColor
 
 from pixelheart_core.game_ui import (
-    PIECES, REQUIRED_ROLES, build_fallback_ui, build_game_ui, ui_pieces,
+    INK, PANEL_RULE, PIECES, REQUIRED_ROLES, build_fallback_ui, build_game_ui, ui_pieces,
 )
 from tests.test_game_templates import texture_from
 
@@ -83,6 +83,29 @@ class GameUiTests(unittest.TestCase):
                 _, saturation, value = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
                 self.assertLessEqual(value, 0.8, role)
                 self.assertLessEqual(saturation, 0.85, role)
+
+    def test_paper_look_is_ink_on_warm_white(self):
+        pieces, source = ui_pieces(None, self.cache, look="paper")
+        self.assertEqual(source, "paper")
+        self.assertEqual(set(REQUIRED_ROLES) - set(pieces), set())
+        # Only the hearts and the danger button carry color; everything else is near-neutral.
+        for role in set(REQUIRED_ROLES) - {"heart_full", "heart_empty", "button_danger"}:
+            with Image.open(pieces[role].path) as image:
+                colors = [color for _, color in image.convert("RGBA").getcolors(256) if color[3]]
+            for color in colors:
+                self.assertLessEqual(max(color[:3]) - min(color[:3]), 24, role)
+
+    def test_paper_look_keeps_game_hearts_and_inks_the_bold_font(self):
+        glyph, shadow = (90, 30, 10, 255), (230, 160, 80, 255)
+        self.write("LooseSprites/font_bold", marked((128, 592), {(0, 0): glyph, (1, 0): shadow, (2, 0): (0, 0, 0, 0)}))
+        pieces, _ = ui_pieces(self.content, self.cache, look="paper")
+        self.assertIn("paper-v", pieces["button"].path.parent.name)
+        self.assertIn("game-", pieces["heart_full"].path.parent.name)
+        self.assertIn("game-", pieces["cursors"].path.parent.name)
+        with Image.open(pieces["font"].path) as font:
+            self.assertEqual(font.getpixel((0, 0)), ImageColor.getrgb(INK) + (255,))
+            self.assertEqual(font.getpixel((1, 0)), ImageColor.getrgb(PANEL_RULE) + (255,))
+            self.assertEqual(font.getpixel((2, 0))[3], 0)
 
     def test_without_a_game_everything_is_original(self):
         pieces, source = ui_pieces(None, self.cache)

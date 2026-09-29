@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QStyleOptionButton, QStylePainter, QWidget,
 )
 
+from .skin import COLORS
 from .theme import heart_icon
 
 
@@ -44,8 +45,8 @@ class _MilestoneButton(QPushButton):
         self.initStyleOption(option)
         painter.drawControl(QStyle.ControlElement.CE_PushButton, option)
         enabled, selected = self.isEnabled(), self.isChecked()
-        ink = "#a19888" if not enabled else "#536543" if selected else "#554833"
-        muted = "#a19888" if not enabled else "#687751" if selected else "#796b56"
+        ink = COLORS["ink_faint"] if not enabled else COLORS["accent"] if selected else COLORS["ink"]
+        muted = COLORS["ink_faint"] if not enabled else COLORS["ink_soft"]
         font = self.font()
         font.setPixelSize(19)
         font.setBold(True)
@@ -77,15 +78,6 @@ class HeartMilestones(QWidget):
         self.setObjectName("romanceMilestones")
         self.setAccessibleName("Romance heart milestones")
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.setStyleSheet("""
-            QPushButton#romanceMilestone { background: #fffbf2; border: 1px solid #d8ccb5; border-radius: 5px; padding: 0; }
-            QPushButton#romanceMilestone:hover { background: #f4ecdc; border-color: #b6a27e; }
-            QPushButton#romanceMilestone:checked { background: #e9eddf; border: 2px solid #87986e; }
-            QPushButton#romanceMilestone:checked:hover { background: #e2e9d5; }
-            QPushButton#romanceMilestone:pressed { background: #e1e6d2; }
-            QPushButton#romanceMilestone:focus { border: 2px solid #b28e4e; }
-            QPushButton#romanceMilestone:disabled { background: #f0ebdf; border-color: #ddd3bf; }
-        """)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)

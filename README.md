@@ -55,7 +55,7 @@ Stuck on a blank page? Borrow a starting point from any villager in your game:
 
 These read straight from your installed game. There are no console commands and no files to copy. (Want to start from a *modded* villager instead? Both windows have an **Advanced** option for Content Patcher exports.)
 
-Pixelheart never draws or generates artwork. Use art you made or have permission to use; see the [artwork guide](ARTWORK.md) for the sheet layouts.
+Pixelheart has no built-in AI artwork generation. If you want to use AI image tools, use them outside Pixelheart and import the finished PNG like any other artwork. Use art you made or have permission to use; see the [artwork guide](ARTWORK.md) for the sheet layouts.
 
 ## Play in Stardew
 

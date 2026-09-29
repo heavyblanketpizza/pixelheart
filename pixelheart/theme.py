@@ -1,4 +1,4 @@
-"""Pixelheart's look: the game's own menus, with an original fallback."""
+"""Pixelheart's look: calm paper by default, or the game's own menus."""
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPalette, QPixmap
@@ -35,11 +35,15 @@ _UNSET = object()
 
 
 def apply_theme(app: QApplication, *, content_root=_UNSET):
-    """Apply the in-game menu look, using the connected game's art when available."""
-    from .skin import COLORS, build_stylesheet, easy_read_enabled, pixel_family, refresh_pieces
+    """Apply the paper look, or the in-game menus when Stardew menu colors are on."""
+    from .skin import (
+        COLORS, build_stylesheet, easy_read_enabled, pixel_family, refresh_pieces,
+        stardew_colors_enabled, use_look,
+    )
     if content_root is _UNSET:
         from .game_connection import game_connection
         content_root = game_connection().content_root()
+    use_look("stardew" if stardew_colors_enabled() else "paper")
     pieces, _ = refresh_pieces(content_root)
     easy = easy_read_enabled()
     stylesheet = build_stylesheet(pieces, easy_read=easy)

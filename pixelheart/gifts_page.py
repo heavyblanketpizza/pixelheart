@@ -20,6 +20,7 @@ from pixelheart_core.gift_presets import GIFT_PRESETS, RECOMMENDED_GIFT_PRESET_I
 from pixelheart_core.validation import MAX_GIFTS_PER_TASTE
 from .widgets import label, button, card
 from .item_icons import ItemIconStore, texture_commands
+from .skin import COLORS
 from .wiki_gift_loader import WikiGiftDownload
 
 
@@ -119,7 +120,7 @@ class GiftList(QListWidget):
         super().paintEvent(event)
         if not self.count():
             painter = QPainter(self.viewport())
-            painter.setPen(QColor("#7b866f"))
+            painter.setPen(QColor(COLORS["ink_soft"]))
             painter.drawText(self.viewport().rect().adjusted(12, 12, -12, -12), Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap,
                              "Drop gifts here" if self.taste else "No matching items")
             painter.end()
@@ -364,7 +365,6 @@ class GiftsPage(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(8)
         starter, starter_layout = card()
-        starter.setStyleSheet("QFrame#card { background: #f0f3e8; border-color: #d4dcc2; }")
         starter_layout.setContentsMargins(16, 10, 16, 10)
         starter_layout.setSpacing(6)
         starter_layout.addWidget(label("Start with a gift preset", "sectionTitle"))
@@ -836,7 +836,7 @@ class GiftsPage(QWidget):
                 item = QListWidgetItem(record["name"] + "\nDefault")
                 item.setIcon(self.item_icon(value))
                 item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-                item.setForeground(QColor("#798074"))
+                item.setForeground(QColor(COLORS["ink_soft"]))
                 item.setData(Qt.ItemDataRole.UserRole, value)
                 detail = f"Game default: {taste.title()} · Vanilla 1.6.15 · {value}\nDrag to another taste to make a personal choice."
                 if self.custom_catalog:

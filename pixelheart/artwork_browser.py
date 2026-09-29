@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 )
 
 from pixelheart_core.artwork import ArtworkValidationError, inspect_artwork
+from .skin import COLORS
 from .widgets import label, paint_artwork_placeholder
 
 
@@ -78,19 +79,21 @@ class _FramePreview(QWidget):
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
             painter.drawPixmap(target, browser.pixmap, source)
             if browser.sheet_layout.isChecked() and browser.frame_count:
-                painter.setPen(QPen(QColor("#a78655"), 1))
+                painter.setPen(QPen(QColor(COLORS["rule_strong"]), 1))
                 for index in range(browser.frame_count):
                     painter.drawRect(self.sheet_cell_rect(index).adjusted(0, 0, -1, -1))
                 selected = self.sheet_cell_rect(browser.current_frame).adjusted(0, 0, -1, -1)
-                painter.fillRect(selected, QColor(224, 230, 189, 65))
-                painter.setPen(QPen(QColor("#fff4d6"), 4))
+                tint = QColor(COLORS["accent_soft"])
+                tint.setAlpha(65)
+                painter.fillRect(selected, tint)
+                painter.setPen(QPen(QColor(COLORS["surface"]), 4))
                 painter.drawRect(selected)
-                painter.setPen(QPen(QColor("#435c31"), 2))
+                painter.setPen(QPen(QColor(COLORS["accent"]), 2))
                 painter.drawRect(selected)
         else:
             paint_artwork_placeholder(painter, self.rect(), f"Add a {browser.kind} sheet to preview it", portrait=browser.kind == "portrait")
         if self.hasFocus():
-            painter.setPen(QPen(QColor("#728348"), 2))
+            painter.setPen(QPen(QColor(COLORS["accent_rule"]), 2))
             painter.drawRect(self.rect().adjusted(1, 1, -2, -2))
         painter.end()
 
