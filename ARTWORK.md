@@ -1,6 +1,6 @@
 # Pixelheart artwork policy
 
-Pixelheart uses **user-uploaded portraits and character sprite images**, with optional reference sheets read from your own installed game (or your Content Patcher exports). The application does not generate artwork or include generative-image features.
+Pixelheart uses **user-uploaded portraits and character sprite images**, with optional reference sheets read from your own installed game (or your Content Patcher exports). Pixelheart has no built-in AI artwork generation and does not connect to AI image services. If you want to use AI image tools, use them outside Pixelheart, then import the finished PNG like any other upload. The same sheet layouts, checks, and [artwork rights](#artwork-rights) apply.
 
 ## Supported image preparation
 

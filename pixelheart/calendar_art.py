@@ -121,6 +121,15 @@ def draw_motif(painter, kind, x, y, scale=2, icons=None):
         block(5, 5, 2, 2, "#f6fcdf")
 
 
+def draw_paper_frame(painter, rect, ink, fill):
+    """A two-pixel ring with cut corners, matching the paper look's panels."""
+    painter.fillRect(rect.adjusted(2, 2, -2, -2), QColor(fill))
+    painter.fillRect(rect.left() + 2, rect.top(), rect.width() - 4, 2, QColor(ink))
+    painter.fillRect(rect.left() + 2, rect.bottom() - 1, rect.width() - 4, 2, QColor(ink))
+    painter.fillRect(rect.left(), rect.top() + 2, 2, rect.height() - 4, QColor(ink))
+    painter.fillRect(rect.right() - 1, rect.top() + 2, 2, rect.height() - 4, QColor(ink))
+
+
 def draw_wood_frame(painter, rect):
     """A narrow oak frame; the paper and its contents do most of the work."""
     painter.fillRect(rect.adjusted(3, 0, -3, 0), QColor("#806044"))

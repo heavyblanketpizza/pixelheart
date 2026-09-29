@@ -1,4 +1,4 @@
-"""An original wood-and-parchment birthday board for the valley's four seasons."""
+"""An original birthday board for the valley's four seasons, in paper or wood-and-parchment."""
 
 from PySide6.QtCore import QEvent, QRect, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
@@ -10,15 +10,19 @@ from PySide6.QtWidgets import (
 from pixelheart_core.birthdays import (
     DAYS_PER_SEASON, SEASONS, birthdays_on, festivals_on, festivals_for_season,
 )
-from .calendar_art import MOTIF_SIZE, draw_lettering, draw_motif, draw_wood_frame, lettering_width
+from .calendar_art import MOTIF_SIZE, draw_lettering, draw_motif, draw_paper_frame, draw_wood_frame, lettering_width
 from .calendar_icons import CalendarIconStore
+from .skin import COLORS, current_look
 from .widgets import label
 
 
 class CalendarBoard(QFrame):
     def paintEvent(self, event):
         painter = QPainter(self)
-        draw_wood_frame(painter, self.rect())
+        if current_look() == "stardew":
+            draw_wood_frame(painter, self.rect())
+        else:
+            draw_paper_frame(painter, self.rect(), COLORS["rule_strong"], COLORS["surface"])
 
 
 class SeasonPicker(QComboBox):
@@ -34,17 +38,17 @@ class SeasonPicker(QComboBox):
         painter = QPainter(self)
         season = self.currentData()
         if self.underMouse() or self.hasFocus():
-            painter.fillRect(self.rect().adjusted(2, 2, -2, -2), QColor("#f9efd9"))
+            painter.fillRect(self.rect().adjusted(2, 2, -2, -2), QColor(COLORS["surface_hover"]))
         if season:
             width = lettering_width(season, 3)
             left = (self.width() - width - 54) // 2
             draw_motif(painter, season, left, 8, icons=self.icons)
-            draw_lettering(painter, season, left + 42, 15, 3, "#e2d0ad")
-            draw_lettering(painter, season, left + 42, 13, 3, "#715638")
+            draw_lettering(painter, season, left + 42, 15, 3, COLORS["rule"])
+            draw_lettering(painter, season, left + 42, 13, 3, COLORS["ink"])
         for row in range(3):
-            painter.fillRect(self.width() - 16 + row * 2, 22 + row * 2, 10 - row * 4, 2, QColor("#a68b62"))
+            painter.fillRect(self.width() - 16 + row * 2, 22 + row * 2, 10 - row * 4, 2, QColor(COLORS["ink_soft"]))
         if self.hasFocus():
-            painter.setPen(QPen(QColor("#71815a"), 1, Qt.PenStyle.DashLine))
+            painter.setPen(QPen(QColor(COLORS["accent_rule"]), 1, Qt.PenStyle.DashLine))
             painter.drawRect(self.rect().adjusted(2, 2, -3, -3))
 
 
@@ -59,13 +63,14 @@ class CalendarArrow(QPushButton):
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor("#e8d6b1" if self.isDown() else "#fff5de" if self.underMouse() else "#f7ecd3"))
-        painter.setPen(QPen(QColor("#71815a" if self.hasFocus() else "#c6ac81"), 1))
+        fill = "surface_pressed" if self.isDown() else "surface_hover" if self.underMouse() else "surface"
+        painter.fillRect(self.rect(), QColor(COLORS[fill]))
+        painter.setPen(QPen(QColor(COLORS["accent_rule" if self.hasFocus() else "rule_strong"]), 1))
         painter.drawRect(self.rect().adjusted(0, 0, -1, -1))
         for row in range(5):
             offset = abs(2 - row) * 2
             x = 11 + offset if self.direction < 0 else 19 - offset
-            painter.fillRect(x, 12 + row * 2, 3, 2, QColor("#826747"))
+            painter.fillRect(x, 12 + row * 2, 3, 2, QColor(COLORS["ink"]))
 
 
 class CalendarDay(QPushButton):
@@ -112,17 +117,18 @@ class CalendarDay(QPushButton):
         selected = self.isChecked()
         conflict = selected and bool(self.names)
         hovered = self.isEnabled() and self.underMouse()
-        paper = "#f8e5d9" if conflict else "#e9eedb" if selected else "#fff3d7" if hovered else "#f6ecd8" if self.names else "#fff8e9"
-        painter.fillRect(self.rect(), QColor(paper))
-        painter.fillRect(0, 0, self.width(), 1, QColor("#fffcf2"))
+        paper = ("warn_soft" if conflict else "accent_soft" if selected else "surface_hover" if hovered
+                 else "surface_muted" if self.names else "surface")
+        painter.fillRect(self.rect(), QColor(COLORS[paper]))
+        painter.fillRect(0, 0, self.width(), 1, QColor(COLORS["surface"]))
         if selected or hovered or self.hasFocus():
-            border = "#b7755b" if conflict else "#819564" if selected else "#c5a572"
-            painter.setPen(QPen(QColor(border), 2 if selected else 1))
+            border = "warn_rule" if conflict else "accent_rule" if selected else "rule_strong"
+            painter.setPen(QPen(QColor(COLORS[border]), 2 if selected else 1))
             painter.drawRect(self.rect().adjusted(1, 1, -2, -2))
         if self.hasFocus():
-            painter.setPen(QPen(QColor("#687a50"), 1, Qt.PenStyle.DashLine))
+            painter.setPen(QPen(QColor(COLORS["accent_rule"]), 1, Qt.PenStyle.DashLine))
             painter.drawRect(self.rect().adjusted(4, 4, -5, -5))
-        draw_lettering(painter, str(self.day), 9, 8, 3, "#8b7453")
+        draw_lettering(painter, str(self.day), 9, 8, 3, COLORS["ink_soft"])
         compact = self.height() < 84
         motif = "gift" if self.names else "heart" if selected else "festival" if self.festivals else None
         if motif:
@@ -134,7 +140,7 @@ class CalendarDay(QPushButton):
         font.setPixelSize(11)
         font.setBold(selected)
         painter.setFont(font)
-        painter.setPen(QColor("#775e45" if self.names else "#526640" if selected else "#876b44"))
+        painter.setPen(QColor(COLORS["accent" if selected and not self.names else "ink_soft"]))
         caption = painter.fontMetrics().elidedText(caption, Qt.TextElideMode.ElideRight, self.width() - 10)
         painter.drawText(QRect(5, 55 if compact else 62, self.width() - 10, 16 if compact else 20), Qt.AlignmentFlag.AlignCenter, caption)
 
@@ -179,20 +185,6 @@ class BirthdayCalendar(QWidget):
         self.selected_day = 1
         self.setAccessibleName("Birthday calendar")
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        self.setStyleSheet("""
-            QFrame#birthdayGrid { background: #d0ba91; border: 1px solid #bfa279; border-radius: 0; }
-            QLabel#calendarWeekday { background: #ecddbd; color: #705d40; padding: 8px 0; font-size: 11px; font-weight: bold; }
-            QLabel#calendarLegend, QLabel#calendarNote { color: #796b56; font-size: 11px; }
-            QLabel#birthdaySelection { color: #52663f; font-family: Georgia; font-size: 21px; }
-            QLabel#birthdaySelection[conflict="true"] { color: #965d46; }
-            QLabel#birthdayStatus { color: #6e775d; font-size: 12px; }
-            QLabel#birthdayStatus[conflict="true"] { color: #965d46; }
-            QFrame#birthdayReceipt { background: #eef1e4; border: 1px solid #d4dcc3; border-radius: 3px; }
-            QFrame#birthdayReceipt[conflict="true"] { background: #f8ebe3; border-color: #dfbeac; }
-            QLabel#calendarFestivalDate { color: #876b44; font-size: 12px; font-weight: bold; }
-            QLabel#calendarFestivalName { color: #76654f; font-size: 12px; }
-            QLabel#calendarDetailsHeading { color: #796b56; font-size: 10px; font-weight: bold; letter-spacing: 1px; }
-        """)
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)

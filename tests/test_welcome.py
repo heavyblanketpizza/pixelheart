@@ -10,6 +10,7 @@ from unittest.mock import patch
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
 
+from pixelheart import skin
 from pixelheart.app import MainWindow
 from pixelheart.game_connection import game_connection
 from pixelheart_core.projects import new_project, save_project
@@ -122,7 +123,7 @@ class WelcomeTests(QtTestCase):
             launcher.main(["some/character.json"])
             self.assertFalse(window_class.call_args.kwargs["show_welcome"])
 
-    def test_menus_offer_home_find_game_easy_read_and_help(self):
+    def test_menus_offer_home_find_game_reading_colors_and_help(self):
         window = self.window()
         menus = {action.text(): action.menu() for action in window.menuBar().actions()}
         self.assertEqual(list(menus), ["&File", "&Edit", "&View", "&Help"])
@@ -136,6 +137,18 @@ class WelcomeTests(QtTestCase):
         self.assertEqual(self.settings.value("view/easyRead"), "true")
         easy.trigger()
         self.assertEqual(self.settings.value("view/easyRead"), "false")
+        stardew = view_items["&Stardew menu colors"]
+        self.assertTrue(stardew.isCheckable())
+        self.assertFalse(stardew.isChecked())
+        overview = window.navigation.item(0).icon().pixmap(20, 20).toImage()
+        stardew.trigger()
+        self.assertEqual(self.settings.value("view/stardewColors"), "true")
+        self.assertEqual(skin.current_look(), "stardew")
+        # The sidebar turns to dark wood, so its icons are redrawn in light inks.
+        self.assertNotEqual(window.navigation.item(0).icon().pixmap(20, 20).toImage(), overview)
+        stardew.trigger()
+        self.assertEqual(self.settings.value("view/stardewColors"), "false")
+        self.assertEqual(skin.current_look(), "paper")
         help_items = [action.text() for action in menus["&Help"].actions()]
         self.assertIn("&Getting started", help_items)
 

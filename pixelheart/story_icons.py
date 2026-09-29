@@ -3,6 +3,8 @@
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPainterPath, QPen, QPixmap
 
+from .skin import COLORS
+
 
 def story_icon(name: str) -> QIcon:
     """Return an 18px tab icon with native selected, hover and disabled states."""
@@ -12,8 +14,8 @@ def story_icon(name: str) -> QIcon:
     for mode in (QIcon.Mode.Normal, QIcon.Mode.Active, QIcon.Mode.Selected, QIcon.Mode.Disabled):
         for state in (QIcon.State.Off, QIcon.State.On):
             selected = state == QIcon.State.On or mode == QIcon.Mode.Selected
-            ink = "#a19888" if mode == QIcon.Mode.Disabled else "#536543" if selected or mode == QIcon.Mode.Active else "#796b56"
-            accent = "#b7ad9c" if mode == QIcon.Mode.Disabled else "#87966e" if selected else "#b2935c"
+            ink = COLORS["ink_faint"] if mode == QIcon.Mode.Disabled else COLORS["accent"] if selected or mode == QIcon.Mode.Active else COLORS["ink_soft"]
+            accent = COLORS["rule"] if mode == QIcon.Mode.Disabled else COLORS["accent_rule"] if selected else COLORS["rule_strong"]
             for ratio in (1, 2):
                 pixmap = QPixmap(18 * ratio, 18 * ratio)
                 pixmap.setDevicePixelRatio(ratio)

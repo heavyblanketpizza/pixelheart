@@ -1,4 +1,4 @@
-"""Menu pieces cut from the player's installed game, or drawn originally.
+"""Menu pieces: calm paper originals, or cut from the player's installed game.
 
 Only coordinates ship with Pixelheart. Crops are written to a private per-user
 cache; when no game is available, original pieces with the same roles are drawn.
@@ -19,7 +19,7 @@ from PIL import Image
 from .game_scene_assets import asset_path, load_texture
 
 PIXEL_SCALE = 2
-CACHE_VERSION = "2"
+CACHE_VERSION = "3"
 # role: (asset, (x, y, width, height), screen px per art px in the source, nine-slice margin after scaling)
 PIECES = {
     "panel": ("Maps/MenuTiles", (0, 256, 60, 60), 4, 10),
@@ -55,6 +55,15 @@ OUTLINE, DEEP, FRAME, BRIGHT, MID, GOLD = "#853605", "#5b2b2a", "#dc7b05", "#fa9
 PARCHMENT, PARCHMENT_LIGHT, TEXTBOX, SHADOW = "#fdbc6e", "#ffd284", "#f9ba66", "#d4966b"
 WOOD = ("#92591c", "#7e4d15", "#6d4214", "#5c3514")
 HEART = (".oo.oo.", "orrorro", "orrrrro", ".orrro.", "..oro..", "...o...")
+
+# The paper look: warm white and one ink. Bump PAPER_VERSION when these pieces change.
+PAPER_VERSION = "1"
+INK, INK_LIFT, DANGER = "#26221d", "#3d3830", "#9e3a2b"
+PAPER, PAPER_HOVER, PAPER_PRESSED, PAPER_SHADE = "#fdfbf7", "#f3f0ea", "#e6e1d8", "#e4dfd6"
+PAGE, SIDEBAR, PANEL_RULE, FIELD_RULE = "#f5f2ec", "#edeae3", "#cfc9be", "#aca598"
+THUMB, TRACK = "#c4bdb1", "#ebe7e0"
+# Game pieces kept in the paper look (paper role: game role); the bold font is re-inked.
+PAPER_BORROWED = {"heart_full": "heart_full", "heart_empty": "heart_empty", "font": "font_ink", "cursors": "cursors"}
 
 
 @dataclass(frozen=True)
@@ -107,6 +116,15 @@ def _read(folder):
         return pieces if all(piece.path.is_file() for piece in pieces.values()) else None
     except (OSError, ValueError, TypeError):
         return None
+
+
+def _inked(font):
+    """The game's two-tone bold font as ink, with its drop shadow kept as a soft grey."""
+    rgba = font.convert("RGBA")
+    dark = rgba.convert("L").point(lambda value: 255 if value < 128 else 0)
+    result = Image.composite(Image.new("RGBA", rgba.size, _rgb(INK)), Image.new("RGBA", rgba.size, _rgb(PANEL_RULE)), dark)
+    result.putalpha(rgba.getchannel("A"))
+    return result
 
 
 def _publish(cache_root, name, images, margins):
@@ -175,6 +193,8 @@ def build_game_ui(content, cache_root):
             images[role] = texture(asset)
         except (OSError, ValueError, RuntimeError):
             pass
+    if "font" in images:
+        images["font_ink"] = _inked(images["font"])
     if not images:
         return {}
     return _publish(cache_root, name, images, margins) or {}
@@ -258,16 +278,74 @@ def build_fallback_ui(cache_root):
     return _publish(cache_root, name, images, margins) or {}
 
 
-def ui_pieces(content, cache_root):
-    """Complete role map preferring the game's art, plus where it came from."""
-    original = build_fallback_ui(cache_root)
+def _paper_art():
+    """Ink on warm white, so the player's own portraits and sprites carry the color."""
+    def box(ring, fill, *, top=None, bottom=None, size=(9, 9), cut=True):
+        image = _rings(*size, (ring,), fill, cut_corners=cut)
+        for y, color in ((1, top), (size[1] - 2, bottom)):
+            for x in range(1, size[0] - 1) if color else ():
+                image.putpixel((x, y), _rgb(color))
+        return image
+
+    check_on = box(INK, INK)
+    for point in ((2, 4), (3, 5), (4, 6), (5, 5), (6, 4), (7, 3), (2, 5), (3, 6), (4, 7)):
+        check_on.putpixel(point, _rgb(PAPER))
+    arrow = Image.new("RGBA", (10, 11), (0, 0, 0, 0))
+    for row, (start, end) in enumerate(((2, 8), (3, 7), (4, 6))):
+        for x in range(start, end):
+            arrow.putpixel((x, 4 + row), _rgb(INK))
+    return {
+        "panel": (box(PANEL_RULE, PAPER), 4),
+        "wood": (Image.new("RGBA", (4, 4), _rgb(SIDEBAR)), 0),
+        "tab": (box(INK, PAPER), 6),
+        "tab_idle": (box(PANEL_RULE, PAGE), 6),
+        "button": (box(INK, PAPER, bottom=PAPER_SHADE), 6),
+        "button_hover": (box(INK, PAPER_HOVER, bottom=PAPER_SHADE), 6),
+        "button_pressed": (box(INK, PAPER_PRESSED, top=PAPER_SHADE), 6),
+        "button_disabled": (box(PANEL_RULE, PAGE), 6),
+        "button_primary": (box(INK, INK, top=INK_LIFT), 6),
+        "button_danger": (box(DANGER, PAPER, bottom=PAPER_SHADE), 6),
+        "textbox": (box(FIELD_RULE, PAPER), 6),
+        "textbox_focus": (box(INK, PAPER), 6),
+        "dropdown_arrow": (arrow, 0),
+        "checkbox_off": (box(INK, PAPER), 0),
+        "checkbox_on": (check_on, 0),
+        "scroll_thumb": (box(THUMB, THUMB, size=(6, 10)), 4),
+        "scroll_track": (box(TRACK, TRACK, size=(6, 6)), 4),
+        "heart_full": (_pattern(HEART, {"o": "#5b1010", "r": "#e53d1d"}), 0),
+        "heart_empty": (_pattern(HEART, {"o": FIELD_RULE}), 0),
+    }
+
+
+def build_paper_ui(cache_root):
+    """The warm-white look: every role drawn once and cached, with no game art."""
+    name = f"paper-v{PAPER_VERSION}"
+    cached = _read(Path(cache_root) / name)
+    if cached is not None:
+        return cached
+    images, margins = {}, {}
+    for role, (image, margin) in _paper_art().items():
+        images[role] = image.resize((image.width * PIXEL_SCALE, image.height * PIXEL_SCALE), Image.Resampling.NEAREST)
+        margins[role] = margin
+    return _publish(cache_root, name, images, margins) or {}
+
+
+def ui_pieces(content, cache_root, look="stardew"):
+    """Complete role map for a look, plus where it came from.
+
+    ``stardew`` prefers the game's own menu art. ``paper`` draws calm ink-on-white
+    chrome and borrows only the game's hearts, bold font and calendar icons.
+    """
     game = {}
     if content is not None:
         try:
             game = build_game_ui(content, cache_root)
         except (OSError, ValueError, RuntimeError):
             game = {}
-    pieces = {**original, **game}
+    if look == "paper":
+        borrowed = {role: game[source] for role, source in PAPER_BORROWED.items() if source in game}
+        return {**build_paper_ui(cache_root), **borrowed}, "paper"
+    pieces = {**build_fallback_ui(cache_root), **game}
     used = sum(1 for role in REQUIRED_ROLES if role in game)
     source = "original" if not used else "game" if used == len(REQUIRED_ROLES) else "mixed"
     return pieces, source
