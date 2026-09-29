@@ -364,7 +364,9 @@ class DialogueTemplateDesktopTests(QtTestCase):
             open_url.assert_called_once()
             self.assertEqual(open_url.call_args.args[0].toLocalFile(), str(self.root / "dialogue"))
             picker.assert_not_called()
-            read_settings.assert_not_called()
+            # Only the shared game connection may read settings; never the export folder.
+            read_keys = [call.args[0] for call in read_settings.return_value.value.call_args_list]
+            self.assertNotIn("localGame/contentPatcherExportFolder", read_keys)
         self.assertEqual(settings.value("localGame/contentPatcherExportFolder"), str(remembered))
         self.assertEqual([button.text() for button in dialog.game_source.findChildren(QPushButton)],
                          ["Copy command", "Open dialogue folder"])

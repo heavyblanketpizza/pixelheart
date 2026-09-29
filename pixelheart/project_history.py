@@ -144,6 +144,7 @@ class ProjectHistoryController(QObject):
         events = getattr(window, "events", None)
         owners.extend((owner, "undo_button") for owner in (
             events, getattr(window, "relationships", None),
+            getattr(getattr(window, "story", None), "storyline", None),
             getattr(events, "actors", None), getattr(events, "beats", None)))
         life = getattr(window, "life", None)
         owners.extend((editor, "undo") for editor in getattr(life, "editors", {}).values())

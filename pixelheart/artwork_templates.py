@@ -1,13 +1,18 @@
 """Preview and import artwork exported from the user's own game."""
 
 from html import escape
-from PySide6.QtCore import QThread, Signal, Qt
+import tempfile
+
+from PySide6.QtCore import QSignalBlocker, QThread, Signal, Qt
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QDialogButtonBox, QHBoxLayout, QVBoxLayout, QWidget, QScrollArea,
 )
 
-from pixelheart_core.local_templates import CONTENT_PATCHER_EXPORT_URL, LOCAL_TEMPLATES, load_local_artwork
+from pixelheart_core.local_templates import (
+    CONTENT_PATCHER_EXPORT_URL, GAME_SOURCE, LOCAL_TEMPLATES, game_villagers, load_game_artwork, load_local_artwork,
+)
 from .artwork_browser import SheetBrowser
+from .game_connection import game_connection
 from .game_import import LocalGameSourceWidget
 from .widgets import button, card, label
 
@@ -55,6 +60,25 @@ class TemplateLoad(QThread):
                 self.failed.emit(str(exc))
 
 
+class GameArtworkLoad(QThread):
+    ready = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, content_root, name, destination, parent=None):
+        super().__init__(parent)
+        self.content_root, self.name, self.destination = content_root, name, destination
+
+    def run(self):
+        try:
+            result = load_game_artwork(self.content_root, self.name, self.destination,
+                                       cancelled=self.isInterruptionRequested)
+            if not self.isInterruptionRequested():
+                self.ready.emit(result)
+        except Exception as exc:
+            if not self.isInterruptionRequested():
+                self.failed.emit(str(exc))
+
+
 class ArtworkTemplateDialog(QDialog):
     """Inspect a reference first; accepting is the only project-changing action."""
 
@@ -66,22 +90,30 @@ class ArtworkTemplateDialog(QDialog):
         self.loaded = None
         self.worker = None
         self.closing = False
+        # Decoded game sheets live here until the caller has copied them.
+        self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-reference-")
+        self.content_root = game_connection().content_root()
         root = QVBoxLayout(self)
         root.setContentsMargins(24, 24, 24, 24)
         root.setSpacing(10)
         root.addWidget(label("Choose a comparison reference." if comparison else "Start with a familiar face.", "title", True))
         root.addWidget(label("Explore sheets from your game alongside your character. The reference is used only in this review." if comparison else "Explore an NPC's expressions and walking frames, or use their sheets as a starting point for your own artwork.", "muted", True))
+        self.source_choice = QComboBox()
+        self.source_choice.setAccessibleName("Where to read artwork from")
+        self.source_choice.addItem("From my game", "game")
+        self.source_choice.addItem("From a Content Patcher export (advanced)", "export")
+        self.source_choice.model().item(0).setEnabled(self.content_root is not None)
+        self.source_choice.setCurrentIndex(0 if self.content_root is not None else 1)
+        root.addWidget(self.source_choice)
         choose = QHBoxLayout()
-        choose.addWidget(label("Reference NPC"))
+        choose.addWidget(label("Villager"))
         self.character = QComboBox()
         self.character.setAccessibleName("Game reference character")
-        for template_id, template in LOCAL_TEMPLATES.items():
-            self.character.addItem(template["name"], template_id)
         choose.addWidget(self.character, 1)
         self.load_button = button("Load template", self.load_template, "primary")
         choose.addWidget(self.load_button)
         root.addLayout(choose)
-        self.game_source = LocalGameSourceWidget(self.character.currentData(), "artwork", self)
+        self.game_source = LocalGameSourceWidget("abigail", "artwork", self)
         root.addWidget(self.game_source)
         self.source_info = label("", "hint", True)
         self.source_info.setAccessibleName("Selected template source")
@@ -121,12 +153,34 @@ class ArtworkTemplateDialog(QDialog):
         self.buttons.accepted.connect(self.accept)
         root.addWidget(self.buttons)
         self.character.currentIndexChanged.connect(self.change_character)
+        self.source_choice.currentIndexChanged.connect(self.populate_characters)
         self.game_source.changed.connect(self.clear_template)
-        self.clear_template()
+        self.populate_characters()
+
+    def game_mode(self):
+        return self.source_choice.currentData() == "game"
+
+    def populate_characters(self, *_):
+        with QSignalBlocker(self.character):
+            self.character.clear()
+            if self.game_mode():
+                for name in game_villagers(self.content_root):
+                    self.character.addItem(name, name)
+            else:
+                for template_id, template in LOCAL_TEMPLATES.items():
+                    self.character.addItem(template["name"], template_id)
+        self.game_source.setVisible(not self.game_mode())
+        self.change_character()
 
     def change_character(self):
-        self.game_source.set_template(self.character.currentData())
+        if not self.game_mode():
+            self.game_source.set_template(self.character.currentData())
         self.clear_template()
+
+    def deleteLater(self):
+        # Callers copy the sheets before deleting the dialog.
+        self.temporary.cleanup()
+        super().deleteLater()
 
     def show_source(self, template):
         source = template_source_metadata(template)
@@ -141,8 +195,13 @@ class ArtworkTemplateDialog(QDialog):
     def clear_template(self):
         self.loaded = None
         self.use_button.setEnabled(False)
-        self.show_source({**LOCAL_TEMPLATES.get(self.character.currentData(), {}), **LOCAL_SOURCE})
-        self.status.setText("Choose the Content Patcher export folder, then Load template to preview both sheets.")
+        if self.game_mode():
+            self.show_source(dict(GAME_SOURCE))
+            self.status.setText("Choose a villager, then Load template to preview their sheets.")
+            self.load_button.setEnabled(self.character.count() > 0 and self.worker is None)
+        else:
+            self.show_source({**LOCAL_TEMPLATES.get(self.character.currentData(), {}), **LOCAL_SOURCE})
+            self.status.setText("Choose the Content Patcher export folder, then Load template to preview both sheets.")
         for browser in self.browsers.values():
             browser.set_image()
 
@@ -153,9 +212,13 @@ class ArtworkTemplateDialog(QDialog):
         self.status.setText("Loading reference sheets…")
         self.load_button.setEnabled(False)
         self.character.setEnabled(False)
+        self.source_choice.setEnabled(False)
         self.game_source.setEnabled(False)
-        self.game_source.remember_directory()
-        self.worker = TemplateLoad(self.character.currentData(), self.game_source.directory(), self)
+        if self.game_mode():
+            self.worker = GameArtworkLoad(self.content_root, self.character.currentData(), self.temporary.name, self)
+        else:
+            self.game_source.remember_directory()
+            self.worker = TemplateLoad(self.character.currentData(), self.game_source.directory(), self)
         self.worker.ready.connect(self.receive_template)
         self.worker.failed.connect(self.show_failure)
         self.worker.finished.connect(self.load_finished)
@@ -182,6 +245,7 @@ class ArtworkTemplateDialog(QDialog):
             return
         self.load_button.setEnabled(True)
         self.character.setEnabled(True)
+        self.source_choice.setEnabled(True)
         self.game_source.setEnabled(True)
         self.use_button.setEnabled(self.loaded is not None)
 

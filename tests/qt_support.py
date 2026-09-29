@@ -12,6 +12,9 @@ class QtTestCase(unittest.TestCase):
         try:
             return super().doCleanups()
         finally:
+            # The game connection reads settings a test may have patched.
+            from pixelheart.game_connection import reset_game_connection
+            reset_game_connection()
             # processEvents() alone does not deliver DeferredDelete events when
             # unittest, rather than Qt's event loop, drives the application.
             # Wait until worker shutdown, temporary files, mocks and registered

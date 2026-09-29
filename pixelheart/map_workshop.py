@@ -13,11 +13,11 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 from PIL import Image, UnidentifiedImageError
-from PySide6.QtCore import Qt, QRect, QSize, Signal
+from PySide6.QtCore import Qt, QRect, Signal
 from PySide6.QtGui import QColor, QPainter, QPen, QPixmap, QShortcut, QKeySequence
 from PySide6.QtWidgets import (
-    QDialog, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QComboBox,
-    QScrollArea, QFileDialog, QCheckBox, QSplitter, QLabel,
+    QDialog, QWidget, QVBoxLayout, QHBoxLayout, QComboBox,
+    QScrollArea, QFileDialog, QCheckBox, QSplitter,
 )
 
 from pixelheart_core.world import WorldError, import_map, map_bundle, asset_path

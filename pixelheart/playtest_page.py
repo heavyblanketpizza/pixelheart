@@ -21,6 +21,13 @@ from .story_page import prose
 from .widgets import label, button, card
 
 
+def default_mods_folder():
+    """The connected game's Mods folder, suggested (never assumed) when installing."""
+    from .game_connection import game_connection
+    install = game_connection().install()
+    return str(install.mods) if install is not None else ""
+
+
 class PlaytestPage(QWidget):
     def __init__(self, window):
         super().__init__()
@@ -42,7 +49,7 @@ class PlaytestPage(QWidget):
         self.setup_toggle.setCheckable(True)
         self.setup_toggle.setAccessibleName("Game setup and required tools")
         self.setup_toggle.toggled.connect(self.toggle_setup)
-        export, content = card("Put this version in your game", "Export a version, install it into your chosen Mods folder, and launch Stardew Valley through SMAPI. Testing is recorded separately from exporting.")
+        export, content = card("Put this version in your game", "Export it, install it into your Mods folder, then start Stardew Valley through SMAPI. Your test notes are saved with the project.")
         self.export_status = label("No version exported yet.", "muted", True)
         content.addWidget(self.export_status)
         self.dependency_status = label("", "notice", True)
@@ -201,14 +208,8 @@ class PlaytestPage(QWidget):
             event_id = next((event["id"] for event in self.window.events.records if event["id"] in self.current_test), "")
         if event_id:
             self.window.open_section("story")
-            self.window.story.tabs.setCurrentIndex(0)
-            self.window.events.search.clear()
-            self.window.events.filter.setCurrentIndex(0)
-            for index, event in enumerate(self.window.events.records):
-                if event["id"] == event_id:
-                    self.window.events.list.setCurrentRow(index)
-                    self.window.events.phases.setCurrentIndex(0)
-                    break
+            self.window.story.open_event(event_id)
+            self.window.events.phases.setCurrentIndex(self.window.events.SCENE)
         elif case.get("section") == "life":
             self.window.open_life_editor("spouse_dialogue")
         else:
@@ -230,7 +231,7 @@ class PlaytestPage(QWidget):
         if export.get("fingerprint", export.get("revision")) != content_fingerprint(self.window.document):
             self.window.show_error("Export this version first", "The saved ZIP is from an earlier version of this project.")
             return
-        directory = QFileDialog.getExistingDirectory(self, "Choose your Stardew Valley Mods folder")
+        directory = QFileDialog.getExistingDirectory(self, "Choose your Stardew Valley Mods folder", default_mods_folder())
         if not directory:
             return
         try:

@@ -7,7 +7,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from PySide6.QtCore import QPoint, Qt
+from PySide6.QtCore import QPoint, QRectF, Qt
 from PySide6.QtGui import QColor, QImage, QPainter
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
@@ -98,20 +98,66 @@ class CatalogueCanvasTests(QtTestCase):
         self.assertEqual({state["pose"] for state in states}, {"walk", "idle"})
         self.assertTrue(any(state["phase"] == "approach" and state["direction"] == "north" for state in states))
 
-    def test_wall_pieces_end_at_wall_floor_seam_for_short_and_tall_art(self):
+    def test_wall_pieces_fit_above_trim_with_room_over_the_crown(self):
         for kind in ("window", "sconce", "painting", "wall_decor"):
             for height in (32, 48):
                 with self.subTest(kind=kind, height=height):
                     solid(16, height, "#145aaf").save(str(self.root / "wall.png"))
                     self.scene(kind, (1, 1), image="wall.png", width=16, height=height)
                     self.canvas.set_interaction(False)
-                    self.canvas.show()
-                    self.app.processEvents()
-                    image = self.canvas.grab().toImage()
-                    self.assertEqual(image.pixelColor(88, 48 - height).name(), "#145aaf")
-                    self.assertEqual(image.pixelColor(88, 47).name(), "#145aaf")
-                    self.assertNotEqual(image.pixelColor(88, 48).name(), "#145aaf")
-                    self.assertNotEqual(image.pixelColor(88, 80).name(), "#145aaf")
+                    layout = self.canvas.scene_layout()
+                    visible = self.canvas.visible_bounds.translated(layout["image_position"])
+                    self.assertGreater(visible.top(), 0)
+                    self.assertLessEqual(visible.bottom(), layout["wall_height"] - 8)
+                    self.assertGreaterEqual(layout["wall_height"], 64)
+                    self.assertEqual(layout["wall_height"] % 16, 0)
+                    for scale in (1, 3):
+                        image = self.canvas.render_scene(scale)
+                        x, y = int(visible.center().x()), int(visible.top())
+                        self.assertEqual(image.pixelColor(x * scale, y * scale).name(), "#145aaf")
+                        self.assertEqual(image.pixelColor(x * scale, (y + height - 1) * scale).name(), "#145aaf")
+                        self.assertNotEqual(image.pixelColor(x * scale, layout["wall_height"] * scale).name(), "#145aaf")
+
+    def test_transparent_padding_does_not_change_visible_wall_mount(self):
+        positions = []
+        for filename, height, top in (("unpadded.png", 32, 0), ("padded.png", 48, 11)):
+            image = QImage(16, height, QImage.Format.Format_ARGB32)
+            image.fill(Qt.GlobalColor.transparent)
+            painter = QPainter(image)
+            painter.fillRect(2, top, 12, 21, QColor("#145aaf"))
+            painter.end()
+            image.save(str(self.root / filename))
+            self.scene("window", (1, 2), image=filename, width=16, height=height)
+            self.canvas.set_wall_height(80)
+            layout = self.canvas.scene_layout()
+            positions.append(self.canvas.visible_bounds.translated(layout["image_position"]))
+            self.assertEqual(self.canvas.sample_effects(0)["image"].height(), height)
+            self.assertEqual(layout["anchor"].y() + 32 - height, layout["image_position"].y())
+        self.assertEqual(positions[0], positions[1])
+
+    def test_wall_mount_uses_union_of_day_night_and_animation_alpha(self):
+        for filename, rect in (("base.png", (2, 11, 12, 21)),
+                               ("night.png", (4, 9, 8, 17)),
+                               ("animated.png", (3, 5, 10, 31))):
+            image = QImage(16, 48, QImage.Format.Format_ARGB32)
+            image.fill(Qt.GlobalColor.transparent)
+            painter = QPainter(image)
+            painter.fillRect(*rect, QColor("#145aaf"))
+            painter.end()
+            image.save(str(self.root / filename))
+        self.scene("window", (1, 2), image="base.png", width=16, height=48,
+                   states={"night_on": {"image": "night.png", "animation_frames": [
+                       {"image": "animated.png", "duration_ms": 100},
+                       {"image": "night.png", "duration_ms": 100}]}})
+        self.assertEqual(self.canvas.visible_bounds, QRectF(2, 5, 12, 31))
+        before = self.canvas.scene_layout()
+        for time, powered, elapsed in (("day", False, 0), ("night", True, 0), ("night", True, 150)):
+            self.canvas.set_time_of_day(time)
+            self.canvas.set_power(powered)
+            self.canvas._effects_elapsed_ms = elapsed
+            self.assertEqual(self.canvas.scene_layout(), before)
+        self.canvas.set_wall_height(16)
+        self.assertGreaterEqual(self.canvas.scene_layout()["wall_height"], self.canvas.recommended_wall_height)
 
     def test_wall_interactions_stay_on_floor_and_approach_without_circling(self):
         for kind in ("window", "sconce", "painting", "wall_decor"):
@@ -119,8 +165,10 @@ class CatalogueCanvasTests(QtTestCase):
                 self.scene(kind, (2, 2))
                 self.assertEqual(self.canvas.action, "approach")
                 states = self.samples()
-                footprint_origin_y = 48 - 32
-                self.assertTrue(all(footprint_origin_y + state["position"][1] >= 60 for state in states))
+                self.canvas.set_wall_height(96)
+                layout = self.canvas.scene_layout()
+                self.assertTrue(all(layout["actor_anchor"].y() + state["position"][1] >=
+                                    layout["wall_height"] + 12 for state in states))
                 self.assertEqual({state["occlusion"] for state in states}, {"front"})
                 self.assertTrue(any(state["phase"] == "approach" and state["direction"] == "north" for state in states))
 
@@ -294,6 +342,131 @@ class CatalogueCanvasTests(QtTestCase):
         self.assertNotEqual(day.pixelColor(88, 96).name(), "#e8c088")
         self.canvas.set_time_of_day("night")
         self.assertEqual(self.canvas.sample_effects(0)["lights"], [])
+
+    def test_window_beam_starts_at_pane_without_bleaching_furniture_or_farmer(self):
+        solid(16, 32, "#145aaf").save(str(self.root / "window.png"))
+        solid(2, 2, "#ffffff").save(str(self.root / "legacy-ray.png"))
+        side = self.scene("window", (1, 2), image="window.png", width=16, height=32,
+                          window_light={"pane": [4, 6, 8, 16], "color": "#e4f8ff", "intensity": .22},
+                          lights=[{"offset": [8, 0], "radius": 100, "mask": "legacy-ray.png",
+                                   "intensity": 1, "when": "day", "requires_power": False,
+                                   "blend": "overlay"}])
+        self.canvas.set_wall_height(80)
+        layout = self.canvas.scene_layout()
+        day = self.canvas.render_scene()
+        self.canvas.set_power(True)
+        self.assertEqual(self.canvas.render_scene(), day)
+        self.canvas.set_time_of_day("night")
+        night = self.canvas.render_scene()
+        plain = {**side, "views": [{**side["views"][0], "lights": []}]}
+        plain["views"][0].pop("window_light")
+        self.canvas.set_scene(plain, self.root, self.actor)
+        self.canvas.set_wall_height(80)
+        self.assertEqual(self.canvas.render_scene(), night)
+        self.canvas.set_time_of_day("day")
+        unlit_day = self.canvas.render_scene()
+        pane_top = int(layout["image_position"].y()) + 6
+        differences = [(x, y) for y in range(day.height()) for x in range(day.width())
+                       if day.pixelColor(x, y) != unlit_day.pixelColor(x, y)]
+        self.assertTrue(differences, "A daytime window must cast a visible beam below its pane")
+        self.assertTrue(all(y >= pane_top for _, y in differences))
+        self.assertTrue(any(y >= layout["wall_height"] for _, y in differences))
+        for y in range(day.height()):
+            for x in range(day.width()):
+                if unlit_day.pixelColor(x, y).name() in ("#145aaf", "#e33535"):
+                    self.assertEqual(day.pixelColor(x, y), unlit_day.pixelColor(x, y))
+
+    def test_daylight_profile_preserves_authored_night_overlay_pixels(self):
+        solid(2, 2, "#bd8ded").save(str(self.root / "moonlight.png"))
+        moonlight = {"offset": [-20, 48], "radius": 4, "mask": "moonlight.png",
+                     "color": "#ffffff", "intensity": 1, "when": "night",
+                     "requires_power": False, "blend": "overlay"}
+        side = self.scene("window", window_light={"pane": [8, 8, 16, 16],
+                                                  "color": "#e4f8ff", "intensity": .22},
+                          lights=[moonlight])
+        self.canvas.set_interaction(False)
+        self.canvas.set_time_of_day("night")
+        self.assertEqual(self.canvas.sample_effects(0)["lights"], [moonlight])
+        with_profile = self.canvas.render_scene()
+        anchor = self.canvas.scene_layout()["anchor"]
+        self.assertEqual(with_profile.pixelColor(int(anchor.x()) - 20,
+                                                int(anchor.y()) + 48).name(), "#bd8ded")
+        without_profile = {**side, "views": [{**side["views"][0]}]}
+        without_profile["views"][0].pop("window_light")
+        self.canvas.set_scene(without_profile, self.root, self.actor)
+        self.assertEqual(self.canvas.render_scene(), with_profile)
+
+    def test_half_night_projection_reuses_day_beam_without_tinting_or_bleaching(self):
+        profile = {"pane": [8, 6, 16, 16], "color": "#e4f8ff", "intensity": .22}
+        side = self.scene("window", (2, 2), window_light=profile)
+
+        def configure(value):
+            self.canvas.set_scene(value, self.root, self.actor)
+            self.canvas.set_wall_height(80)
+            self.canvas.set_interaction(True)
+            self.canvas.play()
+            hold = next(part for part in self.canvas._segments if part["phase"] == "approach")
+            self.canvas.advance(hold["begin"] + 100)
+            self.canvas._timer.stop()
+
+        configure(side)
+        self.canvas.set_time_of_day("day")
+        day_before = self.canvas.render_scene()
+        day_beam = self.canvas._window_daylight_image(self.canvas.scene_layout()).copy()
+        self.canvas.set_time_of_day("night")
+        default_night = self.canvas.render_scene()
+        no_profile = {**side, "views": [{**side["views"][0]}]}
+        no_profile["views"][0].pop("window_light")
+        configure(no_profile)
+        self.assertEqual(self.canvas.render_scene(), default_night)
+
+        enabled = {**side, "views": [{**side["views"][0], "window_light": {**profile, "night_opacity": .5}}]}
+        configure(enabled)
+        self.canvas.set_time_of_day("day")
+        self.assertEqual(self.canvas.render_scene(), day_before)
+        self.canvas.set_time_of_day("night")
+        self.assertEqual(self.canvas._window_daylight_image(self.canvas.scene_layout()), day_beam)
+        night_off = self.canvas.render_scene()
+        self.canvas.set_power(True)
+        self.assertEqual(self.canvas.render_scene(), night_off)
+        self.assertNotEqual(night_off, default_night)
+
+        beam_samples, masked_farmer, masked_window = 0, 0, 0
+        for y in range(day_beam.height()):
+            for x in range(day_beam.width()):
+                source = day_beam.pixelColor(x, y)
+                old = default_night.pixelColor(x, y)
+                actual = night_off.pixelColor(x, y)
+                material = day_before.pixelColor(x, y).name()
+                if material in ("#145aaf", "#e33535"):
+                    self.assertEqual(actual, old)
+                    if source.alpha():
+                        masked_farmer += material == "#e33535"
+                        masked_window += material == "#145aaf"
+                elif not source.alpha():
+                    self.assertEqual(actual, old, "Night projection must not add a halo outside the day beam")
+                else:
+                    alpha = source.alphaF() * .5
+                    expected = [round(a * alpha + b * (1 - alpha))
+                                for a, b in zip(source.getRgb()[:3], old.getRgb()[:3])]
+                    self.assertTrue(all(abs(a - b) <= 2 for a, b in zip(actual.getRgb()[:3], expected)),
+                                    f"Night beam is not day RGB at half alpha at {(x, y)}")
+                    beam_samples += 1
+        self.assertGreater(beam_samples, 20)
+        self.assertGreater(masked_farmer, 0, "Fixture must place the farmer inside the beam")
+        self.assertGreater(masked_window, 0, "Fixture must overlap beam and opaque window pixels")
+
+    def test_floor_furniture_keeps_native_anchor_when_wall_height_is_requested(self):
+        self.scene("lamp", (2, 1))
+        layout = self.canvas.scene_layout()
+        self.assertEqual(layout["wall_height"], 48)
+        self.assertEqual(layout["anchor"].y(), 102)
+        self.assertEqual(layout["actor_anchor"], layout["anchor"])
+        self.canvas.set_wall_height(96)
+        updated = self.canvas.scene_layout()
+        self.assertEqual(updated["wall_height"], 96)
+        for key in ("anchor", "actor_anchor", "image_position"):
+            self.assertEqual(updated[key], layout[key])
 
     def test_optional_mask_uses_radial_falloff_but_missing_asset_does_not(self):
         side = self.scene(lights=[{"offset": [-12, 0], "radius": 32, "color": "#ffffff",

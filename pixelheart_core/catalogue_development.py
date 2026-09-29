@@ -1,17 +1,19 @@
-"""Read-only, portable furniture comparison packs for the Home workshop."""
+"""Portable furniture comparison packs and local catalogue editing."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 import json
 import os
 import re
+import stat
+import tempfile
 from pathlib import Path, PurePosixPath
 
 from PIL import Image
 
 
 class CataloguePackError(ValueError):
-    """A local development pack cannot be previewed."""
+    """A local development pack cannot be opened or updated."""
 
 
 def local_asset(root, reference):
@@ -45,6 +47,33 @@ def _text(value, label, limit=2048):
     return value
 
 
+def _deletion_path(path):
+    return path.with_name(f".{path.name}.deletions.json")
+
+
+def _optional_bytes(path):
+    try:
+        return path.read_bytes()
+    except FileNotFoundError:
+        return None
+
+
+def _deletion_state(path):
+    if not path.exists():
+        return {"format": "pixelheart-catalogue-deletions", "version": 1, "deleted_item_ids": []}
+    state = _json(path)
+    if state.get("format") != "pixelheart-catalogue-deletions" or state.get("version") != 1:
+        raise CataloguePackError("This catalogue deletion list has an unsupported format.")
+    identities = state.get("deleted_item_ids")
+    if not isinstance(identities, list) or len(identities) > 4096:
+        raise CataloguePackError("A catalogue deletion list needs at most 4096 piece identities.")
+    for identity in identities:
+        _text(identity, "Deleted piece identity", 256)
+    if len(set(identities)) != len(identities):
+        raise CataloguePackError("Deleted piece identities must be unique.")
+    return state
+
+
 @dataclass
 class DevelopmentPack:
     path: Path
@@ -63,8 +92,8 @@ def load_development_pack(path):
         raise CataloguePackError("Choose a version 1 furniture catalogue development pack.")
     _text(data.get("title"), "Catalogue title", 256)
     items = data.get("items")
-    if not isinstance(items, list) or not 1 <= len(items) <= 1024:
-        raise CataloguePackError("A catalogue needs between 1 and 1024 pieces.")
+    if not isinstance(items, list) or len(items) > 1024:
+        raise CataloguePackError("A catalogue needs a list of at most 1024 pieces.")
     seen, images = set(), {}
     total_bytes = 0
 
@@ -137,8 +166,11 @@ def load_development_pack(path):
             _text(item.get(key), key, 256)
         for side_key in ("collection", "vanilla"):
             side = item.get(side_key)
+            if (side_key == "vanilla" and side is None
+                    and item.get("collection", {}).get("kind") in ("wall", "floor")):
+                continue
             if not isinstance(side, dict):
-                raise CataloguePackError("Every piece needs collection and vanilla previews.")
+                raise CataloguePackError("Furniture needs collection and vanilla previews; wall and floor patterns may omit vanilla.")
             for key in ("name", "id", "kind"):
                 _text(side.get(key), key, 256)
             views = side.get("views")
@@ -176,6 +208,25 @@ def load_development_pack(path):
                         animation(state["animation_frames"], size)
                 if "lights" in view:
                     lighting(view["lights"])
+                if "window_light" in view:
+                    daylight = view["window_light"]
+                    if side["kind"].lower() != "window" or not isinstance(daylight, dict):
+                        raise CataloguePackError("Window daylight needs a window view and a pane profile.")
+                    pane = daylight.get("pane")
+                    if (not isinstance(pane, list) or len(pane) != 4
+                            or any(type(n) is not int for n in pane)
+                            or min(pane[:2]) < 0 or min(pane[2:]) <= 0
+                            or pane[0] + pane[2] > size[0] or pane[1] + pane[3] > size[1]):
+                        raise CataloguePackError("The window light pane must fit inside its preview image.")
+                    if (not isinstance(daylight.get("color"), str)
+                            or not re.fullmatch(r"#[0-9a-fA-F]{6}", daylight["color"])):
+                        raise CataloguePackError("Window light colors must use #RRGGBB.")
+                    intensity = daylight.get("intensity")
+                    if type(intensity) not in (int, float) or not 0 <= intensity <= 1:
+                        raise CataloguePackError("Window light intensity must be from 0 to 1.")
+                    opacity = daylight.get("night_opacity", 0)
+                    if type(opacity) not in (int, float) or not 0 <= opacity <= 1:
+                        raise CataloguePackError("Window night opacity must be from 0 to 1.")
     backgrounds = data.get("backgrounds", [])
     if not isinstance(backgrounds, list) or len(backgrounds) > 16:
         raise CataloguePackError("Use at most 16 room backgrounds.")
@@ -222,7 +273,56 @@ def load_development_pack(path):
             if actor.get(state):
                 image(actor[state], actor_path.parent)
         actor = {**actor, "root": actor_path.parent}
+    deleted = set(_deletion_state(_deletion_path(path))["deleted_item_ids"])
+    if deleted:
+        data = {**data, "items": [item for item in items if item["id"] not in deleted]}
     return DevelopmentPack(path, data, actor)
+
+
+def delete_development_item(path, item_id):
+    """Persist one hidden item ID while preserving the source pack and artwork.
+
+    The per-manifest sidecar survives regeneration of a development pack.
+    Reload edits detected during preparation instead of overwriting them with
+    a stale UI copy. Only the deletion sidecar is replaced atomically.
+    """
+    path = Path(path).resolve()
+    state_path = _deletion_path(path)
+    _text(item_id, "Piece identity", 256)
+    for _attempt in range(3):
+        temporary = None
+        try:
+            original = path.read_bytes()
+            original_state = _optional_bytes(state_path)
+            current = load_development_pack(path)
+            state = _deletion_state(state_path)
+            if path.read_bytes() != original or _optional_bytes(state_path) != original_state:
+                continue
+            if not any(item["id"] == item_id for item in current.data["items"]):
+                raise CataloguePackError("This piece is no longer in the catalogue. Reload to see the current list.")
+            candidate = {**state, "deleted_item_ids": [*state["deleted_item_ids"], item_id]}
+            payload = json.dumps(candidate, ensure_ascii=False, indent=2) + "\n"
+            mode = stat.S_IMODE(state_path.stat().st_mode) if state_path.exists() else 0o600
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
+                                             prefix=f".{path.name}-deletion-", suffix=".tmp", delete=False) as stream:
+                temporary = Path(stream.name)
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.chmod(temporary, mode)
+            _deletion_state(temporary)
+            if path.read_bytes() != original or _optional_bytes(state_path) != original_state:
+                continue
+            os.replace(temporary, state_path)
+            temporary = None
+            data = {**current.data, "items": [item for item in current.data["items"] if item["id"] != item_id]}
+            return DevelopmentPack(path, data, current.actor)
+        except OSError as exc:
+            raise CataloguePackError(f"Cannot save the catalogue deletion: {exc}") from exc
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+    raise CataloguePackError("The catalogue kept changing while deleting this piece. Reload and try again.")
 
 
 def discover_development_packs(roots):

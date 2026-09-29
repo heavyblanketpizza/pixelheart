@@ -29,6 +29,15 @@ MAX_ATLAS_PIXELS = 8 * 1024 * 1024
 
 def _source_paths(settings):
     """Inspect known layouts of explicitly connected sources, without scanning."""
+    paths = []
+    try:
+        # The connected game's own Cursors atlas, cached by the interface skin.
+        from .skin import current_pieces
+        cursors = current_pieces().get("cursors")
+        if cursors is not None and cursors.path.is_file():
+            paths.append(cursors.path)
+    except ImportError:
+        pass
     roots = []
     exports = settings.value("localGame/contentPatcherExportFolder", "")
     if isinstance(exports, str) and exports:
@@ -47,7 +56,6 @@ def _source_paths(settings):
             roots.extend((root / "source", root))
         except (OSError, ValueError):
             continue
-    paths = []
     for root in roots:
         try:
             root = root.resolve(strict=True)

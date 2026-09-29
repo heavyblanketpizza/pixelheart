@@ -158,18 +158,14 @@ class StagingTests(QtTestCase):
         self.assertEqual(page.dump(), before)
         self.assertFalse(self.window.dirty)
 
-    def test_relationship_picker_names_the_other_person_and_keeps_custom_targets(self):
+    def test_legacy_relationship_target_is_preserved_while_editing_romance(self):
         document = deepcopy(self.window.document)
         relationship = new_relationship()
         relationship["story"]["target"] = "AnotherMod_QuietNeighbor"
         document["character"]["relationships"] = [relationship]
         self.window.load_document(document)
-        page = self.window.relationships
-        picker = page.story_fields["target"]
-        self.assertEqual(picker.value(), "AnotherMod_QuietNeighbor")
-        self.assertEqual(picker.combo.findData("$npc"), -1)
-        page.fields["description"].setPlainText("They met by the river.")
-        self.assertEqual(page.dump()[0]["story"]["target"], "AnotherMod_QuietNeighbor")
-        picker.combo.setCurrentIndex(picker.combo.findData("Leah"))
-        self.assertEqual(page.dump()[0]["story"]["target"], "Leah")
-        self.assertEqual(picker.combo.currentText(), "Leah")
+        before = deepcopy(self.window.story.dump()["relationships"])
+        self.window.events.fields["name"].setText("They met by the river")
+        self.assertEqual(self.window.story.dump()["relationships"], before)
+        self.assertEqual(before[0]["story"]["target"], "AnotherMod_QuietNeighbor")
+        self.assertFalse(hasattr(self.window.story, "relationships"))

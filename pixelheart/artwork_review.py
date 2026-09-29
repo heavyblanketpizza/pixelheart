@@ -112,7 +112,7 @@ class FramePairs(QWidget):
         if not self.frame_count:
             painter.setPen(QColor("#796b56"))
             painter.drawText(self.rect().adjusted(20, 20, -20, -20), Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap,
-                             "Upload a complete sheet in Artwork to review its frames.")
+                             "Upload a complete sheet in Portraits & sprites to review its frames.")
             return
         size = self.card_size()
         start = max(0, event.rect().top() // size.height() * self.grid_columns)

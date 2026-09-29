@@ -214,10 +214,10 @@ class InteriorInteractionRegressionTests(QtTestCase):
         self.assertFalse(spouse.selection_bar.isVisible())
 
     def test_minimum_window_fits_after_hidden_import_without_horizontal_room_scroll(self):
-        from pixelheart.theme import STYLESHEET
+        from pixelheart.skin import build_stylesheet, refresh_pieces
         editor = InteriorEditor(self.root / "project" / "character.json")
         self.dialogs.append(editor)
-        editor.setStyleSheet(STYLESHEET)
+        editor.setStyleSheet(build_stylesheet(refresh_pieces(None)[0]))
         self.assertTrue(editor.load_catalog(make_library(self.root / "library")))
         editor.resize(1000, 700)
         editor.tabs.setCurrentIndex(2)

@@ -4,7 +4,7 @@ from copy import deepcopy
 from html import escape
 import re
 
-from PySide6.QtCore import QThread, Qt, Signal
+from PySide6.QtCore import QSignalBlocker, QThread, Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QLayout, QLineEdit, QListWidget,
     QListWidgetItem, QPlainTextEdit, QScrollArea, QSizePolicy, QSplitter,
@@ -14,7 +14,10 @@ from PySide6.QtWidgets import (
 from pixelheart_core.dialogue_templates import (
     overwrite_dialogue_examples, dialogue_conflicts, dialogue_has_advanced_commands, dialogue_preview,
 )
-from pixelheart_core.local_templates import LOCAL_TEMPLATES, CONTENT_PATCHER_EXPORT_URL, load_project_dialogue
+from pixelheart_core.local_templates import (
+    LOCAL_TEMPLATES, CONTENT_PATCHER_EXPORT_URL, game_villagers, load_game_dialogue, load_project_dialogue,
+)
+from .game_connection import game_connection
 from .game_import import ProjectDialogueSourceWidget
 from .widgets import button, card, label
 
@@ -63,6 +66,24 @@ class DialogueLoad(QThread):
                 self.failed.emit(str(exc))
 
 
+class GameDialogueLoad(QThread):
+    ready = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, content_root, name, parent=None):
+        super().__init__(parent)
+        self.content_root, self.name = content_root, name
+
+    def run(self):
+        try:
+            result = load_game_dialogue(self.content_root, self.name, cancelled=self.isInterruptionRequested)
+            if not self.isInterruptionRequested():
+                self.ready.emit(result)
+        except Exception as exc:
+            if not self.isInterruptionRequested():
+                self.failed.emit(str(exc))
+
+
 class DialogueTemplateDialog(QDialog):
     def __init__(self, records, parent=None, *, project_file=None):
         super().__init__(parent)
@@ -79,18 +100,24 @@ class DialogueTemplateDialog(QDialog):
         root.setContentsMargins(24, 24, 24, 24)
         root.setSpacing(12)
         root.addWidget(label("A familiar voice, a place to start.", "title", True))
-        root.addWidget(label("Load Abigail’s or Elliott’s complete dialogue export from your game, then explore and adapt the conversations.", "muted", True))
+        root.addWidget(label("Pick a villager and load everything they say, then rewrite it in your character’s voice.", "muted", True))
+        self.content_root = game_connection().content_root()
+        self.source_choice = QComboBox()
+        self.source_choice.setAccessibleName("Where to read dialogue from")
+        self.source_choice.addItem("From my game", "game")
+        self.source_choice.addItem("From a Content Patcher export (advanced)", "export")
+        self.source_choice.model().item(0).setEnabled(self.content_root is not None)
+        self.source_choice.setCurrentIndex(0 if self.content_root is not None else 1)
+        root.addWidget(self.source_choice)
         choose = QHBoxLayout()
-        choose.addWidget(label("Template character"))
+        choose.addWidget(label("Villager"))
         self.character = QComboBox()
         self.character.setAccessibleName("Dialogue reference character")
-        for template_id, template in LOCAL_TEMPLATES.items():
-            self.character.addItem(template["name"], template_id)
         choose.addWidget(self.character, 1)
         self.load_button = button("Load full dialogue", self.load_examples, "primary")
         choose.addWidget(self.load_button)
         root.addLayout(choose)
-        self.game_source = ProjectDialogueSourceWidget(self.character.currentData(), project_file, self)
+        self.game_source = ProjectDialogueSourceWidget("abigail", project_file, self)
         root.addWidget(self.game_source)
         self.status = label("", "muted", True)
         self.status.setAccessibleName("Dialogue template loading status")
@@ -154,7 +181,7 @@ class DialogueTemplateDialog(QDialog):
         splitter.setSizes([280, 610])
         self.pages = QStackedWidget()
         empty_card, empty_layout = card("Start with the whole conversation collection")
-        empty_layout.addWidget(label("Choose Abigail or Elliott above and export their dialogue using the instructions. Every entry in that file will be loaded, with its original text and commands.", "muted", True))
+        empty_layout.addWidget(label("Choose a villager above and load their dialogue. Every line they say is loaded with its original text and commands.", "muted", True))
         for title, description in (
             ("The complete collection", "Import the full template together, including seasonal lines, friendship variations, and event responses."),
             ("Find a conversation", "Search by trigger or dialogue text and explore the original commands."),
@@ -191,8 +218,24 @@ class DialogueTemplateDialog(QDialog):
         self.buttons.rejected.connect(self.reject)
         root.addWidget(self.buttons)
         self.character.currentIndexChanged.connect(self.clear_examples)
+        self.source_choice.currentIndexChanged.connect(self.populate_characters)
         self.list.currentRowChanged.connect(self.show_example)
         self.search.textChanged.connect(self.filter_examples)
+        self.populate_characters()
+
+    def game_mode(self):
+        return self.source_choice.currentData() == "game"
+
+    def populate_characters(self, *_):
+        with QSignalBlocker(self.character):
+            self.character.clear()
+            if self.game_mode():
+                for name in game_villagers(self.content_root):
+                    self.character.addItem(name, name)
+            else:
+                for template_id, template in LOCAL_TEMPLATES.items():
+                    self.character.addItem(template["name"], template_id)
+        self.game_source.setVisible(not self.game_mode())
         self.clear_examples()
 
     def clear_examples(self):
@@ -208,24 +251,35 @@ class DialogueTemplateDialog(QDialog):
         self.summary.setText("The full template will be added to this project’s Everyday dialogue.")
         self.overwrite_warning.setText("⚠ Any matching dialogue will be overwritten when you use this template. Other dialogue will be kept.")
         self.overwrite_warning.setVisible(bool(self.records))
+        guide = '<a href="https://stardewvalleywiki.com/Modding:Dialogue">Dialogue guide</a>'
+        if self.game_mode():
+            self.status.setText("Choose a villager, then load their conversations.")
+            self.load_button.setEnabled(self.character.count() > 0 and self.worker is None)
+            self.source.setText("From your game · " + guide)
+            return
         self.status.setText("Load the complete template from this project’s dialogue folder.")
         self.game_source.set_template(self.character.currentData())
         self.load_button.setEnabled(self.project_file is not None and self.worker is None)
         self.source.setText(
             'From my game · <a href="' + escape(CONTENT_PATCHER_EXPORT_URL, quote=True)
-            + '">Export instructions</a> · '
-            '<a href="https://stardewvalleywiki.com/Modding:Dialogue">Dialogue guide</a>'
+            + '">Export instructions</a> · ' + guide
         )
 
     def load_examples(self):
-        if self.worker is not None or self.project_file is None:
+        if self.worker is not None or (not self.game_mode() and self.project_file is None):
+            return
+        if self.game_mode() and self.character.count() == 0:
             return
         self.clear_examples()
         self.status.setText("Loading conversations…")
         self.character.setEnabled(False)
+        self.source_choice.setEnabled(False)
         self.load_button.setEnabled(False)
         self.game_source.setEnabled(False)
-        self.worker = DialogueLoad(self.character.currentData(), self.project_file, self)
+        if self.game_mode():
+            self.worker = GameDialogueLoad(self.content_root, self.character.currentData(), self)
+        else:
+            self.worker = DialogueLoad(self.character.currentData(), self.project_file, self)
         self.worker.ready.connect(self.receive_examples)
         self.worker.failed.connect(self.show_failure)
         self.worker.finished.connect(self.load_finished)
@@ -237,8 +291,10 @@ class DialogueTemplateDialog(QDialog):
         self.examples = deepcopy(result["examples"])
         self.conflicts = dialogue_conflicts(self.records, self.examples)
         if result.get("attribution"):
+            link = (CONTENT_PATCHER_EXPORT_URL, "Export instructions") if not self.game_mode() else \
+                ("https://stardewvalleywiki.com/Modding:Dialogue", "Dialogue guide")
             self.source.setText(escape(result["attribution"]) + ' · <a href="'
-                                + escape(CONTENT_PATCHER_EXPORT_URL, quote=True) + '">Export instructions</a>')
+                                + escape(link[0], quote=True) + '">' + link[1] + '</a>')
         self.list.clear()
         for example in self.examples:
             suffix = " · Will overwrite" if example["trigger"] in self.conflicts else ""
@@ -248,7 +304,9 @@ class DialogueTemplateDialog(QDialog):
         self.pages.setCurrentIndex(1)
         self.detail.show()
         self.list.setCurrentRow(0)
-        self.status.setText(f"Loaded all {len(self.examples)} entries. Ready to use the complete collection.")
+        skipped = result.get("skipped", 0)
+        extra = f" {skipped} line{'s' if skipped != 1 else ''} the editor can't hold {'were' if skipped != 1 else 'was'} left out." if skipped else ""
+        self.status.setText(f"Loaded all {len(self.examples)} entries. Ready to use the complete collection.{extra}")
         self.filter_examples()
         self.update_summary()
 
@@ -334,6 +392,7 @@ class DialogueTemplateDialog(QDialog):
             super().reject()
             return
         self.character.setEnabled(True)
+        self.source_choice.setEnabled(True)
         self.load_button.setEnabled(True)
         self.game_source.setEnabled(True)
         self.update_summary()

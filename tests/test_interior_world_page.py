@@ -195,7 +195,7 @@ class InteriorWorldPageTests(QtTestCase):
         self.assertFalse(self.page.tabs.isTabVisible(1))
 
     def test_build_home_opens_designer_and_assigns_accepted_home_without_map_setup(self):
-        self.window.document["character"].update(name="Loki", internal_name="Loki")
+        self.window.document["character"].update(name="TestNPC", internal_name="TestNPC")
         self.window.identity.load(self.window.document["character"])
         before_home = self.window.document["character"]["home_map"]
         with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
@@ -210,10 +210,10 @@ class InteriorWorldPageTests(QtTestCase):
             self.page.build_home_button.click()
         self.assertFalse(self.window.errors)
         record = self.page.world["locations"][0]
-        self.assertEqual((record["name"], record["internal_name"]), ("Loki's home", "LokiHome"))
+        self.assertEqual((record["name"], record["internal_name"]), ("TestNPC's home", "TestNPCHome"))
         self.assertEqual(record["interior"], new_interior())
-        self.assertEqual(self.window.document["character"]["home_map"], "LokiHome")
-        self.assertEqual(self.window.identity.dump()["home_map"], "LokiHome")
+        self.assertEqual(self.window.document["character"]["home_map"], "TestNPCHome")
+        self.assertEqual(self.window.identity.dump()["home_map"], "TestNPCHome")
         self.assertTrue(self.page.location_advanced.isHidden())
         self.assertEqual(self.page.build_home_button.text(), "Edit residence…")
         self.assertTrue(self.page.assign_home_button.isHidden())
@@ -445,7 +445,7 @@ class InteriorWorldPageTests(QtTestCase):
         self.assertEqual(self.page.world["locations"], [])
 
     def test_spouse_action_creates_once_and_reopens_existing_room(self):
-        self.window.document["character"].update(name="Loki", internal_name="Loki")
+        self.window.document["character"].update(name="TestNPC", internal_name="TestNPC")
         self.window.identity.load(self.window.document["character"])
         before_home = self.window.document["character"]["home_map"]
         with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
@@ -453,8 +453,8 @@ class InteriorWorldPageTests(QtTestCase):
             constructor.return_value.result_design = new_interior("spouse")
             self.page.design_spouse_room()
         record = self.page.world["locations"][0]
-        self.assertEqual(record["name"], "Loki's spouse room")
-        self.assertEqual(record["internal_name"], "LokiSpouseRoom")
+        self.assertEqual(record["name"], "TestNPC's spouse room")
+        self.assertEqual(record["internal_name"], "TestNPCSpouseRoom")
         self.assertTrue(record["spouse_room"])
         self.assertEqual(self.window.document["character"]["home_map"], before_home)
         identity = record["id"]
@@ -491,18 +491,18 @@ class InteriorWorldPageTests(QtTestCase):
         self.assertEqual(self.page.dependency_list.currentRow(), 0)
 
     def test_build_home_creates_unique_safe_identity_and_preserves_existing_place(self):
-        self.window.document["character"].update(name="Loki", internal_name="Loki")
+        self.window.document["character"].update(name="TestNPC", internal_name="TestNPC")
         self.window.identity.load(self.window.document["character"])
         self.page.add_location()
         existing = self.page.world["locations"][0]
-        existing.update(name="Existing home", internal_name="lokihome")
+        existing.update(name="Existing home", internal_name="testnpchome")
         before = deepcopy(existing)
         with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
             constructor.return_value.exec.return_value = QDialog.DialogCode.Accepted
             constructor.return_value.result_design = new_interior()
             self.page.build_home()
         self.assertEqual(self.page.world["locations"][0], before)
-        self.assertEqual(self.page.world["locations"][1]["internal_name"], "LokiHome2")
+        self.assertEqual(self.page.world["locations"][1]["internal_name"], "TestNPCHome2")
 
     def test_place_limit_blocks_new_home_but_existing_spouse_room_can_be_edited(self):
         records = []

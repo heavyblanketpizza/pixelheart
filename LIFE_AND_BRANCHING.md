@@ -1,23 +1,38 @@
 # Give the character a life beyond the first meeting
 
-**Dialogue** and **Schedule** connects completed story chapters to ordinary conversations,
+**Conversations** and **Daily routine** connect completed story chapters to ordinary conversations,
 changing routines, and authored spouse dialogue. **Story & events** adds relationship
 and farmhouse conditions, repeatable scenes, and a player choice with two endings.
 Everything is authored locally. These tools do not generate content during play.
 
 ## Start with one visible change
 
-1. Review the first story event and mark it ready in **Story & events**.
-2. Open **Dialogue → Story reactions** and add a conversation.
-3. Name it, choose that event under **After this story event**, and write what the
+1. Open an event's **Aftermath** in **Story & events** and choose **+ Story reaction**.
+2. The existing dialogue editor opens with a new draft and the event already
+   chosen under **After this story event**.
+3. Name it and write what the
    character says after the player has helped them. Use `@` for the farmer's name.
-4. Check **Include this rule in the next mod export** after reviewing the text.
+4. Review the event and mark it ready. Check **Include this rule in the next mod
+   export** after reviewing the conversation and its conditions.
 5. Export, play the event, then sleep and speak to the character the next day.
 
 Rules are applied each morning. An after-event conversation therefore takes
 effect the next in-game day. The lower matching rule wins when several enabled
 rules change the same conversation or routine. Use **Move up** and **Move down**
 to put broad rules first and more specific changes afterward.
+
+You can also start directly in **Conversations → Story reactions** and choose the
+event yourself. The event's **Aftermath** view shows these same records, including
+their text, conditions, and draft status. It does not create a second copy.
+**Open selected rule** returns to its editor. **Link as draft** can attach an
+existing rule that has no event prerequisite; an included rule is returned to
+draft so its new condition can be reviewed.
+
+New rules require event completion without copying its minimum heart threshold.
+Add further hearts, season, weather, weekday, or relationship conditions only
+when the intended behavior needs them. A marriage dialogue draft includes the
+married condition. Chapters and outline ordering do not impose daily-life
+conditions on their own.
 
 Unchecked rules are drafts. They stay in the project and are omitted from the
 playable mod. An enabled rule that refers to a missing or unfinished event blocks
@@ -29,10 +44,17 @@ location, and more specific authored dialogue can still have higher priority.
 Choosing **Married to this NPC** changes the spouse's home conversations instead.
 The **Marriage dialogue** tab lets you write a particular morning or evening separately.
 
+An event's general aftermath notes are authoring prose. The separate **Planning
+only** list can record mail, delays, remembered answers, item rewards, or world
+changes, but these are not exported runtime features. Pending effects prevent
+the event from being marked ready. Mark an effect **Omitted from this playable
+version** when deliberately leaving it out, or remove it; its description does
+not become a game instruction.
+
 ## Seasonal, rainy, dating, and married routines
 
-Open **Schedule → Conditional routines**, add a routine, and select its conditions. The
-initial stops copy the normal **Schedule** so there is something concrete to edit.
+Open **Daily routine → Conditional routines**, add a routine, and select its conditions. The
+initial stops copy the normal **Daily routine** so there is something concrete to edit.
 Season, weather, weekday, hearts, completed story, and relationship can be combined.
 The lower matching routine takes priority over earlier alternatives.
 
@@ -51,7 +73,7 @@ farmhand relationship setup before distributing a pack for multiplayer use.
 
 ## Write their married voice
 
-In **Dialogue → Marriage dialogue**, choose a morning, rainy morning, evening, or
+In **Conversations → Marriage dialogue**, choose a morning, rainy morning, evening, or
 rainy evening. The authored text fills the random slots for that moment, so a
 missing random slot does not unexpectedly replace your line with generic text.
 More specific rules can change those words after a later chapter or in a season.

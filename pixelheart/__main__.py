@@ -19,8 +19,15 @@ def main(argv=None):
     app = QApplication.instance() or QApplication(sys.argv[:1])
     app.setApplicationName("Pixelheart")
     app.setOrganizationName("Pixelheart")
+    from .game_connection import game_connection
+    try:
+        # Look in the usual places once; the player can change it any time.
+        game_connection().auto_detect()
+    except OSError:
+        pass
     apply_theme(app)
-    window = MainWindow(args.project, auto_download_icons=True)
+    window = MainWindow(args.project, auto_download_icons=True,
+                        show_welcome=not args.project and not args.catalogue)
     if args.catalogue:
         window.open_section("home")
         window.world.home_switch.setCurrentIndex(1)

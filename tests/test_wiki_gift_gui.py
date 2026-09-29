@@ -18,7 +18,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.app import MainWindow
+from pixelheart.app import MainWindow, SECTION_INDEX
 from pixelheart.gifts_page import GiftsPage, vanilla_catalog
 from pixelheart.item_icons import ItemIconStore, export_filename
 from pixelheart_core.wiki_items import WikiItemError, download_item_icons, wiki_image_sources
@@ -32,6 +32,7 @@ class WikiGiftGuiTests(QtTestCase):
 
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-wiki-gui-")
+        self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.widgets = []
         self.releases = []
@@ -45,11 +46,13 @@ class WikiGiftGuiTests(QtTestCase):
             side_effect=lambda: ItemIconStore(self.local_cache, self.wiki_cache),
         )
         self.store_patch.start()
+        self.addCleanup(self.store_patch.stop)
         # Any request not explicitly replaced by a test is an immediate error.
         self.network_patch = patch(
             "pixelheart_core.wiki_items._download_png", side_effect=AssertionError("Unexpected network request"),
         )
         self.network_guard = self.network_patch.start()
+        self.addCleanup(self.network_patch.stop)
         output = io.BytesIO()
         Image.new("RGBA", (48, 48), (205, 60, 120, 255)).save(output, format="PNG")
         self.png = output.getvalue()
@@ -66,9 +69,6 @@ class WikiGiftGuiTests(QtTestCase):
             widget.close()
             widget.deleteLater()
         self.application.processEvents()
-        self.network_patch.stop()
-        self.store_patch.stop()
-        self.temporary.cleanup()
 
     def wait_until(self, predicate, timeout=3):
         deadline = time.monotonic() + timeout
@@ -93,6 +93,28 @@ class WikiGiftGuiTests(QtTestCase):
         self.assertEqual(page._wiki_attempted, set())
         self.network_guard.assert_not_called()
         self.assertFalse(self.wiki_cache.exists())
+
+    def test_teardown_timeout_does_not_leak_network_guard_or_temporary_cache(self):
+        from pixelheart import gifts_page
+        from pixelheart_core import wiki_items
+        previous_download = wiki_items._download_png
+        previous_store = gifts_page.ItemIconStore
+
+        class FailingTeardownFixture(WikiGiftGuiTests):
+            def runTest(self):
+                pass
+
+            def tearDown(self):
+                self.fail("Synthetic background cleanup timeout")
+
+        fixture = FailingTeardownFixture()
+        result = unittest.TestResult()
+        fixture.run(result)
+        self.assertEqual(len(result.failures), 1)
+        self.assertIn("Synthetic background cleanup timeout", result.failures[0][1])
+        self.assertIs(wiki_items._download_png, previous_download)
+        self.assertIs(gifts_page.ItemIconStore, previous_store)
+        self.assertFalse(fixture.root.exists())
 
     def test_automatic_download_fetches_only_missing_eligible_icons(self):
         page = self.make_widget(auto=True, identifiers=("66", "395", "Book_Horse"))
@@ -143,7 +165,7 @@ class WikiGiftGuiTests(QtTestCase):
 
         with patch("pixelheart_core.wiki_items._download_png", side_effect=synthetic_download):
             window.show()
-            window.navigation.setCurrentRow(3)
+            window.navigation.setCurrentRow(SECTION_INDEX["gifts"])
             self.wait_until(started.is_set)
             worker = page.wiki_worker
             self.assertIsNotNone(worker)
@@ -203,7 +225,7 @@ class WikiGiftGuiTests(QtTestCase):
         with patch("pixelheart_core.wiki_items._download_png", side_effect=synthetic_download), \
                 patch.object(window, "confirm_discard", return_value=True) as confirm:
             window.show()
-            window.navigation.setCurrentRow(3)
+            window.navigation.setCurrentRow(SECTION_INDEX["gifts"])
             self.wait_until(started.is_set)
             window.dirty = True
             self.assertFalse(window.close())

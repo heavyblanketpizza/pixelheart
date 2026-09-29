@@ -24,6 +24,7 @@ from pixelheart.artwork_page import PreparationDialog
 from pixelheart.theme import apply_theme
 from pixelheart_core.artwork import inspect_artwork
 from pixelheart_core.projects import ProjectError, load_project, resolve_artwork
+from pixelheart_core.story import new_relationship
 from tests.qt_support import QtTestCase
 
 
@@ -138,8 +139,8 @@ class DesktopTests(QtTestCase):
         window.identity.fields["name"].setText("Ada")
         window.dialogue.fields["text"].setPlainText("A new beginning.$h")
         window.schedule.table.cellWidget(0, 5).setText("Read at home")
-        window.events.fields["description"].setPlainText("At sunset")
-        window.relationships.fields["relation"].setText("Good friend")
+        window.story.milestones.buttons[2].click()
+        window.events.fields["name"].setText("A walk at sunset")
         window.gifts.assign_items(["421", "66"], "love")
         self.valid_artwork()
         self.assertTrue(window.save())
@@ -148,6 +149,10 @@ class DesktopTests(QtTestCase):
         self.assertEqual(loaded["character"]["gifts"]["extension"], gift_metadata)
         for collection in ("dialogues", "schedule", "events", "relationships"):
             self.assertEqual(loaded["character"][collection][0]["extension"], entry_metadata)
+        self.assertEqual(loaded["character"]["events"][0]["name"], "A walk at sunset")
+        self.assertEqual(loaded["character"]["events"][0]["description"], "At dusk")
+        self.assertEqual(loaded["character"]["relationships"][0]["relation"], "Friend")
+        self.assertEqual(loaded["character"]["relationships"][0]["description"], "Artists")
         blockers = [issue for issue in window.export_page.refresh() if issue["level"] == "error"]
         self.assertEqual(blockers, [])
         destination = self.root / "extension-test.zip"
@@ -159,24 +164,29 @@ class DesktopTests(QtTestCase):
         self.assertEqual(exported["gifts"]["extension"], gift_metadata)
         for collection in ("dialogues", "schedule", "events", "relationships"):
             self.assertEqual(exported[collection][0]["extension"], entry_metadata)
+        self.assertEqual(exported["events"], loaded["character"]["events"])
+        self.assertEqual(exported["relationships"], character["relationships"])
         self.errors.assert_not_called()
 
-    def test_dialogue_event_relationship_and_schedule_edits_reach_saved_project(self):
+    def test_dialogue_romance_and_schedule_edits_preserve_legacy_relationship_in_saved_project(self):
         window = self.window
+        document = deepcopy(window.document)
+        relationship = new_relationship()
+        relationship.update(name="Leah", relation="Painting partner", description="They share a sketchbook.")
+        relationship["story"]["target"] = "Leah"
+        document["character"]["relationships"] = [relationship]
+        original_event = next(event for event in document["character"]["events"] if event["hearts"] == 4)
+        original_event["description"] = "A promise for another spring."
+        original_event["story"]["arc_ids"] = [relationship["id"]]
+        window.load_document(document)
         window.dialogue.add()
         window.dialogue.fields["text"].setPlainText("Mondays smell like fresh bread.$h")
         dialogue = window.dialogue.dump()[-1]
         self.assertEqual(dialogue["trigger"], "Mon")
-        window.events.add()
+        window.story.milestones.buttons[4].click()
         window.events.fields["name"].setText("A letter by the river")
-        window.events.fields["hearts"].setValue(4)
-        window.events.fields["description"].setPlainText("A promise for another spring.")
-        event = window.events.dump()[0]
-        window.relationships.add()
-        window.relationships.fields["name"].setText("Leah")
-        window.relationships.fields["relation"].setText("Painting partner")
-        window.relationships.fields["description"].setPlainText("They share a sketchbook.")
-        relationship = window.relationships.dump()[0]
+        window.events.beats.fields["text"].setPlainText("Will you bring the sketchbook next spring?$h")
+        event = window.events.dump()[window.events.current]
 
         first_stop_id = window.schedule.dump()[0]["id"]
         window.schedule.add()
@@ -193,7 +203,11 @@ class DesktopTests(QtTestCase):
         self.assertTrue(window.save_to(self.file))
         character = load_project(self.file)["character"]
         self.assertEqual(character["dialogues"][-1], dialogue)
-        self.assertEqual(character["events"][0], event)
+        self.assertEqual(next(saved for saved in character["events"] if saved["id"] == event["id"]), event)
+        self.assertEqual(event["hearts"], 4)
+        self.assertEqual(event["description"], "A promise for another spring.")
+        self.assertEqual(event["story"]["arc_ids"], [relationship["id"]])
+        self.assertEqual(event["story"]["beats"][0]["text"], "Will you bring the sketchbook next spring?$h")
         self.assertEqual(character["relationships"][0], relationship)
         self.assertEqual(character["schedule"][1]["location"], "Forest")
         self.assertEqual(character["schedule"][1]["x"], 21)
@@ -483,7 +497,7 @@ class DesktopTests(QtTestCase):
             if "Appearances.summer.portrait" in item.text():
                 window.export_page.open_issue(item)
                 break
-        self.assertEqual(window.navigation.currentRow(), 5)
+        self.assertEqual(window.navigation.currentRow(), SECTION_INDEX["artwork"])
         self.assertEqual(window.artwork.variant, "summer")
 
     def test_appearance_path_errors_keep_the_correct_editor_destination(self):
@@ -505,7 +519,7 @@ class DesktopTests(QtTestCase):
             if item.data(Qt.ItemDataRole.UserRole)["field"] == "appearances.winter.sprite":
                 window.export_page.open_issue(item)
                 break
-        self.assertEqual(window.navigation.currentRow(), 5)
+        self.assertEqual(window.navigation.currentRow(), SECTION_INDEX["artwork"])
         self.assertEqual(window.artwork.variant, "winter")
         self.assertIn("symlink", window.artwork.cards["sprite"]["info"].text())
 

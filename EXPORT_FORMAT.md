@@ -123,6 +123,13 @@ UniqueID, required/optional status, and optional minimum version. The exporter
 does not download external mods. Supporting-cast assets and events are namespaced
 within the primary content pack; stable authoring aliases follow companion names.
 
+Story briefs, chapters, and planning arc links are saved in the project backup.
+Their order and suggested hearts do not add game conditions or change event IDs.
+Aftermath dialogue and routines use the existing enabled Life rules. Planned
+mail, remembered choices, delays, rewards, and world edits are notes only; a
+pending planned effect must be explicitly omitted or removed before its event
+can be marked ready.
+
 Ideas and outlines are not exported as event scripts and do not need to be
 complete before exporting other content. Ready scenes must pass their checks;
 invalid ready scenes block export instead of being silently omitted. Existing

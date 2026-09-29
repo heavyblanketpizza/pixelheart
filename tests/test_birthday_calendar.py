@@ -216,7 +216,7 @@ class BirthdayCalendarTests(QtTestCase):
         self.window.export_page.open_issue(birthday_item)
         self.application.processEvents()
 
-        self.assertEqual(self.window.navigation.currentRow(), 0)
+        self.assertEqual(self.window.navigation.currentRow(), SECTION_INDEX["identity"])
         self.assertEqual(self.calendar.season_picker.currentData(), "spring")
         self.assertIs(self.application.focusWidget(), self.calendar.season_picker)
         self.assertFalse(self.calendar.day_buttons[4].isEnabled())

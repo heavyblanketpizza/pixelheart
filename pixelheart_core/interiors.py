@@ -8,16 +8,14 @@ from __future__ import annotations
 
 from copy import deepcopy
 from collections import deque
-import hashlib
 import io
-from pathlib import Path
 import re
 import uuid
 import xml.etree.ElementTree as ET
 
 from PIL import Image, ImageDraw
 
-from .world import WorldError, asset_path, _write_new_file
+from .world import WorldError, asset_path
 
 
 class InteriorError(WorldError):

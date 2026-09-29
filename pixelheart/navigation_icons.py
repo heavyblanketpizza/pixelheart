@@ -27,7 +27,17 @@ def navigation_icon(section: str) -> QIcon:
             rect(x, y, 1, height, color)
             rect(x + width - 1, y, 1, height, color)
 
-        if section == "identity":  # A little portrait.
+        if section == "overview":  # An open journal.
+            outline(2, 4, 8, 13)
+            outline(10, 4, 8, 13)
+            rect(9, 5, 2, 12)
+            rect(4, 7, 4, 1, accent)
+            rect(12, 7, 4, 1, accent)
+            rect(4, 10, 4, 1)
+            rect(12, 10, 4, 1)
+            rect(4, 13, 3, 1)
+            rect(12, 13, 3, 1)
+        elif section == "identity":  # A little portrait.
             outline(3, 2, 14, 16)
             rect(8, 5, 4, 4)
             rect(6, 11, 8, 4, accent)
@@ -50,14 +60,11 @@ def navigation_icon(section: str) -> QIcon:
             rect(9, 6, 2, 12, accent)
             outline(5, 2, 4, 4, accent)
             outline(11, 2, 4, 4, accent)
-        elif section == "story":  # An open notebook.
-            outline(2, 4, 8, 13)
-            outline(10, 4, 8, 13)
-            rect(9, 3, 2, 15, accent)
-            rect(4, 7, 3, 1)
-            rect(4, 10, 3, 1)
-            rect(13, 7, 3, 1)
-            rect(13, 10, 3, 1)
+        elif section == "story":  # Romance heart.
+            for y, row in enumerate(("01100110", "11111111", "11111111", "01111110", "00111100", "00011000")):
+                for x, cell in enumerate(row):
+                    if cell == "1":
+                        rect(2 + x * 2, 4 + y * 2, 2, 2, accent if y < 2 else ink)
         elif section == "artwork":  # Landscape in a frame.
             outline(2, 3, 16, 14)
             rect(12, 6, 2, 2, accent)

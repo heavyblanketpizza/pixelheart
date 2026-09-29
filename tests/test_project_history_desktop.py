@@ -27,6 +27,8 @@ class ProjectHistoryDesktopTests(QtTestCase):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
         self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=settings))
+        self.enterContext(patch("pixelheart.story_page.EventsPage.update_scene_preview"))
         self.window = MainWindow(auto_download_icons=False)
         self.errors = self.enterContext(patch.object(self.window, "show_error"))
         self.controller = self.window.project_history
@@ -140,11 +142,16 @@ class ProjectHistoryDesktopTests(QtTestCase):
     def test_removal_controls_stay_hidden_and_edit_menu_is_single_pair(self):
         window = self.window
         window.open_section("story")
-        window.events.add()
+        window.story.milestones.buttons[8].click()
+        window.story.add_scene_button.click()
+        identity = window.events.records[window.events.current]["id"]
         window.events.remove()
         self.assertTrue(window.events.undo_button.isHidden())
         self.controller.undo()
         self.assertTrue(window.events.undo_button.isHidden())
+        self.assertEqual(window.story.selected_hearts, 8)
+        self.assertIn(identity, [event["id"] for event in window.events.records])
+        self.assertEqual(window.story.parts.count(), 2)
         edit = next(action.menu() for action in window.menuBar().actions() if action.text() == "&Edit")
         self.assertEqual([action.text() for action in edit.actions()], ["&Undo", "&Redo"])
         file = next(action.menu() for action in window.menuBar().actions() if action.text() == "&File")
@@ -164,11 +171,33 @@ class ProjectHistoryDesktopTests(QtTestCase):
         self.assertTrue(any(issue["field"] == "internal_name" and issue["level"] == "error"
                             for issue in window.export_page.issues))
 
+    def test_undo_restores_the_only_scene_at_a_milestone_and_redo_keeps_it_empty(self):
+        window = self.window
+        window.open_section("story")
+        window.story.milestones.buttons[8].click()
+        event_id = window.events.records[window.events.current]["id"]
+        before = window.project_snapshot()
+        window.events.remove()
+        self.assertEqual(window.story.selected_hearts, 8)
+        self.assertEqual(window.events.current, -1)
+        self.assertTrue(self.controller.undo())
+        self.assertEqual(window.project_snapshot(), before)
+        self.assertEqual(window.story.selected_hearts, 8)
+        self.assertGreaterEqual(window.events.current, 0)
+        self.assertEqual(window.events.records[window.events.current]["id"], event_id)
+        self.assertFalse(window.story.empty.isVisible())
+        self.assertTrue(self.controller.redo())
+        self.assertEqual(window.story.selected_hearts, 8)
+        self.assertEqual(window.events.current, -1)
+        self.assertNotIn(event_id, [record["id"] for record in window.events.records])
+
     def test_live_staging_dialog_refreshes_after_undo(self):
         from pixelheart.stage_canvas import StageCanvas
         window = self.window
         window.open_section("story")
-        window.events.add()
+        window.story.milestones.buttons[10].click()
+        window.story.add_scene_button.click()
+        event_id = window.events.records[window.events.current]["id"]
         actors = window.events.actors
         actors.add()
         original = deepcopy(actors.records)
@@ -184,6 +213,8 @@ class ProjectHistoryDesktopTests(QtTestCase):
             self.assertEqual(canvas.actors, original)
             self.assertFalse(canvas.dragging)
             self.assertFalse(actors.canvas.dragging)
+            self.assertEqual(window.story.selected_hearts, 10)
+            self.assertEqual(window.events.records[window.events.current]["id"], event_id)
             dialog.accept()
             return QDialog.DialogCode.Accepted
 

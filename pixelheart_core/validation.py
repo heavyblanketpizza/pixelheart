@@ -29,7 +29,7 @@ ENUM_FIELDS = {
 }
 INT_FIELDS = {"day": (1, 28), "home_x": (0, 1000), "home_y": (0, 1000)}
 NESTED_FIELDS = {"dialogues", "schedule", "gifts", "events", "relationships"}
-EDITABLE_FIELDS = set(TEXT_FIELDS) | set(ENUM_FIELDS) | set(INT_FIELDS) | NESTED_FIELDS | {"romanceable", "life"}
+EDITABLE_FIELDS = set(TEXT_FIELDS) | set(ENUM_FIELDS) | set(INT_FIELDS) | NESTED_FIELDS | {"romanceable", "life", "storyline"}
 READ_ONLY_FIELDS = {"id", "status", "created_at", "updated_at", "portrait_url", "sprite_url"}
 MAX_GIFTS_PER_TASTE = 5000
 
@@ -101,6 +101,12 @@ def validate_draft(data):
         errors.update({issue["field"]: issue["message"] for issue in life_errors})
         if not life_errors:
             cleaned["life"] = normalize_life(data["life"])
+    if "storyline" in data:
+        from .story_planning import storyline_structure_issues, normalize_storyline
+        planning_errors = storyline_structure_issues(data["storyline"])
+        errors.update({issue["field"]: issue["message"] for issue in planning_errors})
+        if not planning_errors:
+            cleaned["storyline"] = normalize_storyline(data["storyline"])
     if errors:
         raise DraftValidationError(errors)
     return cleaned

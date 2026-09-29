@@ -150,9 +150,9 @@ class SpouseEditorTests(QtTestCase):
         self.assertEqual(dialog.draft.data["catalog"], before["catalog"])
 
     def test_auto_fit_settles_without_scrollbars_at_odd_and_even_window_sizes(self):
-        from pixelheart.theme import STYLESHEET
+        from pixelheart.skin import build_stylesheet, refresh_pieces
         dialog = self.editor()
-        dialog.setStyleSheet(STYLESHEET)
+        dialog.setStyleSheet(build_stylesheet(refresh_pieces(None)[0]))
         with patch.object(dialog, "center_room", wraps=dialog.center_room) as center:
             for width in (1320, 1321, 1319):
                 dialog.resize(width, 880)
