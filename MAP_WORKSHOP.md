@@ -9,7 +9,11 @@ prompted so its map and artwork can travel together.
 1. Choose **Open tilesheet PNG…** and select your own tile artwork. The PNG must
    already contain 16×16-pixel cells, with both image dimensions divisible by 16.
    Sheets can be up to 2048×2048 pixels and 16 MiB. Pixelheart copies the supplied
-   PNG unchanged; it does not generate tile artwork.
+   PNG unchanged; it does not generate tile artwork. To draw tiles yourself, choose
+   **Paint tilesheet…** instead: pick how many tiles across and down, then paint
+   them in the [pixel painter](ARTWORK.md#pixel-painter). With a tilesheet open,
+   **Paint tilesheet…** repaints it in layers. The painter keeps the sheet's width so
+   tile numbers never shift, and refuses to remove rows holding tiles your map uses.
 2. Choose **Small location · 20 × 20 tiles** or **Spouse room · 6 × 9 tiles**.
    Select a ground or floor tile in the palette. Keep **Back · Ground and floors**
    selected and click **Fill layer**. Every Back cell needs ground before saving.
@@ -47,7 +51,8 @@ the bounds of supplied maps; it cannot establish collision or walking routes.
 Select the same place and choose **Edit painted map…**. Pixelheart restores its
 tilesheet and all four layers. Paint the changes, then choose **Save place to
 project**. The place points to the new revision, while the previous map bundle
-stays intact. Save the project and export/install again before testing the change.
+stays intact. **Paint tilesheet…** brings back the layers of a tilesheet you painted
+earlier. Save the project and export/install again before testing the change.
 
 **Import Tiled map…** also accepts richer supplied map bundles. If such a map has
 properties, objects, extra layers, tile animations, or other features the simple

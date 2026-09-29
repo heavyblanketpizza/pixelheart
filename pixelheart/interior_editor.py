@@ -39,9 +39,12 @@ from pixelheart_core.interior_furniture import (
     attach_texture, preview_frame,
 )
 from pixelheart_core.world import asset_path, _read_asset, _write_new_file
+from pixelheart_core.pixel_layers import LayerFileError, blank_painting, open_painting, save_layers
+from pixelheart_core.pixel_sheets import open_png
 from pixelheart_core.interior_runtime import INTERIORS_MIN_VERSION, INTERIORS_MIN_GAME_VERSION, INTERIORS_MIN_SMAPI_VERSION
 from .widgets import label, button
 from .game_import import game_import_settings
+from .pixel_painter import PixelPainterDialog, choose_tilesheet_size
 from .skin import COLORS
 from .interior_canvas import FURNITURE_MIME, ROOM_MIME, InteriorCanvas
 from .architecture_panel import ArchitecturePanel
@@ -56,6 +59,15 @@ def _number(minimum=0, maximum=255, initial=0):
 
 def _asset_references(design):
     yield from interior_asset_references(design)
+
+
+# Atlases composed from the game library carry these keys; only the creator's own sheet is painted.
+_LIBRARY_ATLAS_KEYS = ("surfaces", "room_frame", "architecture_catalog", "architecture")
+
+
+def custom_tilesheet(design):
+    """Whether the room uses a tilesheet the creator chose, rather than game-library art."""
+    return bool(design["atlas"].get("asset")) and not any(design.get(key) for key in _LIBRARY_ATLAS_KEYS)
 
 
 class CatalogueTile(QStyledItemDelegate):
@@ -699,6 +711,9 @@ class InteriorEditor(QDialog):
         _, custom = self._tab("Tile art", advanced=True)
         custom.addWidget(label("Use a custom tilesheet instead of the game library.", "muted", True))
         custom.addWidget(button("Choose tilesheet PNG…", self.choose_atlas))
+        self.paint_atlas_button = button("Paint tilesheet…", self.paint_atlas)
+        self.paint_atlas_button.setToolTip("Paint your custom tilesheet in layers, or start a new one. Game-library art is not repainted here.")
+        custom.addWidget(self.paint_atlas_button)
         self.style_target = QComboBox()
         for name, key in (("Floor", "floor"), ("Wall · top", "wall_top"), ("Wall · middle", "wall_middle"), ("Wall · bottom", "wall_bottom")):
             self.style_target.addItem(name, key)
@@ -1794,6 +1809,60 @@ class InteriorEditor(QDialog):
             self.selected_surface = ""
             self.draft.apply(candidate)
         self.run_change(change)
+
+    def paint_atlas(self):
+        """Paint the custom tilesheet in layers, keeping tile choices, or start a new sheet."""
+        atlas = self.draft.data["atlas"]
+        root = self.project_file.parent
+        editing = bool(atlas.get("asset"))
+        if editing and not custom_tilesheet(self.draft.data):
+            self.notice("This tile art comes from your game library. Choose a tilesheet PNG of your own to paint tiles here.")
+            return
+        try:
+            if editing:
+                payload = _read_asset(asset_path(atlas["asset"], self.stage_root))
+                document, restored = open_painting(payload, "tilesheet", project_root=root)
+            else:
+                size = choose_tilesheet_size(self)
+                if size is None:
+                    return
+                document, restored = blank_painting("tilesheet", *size), False
+        except (ValueError, OSError) as exc:
+            self.notice(str(exc))
+            return
+
+        def validate(result):
+            if not editing:
+                return
+            with open_png(result) as image:
+                width, height = image.size
+            candidate = self.draft.snapshot()
+            candidate["atlas"] = {**atlas, "columns": width // 16, "tile_count": width * height // 256}
+            normalize_interior(candidate)
+        dialog = PixelPainterDialog(document, kind="tilesheet", title="Paint your tile art", context="Home · custom tilesheet",
+                                    save_text="Use painted tilesheet", validate=validate, parent=self)
+        if restored:
+            dialog.show_message("Your layers from last time are back.")
+        try:
+            if dialog.exec() != QDialog.DialogCode.Accepted or dialog.result_png is None:
+                return
+            with tempfile.TemporaryDirectory(prefix="pixelheart-tiles-") as folder:
+                source = Path(folder) / "tiles.png"
+                source.write_bytes(dialog.result_png)
+                if editing:
+                    def change():
+                        candidate = self.draft.snapshot()
+                        candidate["atlas"] = import_atlas(source, self.stage_root)
+                        self.draft.apply(candidate)
+                    self.run_change(change)
+                else:
+                    self.load_atlas(source)
+            try:
+                save_layers(root, document, dialog.result_png)
+            except LayerFileError as exc:
+                self.notice(f"The painted tilesheet is in use, but its layers could not be kept: {exc}")
+        finally:
+            dialog.deleteLater()
 
     def show_style_tile(self):
         if not hasattr(self, "palette"):

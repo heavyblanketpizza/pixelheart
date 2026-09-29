@@ -1,4 +1,4 @@
-"""Upload, compare and select local original/prepared PNG sheets."""
+"""Upload, paint, compare and select local original/prepared/painted PNG sheets."""
 
 from copy import deepcopy
 import hashlib
@@ -11,11 +11,16 @@ from PySide6.QtWidgets import (
     QFileDialog, QTabBar, QMenu, QLabel,
 )
 
-from pixelheart_core.artwork import inspect_artwork, prepare_artwork, ArtworkValidationError
-from pixelheart_core.projects import import_artwork, resolve_artwork, ProjectError, APPEARANCE_VARIANTS
+from pixelheart_core.artwork import MAX_ARTWORK_BYTES, inspect_artwork, prepare_artwork, ArtworkValidationError
+from pixelheart_core.pixel_layers import LayerFileError, blank_painting, open_painting, save_layers
+from pixelheart_core.pixel_sheets import SheetError, new_sheet_size, open_png
+from pixelheart_core.projects import (
+    ARTWORK_VERSIONS, import_artwork, import_painted_artwork, resolve_artwork, ProjectError, APPEARANCE_VARIANTS,
+)
 from .artwork_browser import SheetBrowser
 from .artwork_templates import ArtworkTemplateDialog, template_source_metadata
 from .artwork_review import ArtworkReviewDialog
+from .pixel_painter import PixelPainterDialog
 from pixelheart_core.artwork_review import load_review_sheet
 from .widgets import label, button, card, ArtworkPreview
 
@@ -128,7 +133,13 @@ class ArtworkPage(QWidget):
             for caption in frame.findChildren(QLabel):
                 if caption.objectName() == "muted":
                     caption.setMinimumHeight(34)
-            content.addWidget(button("Upload " + kind + " sheet", lambda checked=False, k=kind: self.upload(k), "primary"))
+            actions = QHBoxLayout()
+            actions.addWidget(button("Upload " + kind + " sheet", lambda checked=False, k=kind: self.upload(k), "primary"))
+            paint = button("Paint…", lambda checked=False, k=kind: self.paint(k))
+            paint.setAccessibleName("Paint the " + kind + " sheet")
+            actions.addWidget(paint)
+            actions.addStretch()
+            content.addLayout(actions)
             preview = SheetBrowser(kind)
             content.addWidget(preview)
             info = label("", "muted", True)
@@ -152,7 +163,8 @@ class ArtworkPage(QWidget):
             options.setAccessibleName(kind.title() + " sheet options")
             content.addWidget(options)
             content.addStretch()
-            self.cards[kind] = {"preview": preview, "info": info, "select": select, "prepare": prepare, "remove": remove, "options": options, "export": export}
+            self.cards[kind] = {"preview": preview, "info": info, "select": select, "prepare": prepare, "remove": remove,
+                                "options": options, "export": export, "paint": paint}
             row.addWidget(frame, 1)
         root.addLayout(row)
         root.addWidget(label("Import sheets exported by Content Patcher from your game. Exports can include active mods; use a clean profile for vanilla artwork. Check the creators' permissions before sharing.", "hint", True))
@@ -190,18 +202,25 @@ class ArtworkPage(QWidget):
             select.blockSignals(True)
             select.clear()
             if record:
-                select.addItem("Export original upload", "original")
-                if isinstance(record, dict) and record.get("prepared"):
-                    select.addItem("Export prepared copy", "prepared")
+                if isinstance(record, str) or record.get("original"):
+                    select.addItem("Export original upload", "original")
+                if isinstance(record, dict):
+                    if record.get("prepared"):
+                        select.addItem("Export prepared copy", "prepared")
+                    if record.get("painted"):
+                        select.addItem("Export painted version", "painted")
                     select.setCurrentIndex(select.findData(record.get("selected", "original")))
             else:
                 select.addItem("Use default " + kind + " sheet" if self.variant else "No sheet uploaded", None)
             select.setEnabled(bool(record))
             select.setVisible(select.count() > 1)
             select.blockSignals(False)
-            widgets["prepare"].setEnabled(bool(record))
+            has_original = isinstance(record, str) or bool(record and record.get("original"))
+            widgets["prepare"].setEnabled(has_original)
             widgets["remove"].setEnabled(bool(record))
-            widgets["prepare"].setVisible(bool(record))
+            widgets["prepare"].setVisible(has_original)
+            widgets["paint"].setToolTip("Paint this sheet in layers." if record or self.variant
+                                        else "Paint a new sheet from scratch, or upload one first to touch it up.")
             widgets["remove"].setVisible(bool(record))
             widgets["remove"].setText("Use default" if self.variant else "Remove sheet")
             widgets["export"].setEnabled(False)
@@ -257,6 +276,8 @@ class ArtworkPage(QWidget):
                 original_document = deepcopy(document)
                 records = original_document["artwork"] if variant is None else original_document["artwork"]["variants"][variant]
                 record = records.get(asset_kind)
+                if isinstance(record, dict) and not record.get("original"):
+                    continue
                 if isinstance(record, dict):
                     record["selected"] = "original"
                 original = resolve_artwork(original_document, self.window.project_file, asset_kind, variant=variant)
@@ -316,7 +337,7 @@ class ArtworkPage(QWidget):
             self.artwork_set(create=True).update(records)
             self.changed.emit()
             self.refresh()
-            self.window.statusBar().showMessage("Template loaded. Use Sheet options → Save PNG copy for editing, then upload your edited sheets.", 15000)
+            self.window.statusBar().showMessage("Template loaded. Choose Paint… to repaint it here, or Sheet options → Save PNG copy for editing to use another editor.", 15000)
             return True
         except (ArtworkValidationError, ProjectError, OSError) as exc:
             self.window.show_error("Could not use template", str(exc))
@@ -342,7 +363,7 @@ class ArtworkPage(QWidget):
             for appearance in (artwork, *artwork.get("variants", {}).values()):
                 for asset_kind in ("portrait", "sprite"):
                     record = appearance.get(asset_kind)
-                    references = [record] if isinstance(record, str) else [record.get(key) for key in ("original", "prepared")] if record else []
+                    references = [record] if isinstance(record, str) else [record.get(key) for key in ARTWORK_VERSIONS] if record else []
                     protected.update((self.window.project_file.parent / reference).resolve() for reference in references if reference)
             if Path(destination).resolve() in protected:
                 raise ProjectError("Choose a separate file so your imported original stays unchanged.")
@@ -355,6 +376,82 @@ class ArtworkPage(QWidget):
             self.window.statusBar().showMessage("PNG copy saved. Edit it in your pixel editor, then upload the edited sheet here.", 12000)
         except (ArtworkValidationError, ProjectError, OSError) as exc:
             self.window.show_error("Could not save PNG copy", str(exc))
+
+    def _painting_references(self, kind, record):
+        """Tracing sources offered in the painter: the original upload and the game's villagers."""
+        references = []
+        original = record if isinstance(record, str) else record.get("original") if isinstance(record, dict) else None
+        if original:
+            path = self.window.project_file.parent / original
+            references.append(("Original upload", lambda: (open_png(path.read_bytes()), "Original upload")))
+
+        def from_game():
+            dialog = ArtworkTemplateDialog(APPEARANCE_VARIANTS.get(self.variant, "Default"), self)
+            try:
+                if dialog.exec() != QDialog.DialogCode.Accepted or not dialog.loaded:
+                    return None
+                template = dialog.loaded
+                return open_png(Path(template[kind]).read_bytes()), f"{template.get('name', 'Villager')} from my game"
+            finally:
+                dialog.deleteLater()
+        references.append(("A villager from my game…", from_game))
+        return references
+
+    def paint(self, kind):
+        """Paint the selected sheet in layers, or a new one, and select the result for export."""
+        if not self.window.ensure_saved():
+            return
+        project_file = self.window.project_file
+        record = self.artwork_set().get(kind)
+        inherited = bool(self.variant and not record)
+        base_record = self.window.document["artwork"].get(kind) if inherited else record
+        try:
+            source = resolve_artwork(self.window.document, project_file, kind, variant=None if inherited else self.variant)
+            if source is not None and source.is_file():
+                inspect_artwork(source)
+                document, restored = open_painting(source.read_bytes(), kind, project_root=project_file.parent)
+            else:
+                romanceable = self.window.document["character"].get("romanceable", False)
+                document, restored = blank_painting(kind, *new_sheet_size(kind, romanceable=romanceable)), False
+        except (ProjectError, ArtworkValidationError, SheetError, OSError) as exc:
+            self.window.show_error("Could not open the painter", str(exc))
+            return
+        appearance = APPEARANCE_VARIANTS.get(self.variant, "Default")
+        context = f"{appearance} appearance" + (" · starting from Default" if inherited else "")
+        dialog = PixelPainterDialog(document, kind=kind, title=f"Paint the {kind} sheet", context=context,
+                                    save_text="Use painted sheet", max_bytes=MAX_ARTWORK_BYTES,
+                                    references=self._painting_references(kind, base_record), parent=self)
+        if restored:
+            dialog.show_message("Your layers from last time are back.")
+        try:
+            if dialog.exec() != QDialog.DialogCode.Accepted or dialog.result_png is None:
+                return
+            payload = dialog.result_png
+            painted = import_painted_artwork(payload, project_file, kind)
+            if isinstance(record, str):
+                updated = {"original": record, "prepared": None, "painted": painted, "selected": "painted"}
+            elif isinstance(record, dict):
+                updated = {**deepcopy(record), "painted": painted, "selected": "painted"}
+            else:
+                updated = {"painted": painted, "selected": "painted"}
+                if inherited and isinstance(base_record, dict):
+                    # A repainted Default sheet still credits where Default came from.
+                    for key in ("source", "source_history"):
+                        if key in base_record:
+                            updated[key] = deepcopy(base_record[key])
+            self.artwork_set(create=True)[kind] = updated
+            self.changed.emit()
+            self.refresh()
+            try:
+                save_layers(project_file.parent, document, payload)
+                message = "Painted sheet selected for export. Its layers are kept for next time."
+            except LayerFileError as exc:
+                message = f"Painted sheet selected for export, but its layers could not be kept: {exc}"
+            self.window.statusBar().showMessage(message, 12000)
+        except (ProjectError, OSError) as exc:
+            self.window.show_error("Could not save the painted sheet", str(exc))
+        finally:
+            dialog.deleteLater()
 
     def upload(self, kind):
         path, _ = QFileDialog.getOpenFileName(self, "Choose a complete " + kind + " sheet", "", "PNG artwork (*.png)")

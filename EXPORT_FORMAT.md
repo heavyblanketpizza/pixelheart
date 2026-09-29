@@ -5,7 +5,9 @@ The exporter produces a **Content Patcher NPC pack** for Stardew Valley
 the game by this application.**
 
 Artwork is supplied by the user. The desktop editor can prepare separate PNG
-copies with local resizing and optional pixelation. The exporter validates the
+copies with local resizing and optional pixelation, and its pixel painter saves
+the creator's own painted versions. Painter layer files stay in the project and
+are never exported. The exporter validates the
 selected sheets and copies them unchanged; it does not generate images. See
 [ARTWORK.md](ARTWORK.md) for the preparation workflow.
 
