@@ -217,7 +217,7 @@ class InteriorInteractionRegressionTests(QtTestCase):
         from pixelheart.skin import build_stylesheet, refresh_pieces
         editor = InteriorEditor(self.root / "project" / "character.json")
         self.dialogs.append(editor)
-        editor.setStyleSheet(build_stylesheet(refresh_pieces(None)[0]))
+        editor.setStyleSheet(build_stylesheet(refresh_pieces(None)))
         self.assertTrue(editor.load_catalog(make_library(self.root / "library")))
         editor.resize(1000, 700)
         editor.tabs.setCurrentIndex(2)

@@ -14,8 +14,8 @@ def story_icon(name: str) -> QIcon:
     for mode in (QIcon.Mode.Normal, QIcon.Mode.Active, QIcon.Mode.Selected, QIcon.Mode.Disabled):
         for state in (QIcon.State.Off, QIcon.State.On):
             selected = state == QIcon.State.On or mode == QIcon.Mode.Selected
-            ink = COLORS["ink_faint"] if mode == QIcon.Mode.Disabled else COLORS["accent"] if selected or mode == QIcon.Mode.Active else COLORS["ink_soft"]
-            accent = COLORS["rule"] if mode == QIcon.Mode.Disabled else COLORS["accent_rule"] if selected else COLORS["rule_strong"]
+            ink = COLORS["disabled"] if mode == QIcon.Mode.Disabled else COLORS["text"] if selected or mode == QIcon.Mode.Active else COLORS["muted"]
+            accent = COLORS["rule"] if mode == QIcon.Mode.Disabled else COLORS["outline"] if selected else COLORS["rule_strong"]
             for ratio in (1, 2):
                 pixmap = QPixmap(18 * ratio, 18 * ratio)
                 pixmap.setDevicePixelRatio(ratio)

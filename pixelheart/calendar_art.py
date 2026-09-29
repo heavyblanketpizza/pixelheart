@@ -128,21 +128,3 @@ def draw_paper_frame(painter, rect, ink, fill):
     painter.fillRect(rect.left() + 2, rect.bottom() - 1, rect.width() - 4, 2, QColor(ink))
     painter.fillRect(rect.left(), rect.top() + 2, 2, rect.height() - 4, QColor(ink))
     painter.fillRect(rect.right() - 1, rect.top() + 2, 2, rect.height() - 4, QColor(ink))
-
-
-def draw_wood_frame(painter, rect):
-    """A narrow oak frame; the paper and its contents do most of the work."""
-    painter.fillRect(rect.adjusted(3, 0, -3, 0), QColor("#806044"))
-    painter.fillRect(rect.adjusted(0, 3, 0, -3), QColor("#806044"))
-    painter.fillRect(rect.adjusted(2, 2, -2, -3), QColor("#b18c5d"))
-    painter.fillRect(rect.adjusted(5, 5, -5, -6), QColor("#ddc193"))
-    painter.fillRect(rect.adjusted(8, 8, -8, -9), QColor("#b89a6d"))
-    painter.fillRect(rect.adjusted(9, 9, -9, -10), QColor("#f3e5c7"))
-    painter.fillRect(rect.left() + 5, rect.top() + 3, rect.width() - 10, 2, QColor("#ebd4aa"))
-    for left in range(rect.left() + 30, rect.right() - 35, 89):
-        painter.fillRect(left, rect.top() + 6, 20, 1, QColor("#c7a777"))
-        painter.fillRect(left + 13, rect.bottom() - 5, 16, 1, QColor("#9e7c52"))
-    for left in (rect.left() + 3, rect.right() - 5):
-        for top in (rect.top() + 3, rect.bottom() - 6):
-            painter.fillRect(QRect(left, top, 3, 3), QColor("#806044"))
-            painter.fillRect(QRect(left, top, 1, 1), QColor("#f2dfbc"))

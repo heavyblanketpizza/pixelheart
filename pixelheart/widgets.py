@@ -43,14 +43,14 @@ def card(title=None, subtitle=None):
 def paint_artwork_placeholder(painter, rect, text, *, portrait=True):
     """A quiet empty frame, distinct from the transparency grid of a loaded PNG."""
     from .skin import COLORS  # skin imports game_import, which imports this module.
-    painter.fillRect(rect, QColor(COLORS["surface_muted"]))
+    painter.fillRect(rect, QColor(COLORS["highlight"]))
     painter.setPen(QPen(QColor(COLORS["rule"]), 1))
     painter.drawRect(rect.adjusted(0, 0, -1, -1))
     width, height = (38, 42) if portrait else (26, 44)
     frame = QRect(0, 0, width, height)
     frame.moveCenter(rect.center())
     frame.translate(0, -15)
-    painter.fillRect(frame, QColor(COLORS["surface"]))
+    painter.fillRect(frame, QColor(COLORS["paper"]))
     painter.setPen(QPen(QColor(COLORS["rule_strong"]), 1))
     painter.drawRect(frame)
     painter.fillRect(frame.left() + 4, frame.top() + 4, 1, 6, QColor(COLORS["rule"]))
@@ -61,7 +61,7 @@ def paint_artwork_placeholder(painter, rect, text, *, portrait=True):
     font = QFont(painter.font())
     font.setPixelSize(12)
     painter.setFont(font)
-    painter.setPen(QColor(COLORS["ink_soft"]))
+    painter.setPen(QColor(COLORS["muted"]))
     caption = QRect(rect.left() + 12, frame.bottom() + 12, max(1, rect.width() - 24), 38)
     painter.drawText(caption, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap, text)
 

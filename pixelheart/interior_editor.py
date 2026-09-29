@@ -69,15 +69,15 @@ class CatalogueTile(QStyledItemDelegate):
         selected = bool(option.state & QStyle.StateFlag.State_Selected)
         hovered = bool(option.state & QStyle.StateFlag.State_MouseOver)
         rect = option.rect.adjusted(2, 2, -2, -2)
-        painter.setPen(QPen(QColor(COLORS["accent_rule" if selected else "rule"]), 2 if selected else 1))
-        painter.setBrush(QColor(COLORS["accent_soft" if selected else "surface_hover" if hovered else "surface"]))
+        painter.setPen(QPen(QColor(COLORS["outline" if selected else "rule"]), 2 if selected else 1))
+        painter.setBrush(QColor(COLORS["selected" if selected else "hover" if hovered else "paper"]))
         painter.drawRoundedRect(rect, 3, 3)
         icon = index.data(Qt.ItemDataRole.DecorationRole)
         if isinstance(icon, QIcon):
             pixmap = icon.pixmap(QSize(64, 64))
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
             painter.drawPixmap(rect.center().x() - pixmap.width() // 2, rect.top() + 6 + (64 - pixmap.height()) // 2, pixmap)
-        painter.setPen(QColor(COLORS["accent" if selected else "ink"]))
+        painter.setPen(QColor(COLORS["text" if selected else "text"]))
         font = painter.font()
         font.setPixelSize(12)
         painter.setFont(font)
@@ -150,7 +150,7 @@ class RoomPreset(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setPen(QPen(QColor(COLORS["rule_strong"]), 2, Qt.PenStyle.DashLine))
-        painter.setBrush(QColor(COLORS["surface_muted"]))
+        painter.setBrush(QColor(COLORS["highlight"]))
         painter.drawRoundedRect(self.rect().adjusted(2, 2, -2, -2), 5, 5)
         width, height = self.editor.room_size.currentData()
         raised = self.editor.room_type.currentData() == "raised"
@@ -158,14 +158,14 @@ class RoomPreset(QWidget):
         cell = min(7, 64 // max(width, total_height))
         room = QRect(20, (self.height() - total_height * cell) // 2, width * cell, height * cell)
         painter.setBrush(QColor(COLORS["rule"]))
-        painter.setPen(QPen(QColor(COLORS["ink_soft"]), 2))
+        painter.setPen(QPen(QColor(COLORS["muted"]), 2))
         painter.drawRect(room)
         if raised:
             steps = QRect(room.center().x() - cell, room.bottom() + 1, 2 * cell, 4 * cell)
             painter.drawRect(steps)
             for row in (1, 2, 3):
                 painter.drawLine(steps.left(), steps.top() + row * cell, steps.right(), steps.top() + row * cell)
-        painter.setPen(QColor(COLORS["ink"]))
+        painter.setPen(QColor(COLORS["text"]))
         painter.drawText(QRect(98, 15, self.width()-110, self.height()-30),
                          Qt.AlignmentFlag.AlignVCenter | Qt.TextFlag.TextWordWrap,
                          f"{'Drag raised room + steps' if raised else 'Drag room into layout'}\n{width} × {height} tiles")
@@ -224,15 +224,15 @@ class InteriorPalette(QWidget):
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.fillRect(event.rect(), QColor(COLORS["surface_muted"]))
+        painter.fillRect(event.rect(), QColor(COLORS["highlight"]))
         if self.pixmap.isNull():
-            painter.setPen(QColor(COLORS["ink_soft"]))
+            painter.setPen(QColor(COLORS["muted"]))
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "Choose a tilesheet PNG")
         else:
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
             painter.drawPixmap(self.rect(), self.pixmap)
             if self.columns:
-                painter.setPen(QPen(QColor(COLORS["accent"]), 2))
+                painter.setPen(QPen(QColor(COLORS["text"]), 2))
                 painter.drawRect(self.selection % self.columns * 32 + 1,
                                  self.selection // self.columns * 32 + 1, 30, 30)
         painter.end()
@@ -860,7 +860,7 @@ class InteriorEditor(QDialog):
         widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         widget.setAccessibleName(name)
-        # Styled by the app's look (skin.py), so it follows View → Stardew menu colors.
+        # Styled with the rest of the app in skin.py.
         widget.setObjectName("catalogueGallery")
 
     def _build_furniture(self):

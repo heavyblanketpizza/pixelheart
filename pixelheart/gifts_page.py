@@ -120,7 +120,7 @@ class GiftList(QListWidget):
         super().paintEvent(event)
         if not self.count():
             painter = QPainter(self.viewport())
-            painter.setPen(QColor(COLORS["ink_soft"]))
+            painter.setPen(QColor(COLORS["muted"]))
             painter.drawText(self.viewport().rect().adjusted(12, 12, -12, -12), Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap,
                              "Drop gifts here" if self.taste else "No matching items")
             painter.end()
@@ -836,7 +836,7 @@ class GiftsPage(QWidget):
                 item = QListWidgetItem(record["name"] + "\nDefault")
                 item.setIcon(self.item_icon(value))
                 item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-                item.setForeground(QColor(COLORS["ink_soft"]))
+                item.setForeground(QColor(COLORS["muted"]))
                 item.setData(Qt.ItemDataRole.UserRole, value)
                 detail = f"Game default: {taste.title()} · Vanilla 1.6.15 · {value}\nDrag to another taste to make a personal choice."
                 if self.custom_catalog:
