@@ -174,12 +174,13 @@ class InteriorWorldPageTests(QtTestCase):
         self.assertEqual(self.page.dump(), before)
         self.assertIn("Invalid texture reference", self.window.errors[-1][1])
 
-    def test_empty_home_has_two_roles_and_keeps_place_management_in_settings(self):
+    def test_empty_home_has_three_roles_and_keeps_place_management_in_settings(self):
         self.assertEqual(self.page.build_home_button.text(), "Build residence…")
         self.assertEqual(self.page.design_spouse_button.text(), "Design spouse room…")
-        self.assertEqual(self.page.room_switch.count(), 2)
+        self.assertEqual(self.page.room_switch.count(), 3)
         self.assertEqual(self.page.room_switch.tabText(0), "Their home")
         self.assertEqual(self.page.room_switch.tabText(1), "Spouse room (after marriage)")
+        self.assertEqual(self.page.room_switch.tabText(2), "Spouse patio (after marriage)")
         self.assertTrue(self.page.story_place_button.isHidden())
         self.assertTrue(self.page.settings_dialog.isHidden())
         self.assertTrue(self.page.location_advanced.isHidden())

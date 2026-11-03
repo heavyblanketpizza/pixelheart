@@ -179,6 +179,10 @@ def world_structure_issues(world):
                     add(field + ".minimum_version", "Use a version like 1.0.0, or leave the minimum version empty.")
                 if type(record.get("required", True)) is not bool:
                     add(field + ".required", "Dependency required must be true or false.")
+    if world.get("spouse_patio") is not None:
+        from .spouse_patio import patio_structure_issues
+        for field, message in patio_structure_issues(world["spouse_patio"]):
+            add("spouse_patio" + ("." + field if field else ""), message)
     return issues
 
 
@@ -415,6 +419,9 @@ def world_asset_references(world):
         if "interior" in location:
             from .interiors import interior_asset_references
             yield from interior_asset_references(location["interior"])
+    if world.get("spouse_patio") is not None:
+        from .spouse_patio import patio_asset_references
+        yield from patio_asset_references(world["spouse_patio"])
 
 
 def copy_world_assets(world, source_root, destination_root):
@@ -669,6 +676,11 @@ def world_issues(world, character, project_root=None):
                     add("error", prefix + "home_x", "The resident's home position must have an unobstructed route from the interior entry.")
             except (KeyError, ValueError, TypeError):
                 pass  # The character validator reports malformed coordinates.
+    if world.get("spouse_patio") is not None:
+        from .spouse_patio import patio_issues
+        taken = [location["internal_name"] for location in world["locations"]]
+        for level, field, message in patio_issues(world["spouse_patio"], character, project_root, taken_names=taken):
+            add(level, "spouse_patio" + ("." + field if field else ""), message)
     return issues
 
 
@@ -828,6 +840,15 @@ def compile_world(world, character, project_root):
                 {"Action": "EditMap", "Target": ", ".join(map_targets.get(entrance["map"], ["Maps/" + source_name])), "AddWarps": [f"{entrance['x']} {entrance['y']} {identity} {location['entry_x']} {location['entry_y']}"]},
                 {"Action": "EditMap", "Target": ", ".join(map_targets[location["internal_name"]]), "AddWarps": [f"{location['exit_x']} {location['exit_y']} {source_name} {entrance['arrival_x']} {entrance['arrival_y']}"]},
             ])
+    if world.get("spouse_patio") is not None:
+        from .spouse_patio import INTERNAL_NAME, compile_patio, patio_asset_references
+        identity = exported_location_id({"internal_name": INTERNAL_NAME}, character)
+        compiled = compile_patio(world["spouse_patio"], identity, project_root, "assets/patio/")
+        files.update(compiled["files"])
+        patches.extend(compiled["patches"])
+        npc_fields["SpousePatio"] = compiled["npc_field"]
+        for reference in patio_asset_references(world["spouse_patio"]):
+            files[reference] = _read_asset(asset_path(reference, project_root))
     dependencies = [{"UniqueID": item["id"], "IsRequired": item.get("required", True),
                      **({"MinimumVersion": item["minimum_version"]} if item.get("minimum_version") else {})}
                     for item in world["dependencies"]]

@@ -418,6 +418,8 @@ def validate_character(data, portrait_path=None, sprite_path=None, *, appearance
             isinstance(place, dict) and place.get("spouse_room") for place in world.get("locations", []))
         dialogue_note = "authored spouse dialogue with the game's fallback dialogue" if has_spouse_lines else "the game's generic spouse dialogue"
         room_note = "the supplied spouse-room section" if has_spouse_room else "the game's default spouse room"
+        has_patio = isinstance(world, dict) and world.get("spouse_patio") is not None
+        room_note += ", with their own patio" if has_patio else ", with no patio outside"
         add("warning", "romanceable", f"Romance uses {dialogue_note} and {room_note}. Test courtship, marriage, home routines, and kiss frame 28 in-game. Festival participation remains disabled.")
     issues.extend(story_issues(data))
     issues.extend(life_issues(data))
@@ -766,7 +768,7 @@ def build_mod_archive(
     except ValueError as exc:
         raise ExportValidationError([{"level": "error", "field": "source", "message": str(exc)}]) from exc
     world_guide = None
-    if world_content and any(world_content["world"].get(key) for key in ("characters", "locations", "dependencies")):
+    if world_content and any(world_content["world"].get(key) for key in ("characters", "locations", "dependencies", "spouse_patio")):
         compiled_world = world_content["world"]
         lines = [f"{data['name']} — World playtest guide", "",
                  "This guide describes compiled content; it does not certify an in-game test.",
@@ -791,6 +793,10 @@ def build_mod_archive(
                               f"  Exit from {place['exit_x']}, {place['exit_y']} to {source} tile {entrance['arrival_x']}, {entrance['arrival_y']}.",
                               "  Test both warps, collision, tile actions, event staging, and NPC pathfinding."])
             lines.append("")
+        if compiled_world.get("spouse_patio") is not None:
+            lines.extend(["Spouse patio (4×4, behind the farmhouse)",
+                          "  Marry the primary character on a test save and check the patio in each season,",
+                          "  where they stand, and their patio animation.", ""])
         lines.extend(["For enabled daily-life content, test each matching season, weather, weekday,",
                       "relationship, house-upgrade, and completed-event condition. Check routines",
                       "after sleeping and compare overlapping rules in their displayed order.",

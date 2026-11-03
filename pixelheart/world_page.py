@@ -142,6 +142,9 @@ def _translate_character_rooms(character, maps, translations):
     return scenes_moved
 
 
+ROOM_KINDS = ("residence", "spouse", "patio")
+
+
 class WorldPage(QWidget):
     changed = Signal()
     draft_changed = Signal()
@@ -156,6 +159,7 @@ class WorldPage(QWidget):
         self.remove_buttons = {}
         self._removed_places = []
         self.interior_editor = None
+        self.patio_editor = None
         self._draft_project = None
         self._history_asset_fingerprints = set()
         self._editor_record_id = None
@@ -190,6 +194,7 @@ class WorldPage(QWidget):
         self.room_switch.setAccessibleName("Interior to edit")
         self.room_switch.addTab("Their home")
         self.room_switch.addTab("Spouse room (after marriage)")
+        self.room_switch.addTab("Spouse patio (after marriage)")
         self.room_switch.setExpanding(False)
         self.room_switch.currentChanged.connect(self.switch_room)
         switch.addWidget(self.room_switch)
@@ -386,6 +391,10 @@ class WorldPage(QWidget):
             self.interior_editor.hide()
             self.interior_editor.deleteLater()
             self.interior_editor = None
+        if self.patio_editor is not None:
+            self._room_views["patio"] = self.patio_editor.view_state()
+            self.patio_editor.preview_timer.stop()
+            self.patio_editor = None
         while self.editor_layout.count():
             item = self.editor_layout.takeAt(0)
             if item.widget():
@@ -422,9 +431,13 @@ class WorldPage(QWidget):
             return
         if self.settings_dialog.isVisible():
             return
-        if self.interior_editor is not None:
+        if self.interior_editor is not None or self.patio_editor is not None:
             return
         self.dispose_editor()
+        if self._room_kind == "patio":
+            self._activate_patio()
+            return
+        self.settings_button.show()
         index = self._role_index()
         record = self.world["locations"][index] if index is not None else None
         if index is not None:
@@ -491,6 +504,46 @@ class WorldPage(QWidget):
             self.editor_layout.addWidget(button("Open room settings…", self.open_settings))
             self.editor_layout.addStretch()
 
+    def _activate_patio(self):
+        from .patio_editor import PatioEditor
+        self.room_hint.setText("Their own corner of the farm after marriage, just behind the farmhouse.")
+        self.entrance_action.hide()
+        self.settings_button.hide()
+        sprite = None
+        try:
+            from pixelheart_core.projects import resolve_artwork
+            if self.window.project_file:
+                sprite = resolve_artwork(self.window.document, self.window.project_file, "sprite")
+        except (ValueError, OSError):
+            sprite = None
+        try:
+            editor = PatioEditor(self.world.get("spouse_patio"), self.window.project_file, self._live_character(),
+                                 parent=self.editor_host, view=self._room_views.get("patio"),
+                                 ensure_saved=self.window.ensure_saved)
+        except (ValueError, OSError) as exc:
+            self.editor_layout.addWidget(label("The patio needs attention: " + str(exc), "notice", True))
+            self.editor_layout.addWidget(button("Start the patio over", self._reset_patio))
+            self.editor_layout.addStretch()
+            return
+        editor.set_sprite(sprite)
+        editor.changed.connect(self._patio_changed)
+        self.patio_editor = editor
+        self.editor_layout.addWidget(editor, 1)
+        editor.show()
+
+    def _patio_changed(self, patio):
+        if patio is None:
+            self.world.pop("spouse_patio", None)
+        else:
+            self.world["spouse_patio"] = patio
+        self.changed.emit()
+
+    def _reset_patio(self):
+        self.world.pop("spouse_patio", None)
+        self.changed.emit()
+        self.dispose_editor()
+        self.activate_workspace()
+
     def switch_home_workspace(self, index):
         if not self.flush_editor():
             self.home_switch.blockSignals(True)
@@ -504,10 +557,11 @@ class WorldPage(QWidget):
     def switch_room(self, index):
         if not self.flush_editor():
             self.room_switch.blockSignals(True)
-            self.room_switch.setCurrentIndex(1 if self._room_kind == "spouse" else 0)
+            self.room_switch.setCurrentIndex(ROOM_KINDS.index(self._room_kind))
             self.room_switch.blockSignals(False)
             return
-        self._room_kind = "spouse" if index == 1 else "residence"
+        self.dispose_editor()
+        self._room_kind = ROOM_KINDS[index]
         self.activate_workspace()
 
     def flush_editor(self, *, force=False):
@@ -1487,6 +1541,15 @@ class WorldPage(QWidget):
         if parts and parts[0] == "world":
             parts = parts[1:]
         if not parts:
+            return
+        if parts[0] == "spouse_patio":
+            self._room_kind = "patio"
+            self.room_switch.blockSignals(True)
+            self.room_switch.setCurrentIndex(ROOM_KINDS.index("patio"))
+            self.room_switch.blockSignals(False)
+            self.settings_dialog.hide()
+            self.dispose_editor()
+            self.activate_workspace()
             return
         if parts[0] == "locations" and len(parts) > 1 and parts[1].isdigit():
             index = int(parts[1])
