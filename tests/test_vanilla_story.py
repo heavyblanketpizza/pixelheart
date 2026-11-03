@@ -4,6 +4,7 @@ from pathlib import Path
 import struct
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from tests.test_game_scene_assets import seven, string, i32
 
@@ -195,12 +196,16 @@ class VanillaStoryTests(unittest.TestCase):
         self.assertEqual(full, before)
 
     def test_cancellation_symlinks_and_asset_cache_invalidation(self):
-        bundle = self.load({'Town': {'a/f Abigail 500': scene()}})
-        with self.assertRaises(ValueError):
-            load_vanilla_story('abigail', self.root, cancelled=lambda: True)
-        (self.root / 'Data/Events/Town.xnb').write_bytes(dictionary_xnb({'b/f Abigail 500': scene()}))
-        self.assertEqual(load_vanilla_story('abigail', self.root)['events'][0]['event_id'], 'b')
-        (self.root / 'Data/Events/Linked.xnb').symlink_to(self.root / 'Data/Events/Town.xnb')
+        town = self.root / 'Data/Events/Town.xnb'
+        # Two same-size writes can land in the same filesystem clock tick.
+        with patch('meetcute_core.vanilla_story.stat_key', return_value=('same metadata',)):
+            bundle = self.load({'Town': {'a/f Abigail 500': scene()}})
+            bundle['source']['assets'].clear()  # Editing the result cannot change the cache.
+            with self.assertRaises(ValueError):
+                load_vanilla_story('abigail', self.root, cancelled=lambda: True)
+            town.write_bytes(dictionary_xnb({'b/f Abigail 500': scene()}))
+            self.assertEqual(load_vanilla_story('abigail', self.root)['events'][0]['event_id'], 'b')
+        town.with_name('Linked.xnb').symlink_to(town)
         with self.assertRaises(ValueError):
             load_vanilla_story('abigail', self.root)
 

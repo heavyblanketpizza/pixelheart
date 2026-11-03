@@ -178,8 +178,13 @@ def _catalog(game_root, cancelled):
     keys = tuple(stat_key(root, path) for path in paths)
     cached = _CATALOG_CACHE.get(keys)
     if cached is not None:
-        _check_cancelled(cancelled)
-        return cached
+        _, sources = cached
+        for path, source in zip(paths, sources):
+            payload = _read_bounded(root, path, MAX_PACKED, cancelled)
+            if hashlib.sha256(payload).hexdigest() != source['sha256']:
+                break
+        else:
+            return cached
     rows, total, source_assets = [], 0, []
     for path, key in zip(paths, keys):
         _check_cancelled(cancelled)
@@ -554,7 +559,7 @@ def load_vanilla_story(template_id, game_root, *, cancelled=None):
                                   item['location'], item['event_key']))
     return {'npc': npc, 'events': events,
             'source': {'game': 'Stardew Valley', 'locale': 'default', 'game_version': None,
-                       'assets': assets, 'asset_count': len(assets),
+                       'assets': deepcopy(assets), 'asset_count': len(assets),
                        'attribution': 'Stardew Valley / ConcernedApe — locally supplied reference',
                        'limitations': 'Base Data/Events only. Mail, recipes, hardcoded scenes, temporary maps and dynamic effects may require manual adaptation.'}}
 
