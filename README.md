@@ -1,5 +1,7 @@
 # MEETC#TE
 
+We’re renaming **Pixelheart** to **MEETC#TE**. While the change is underway, you’ll find the project on GitHub under `pixelheart`.
+
 Make a new friend for Stardew Valley. MEETC#TE is a free, fan-made character studio: give your villager a name, a voice, a daily routine, favorite gifts, heart events, portraits and a home, then put them in your game and go say hello. No coding needed.
 
 ![MEETC#TE in gold pixel lettering beside Stardew Valley's Farm Computer and a cup of coffee](docs/assets/meetcute-banner.png)
