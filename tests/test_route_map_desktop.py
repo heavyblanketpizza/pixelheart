@@ -3,7 +3,6 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import threading
-import time
 
 from PIL import Image
 from PySide6.QtCore import QThreadPool, Qt
@@ -55,11 +54,7 @@ class RouteMapTests(QtTestCase):
         self.wait()
 
     def wait(self):
-        deadline = time.monotonic() + 3
-        while self.panel.loading and time.monotonic() < deadline:
-            self.app.processEvents()
-            time.sleep(0.005)
-        self.assertFalse(self.panel.loading, "The map did not finish loading")
+        self.wait_until(lambda: not self.panel.loading, "The map did not finish loading")
 
     def slow_source(self, gates):
         """Maps that wait for their place's gate before they finish loading."""

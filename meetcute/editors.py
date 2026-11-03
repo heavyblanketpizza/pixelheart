@@ -537,12 +537,17 @@ class SchedulePage(QWidget):
             picker = self.table.cellWidget(row, 1)
             picker.combo.currentIndexChanged.connect(lambda _, r=row: self._size_map_row(r))
             self._size_map_row(row)
-        last_time = game_minutes(self.records[-1].get("time", "")) if self.records else None
-        can_add = len(self.records) < 100 and last_time != 1560
-        self.add_button.setEnabled(can_add)
-        self.add_button.setToolTip("The last stop is at 2:00 AM. Move it earlier to add another stop." if last_time == 1560 else "Add the next stop to the daily routine.")
+        self._update_add_button()
         self.loading = False
         self._sync_map()
+
+    def _update_add_button(self):
+        last_time = game_minutes(self.records[-1].get("time", "")) if self.records else None
+        self.add_button.setEnabled(len(self.records) < 100 and last_time != 1560)
+        self.add_button.setToolTip(
+            "The last stop is at 2:00 AM. Move it earlier to add another stop."
+            if last_time == 1560 else "Add the next stop to the daily routine."
+        )
 
     def _size_map_row(self, row):
         picker = self.table.cellWidget(row, 1)
@@ -554,9 +559,7 @@ class SchedulePage(QWidget):
     def edit(self, widget):
         if not self.loading:
             self.records[widget.property("row")][widget.property("field")] = value(widget)
-            last_time = game_minutes(self.records[-1].get("time", "")) if self.records else None
-            self.add_button.setEnabled(len(self.records) < 100 and last_time != 1560)
-            self.add_button.setToolTip("The last stop is at 2:00 AM. Move it earlier to add another stop." if last_time == 1560 else "Add the next stop to the daily routine.")
+            self._update_add_button()
             self._sync_map()
             self.changed.emit()
 

@@ -13,7 +13,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from PIL import Image
-from PySide6.QtCore import QEventLoop, QSettings, QThread, QTimer, Qt
+from PySide6.QtCore import QSettings, QThread, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox
 
@@ -25,6 +25,8 @@ from tests.qt_support import QtTestCase
 
 
 class ArtworkTemplateTests(QtTestCase):
+    gui_timeout_seconds = 2.5
+
     @classmethod
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])
@@ -72,24 +74,6 @@ class ArtworkTemplateTests(QtTestCase):
         self.window.deleteLater()
         self.application.processEvents()
         self.temporary.cleanup()
-
-    def wait_until(self, condition, timeout=2500):
-        """Process Qt signals until a condition holds, with a bounded deadline."""
-        if condition():
-            return
-        loop = QEventLoop()
-        poll = QTimer()
-        poll.setInterval(5)
-        poll.timeout.connect(lambda: loop.quit() if condition() else None)
-        deadline = QTimer()
-        deadline.setSingleShot(True)
-        deadline.timeout.connect(loop.quit)
-        poll.start()
-        deadline.start(timeout)
-        loop.exec()
-        poll.stop()
-        deadline.stop()
-        self.assertTrue(condition(), "Qt operation did not finish before the test deadline")
 
     def make_png(self, name, dimensions, color=(160, 90, 140, 255)):
         path = self.root / name

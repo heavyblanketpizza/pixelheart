@@ -1,12 +1,23 @@
-"""Lifecycle support for tests sharing the process-wide QApplication."""
+"""Shared event processing and cleanup for Qt tests."""
 
+import time
 import unittest
 
 from PySide6.QtCore import QCoreApplication, QEvent
 
 
 class QtTestCase(unittest.TestCase):
-    """Finish deferred QObject deletion after every test's own cleanup."""
+    gui_timeout_seconds = 3
+
+    def wait_until(self, predicate, message="Background GUI operation did not finish"):
+        deadline = time.monotonic() + self.gui_timeout_seconds
+        while True:
+            QCoreApplication.processEvents()
+            if predicate():
+                return
+            if time.monotonic() >= deadline:
+                self.fail(message)
+            time.sleep(0.005)  # Let Python workers run between GUI events.
 
     def doCleanups(self):
         try:

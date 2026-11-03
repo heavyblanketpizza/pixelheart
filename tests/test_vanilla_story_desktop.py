@@ -9,7 +9,7 @@ import threading
 from unittest.mock import patch
 
 from PIL import Image
-from PySide6.QtCore import QEventLoop, QSettings, QTimer, Qt
+from PySide6.QtCore import QSettings, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
@@ -72,24 +72,6 @@ class VanillaStoryDialogTests(QtTestCase):
             dialog.close()
             dialog.deleteLater()
         self.app.processEvents()
-
-    def wait_until(self, condition, timeout=3000):
-        self.app.processEvents()
-        if condition():
-            return
-        loop = QEventLoop()
-        timer = QTimer()
-        timer.setInterval(5)
-        timer.timeout.connect(lambda: loop.quit() if condition() else None)
-        deadline = QTimer()
-        deadline.setSingleShot(True)
-        deadline.timeout.connect(loop.quit)
-        timer.start()
-        deadline.start(timeout)
-        loop.exec()
-        timer.stop()
-        deadline.stop()
-        self.assertTrue(condition(), "Local preview did not settle before the test deadline")
 
     @staticmethod
     def scene(document, project_file, event, **kwargs):

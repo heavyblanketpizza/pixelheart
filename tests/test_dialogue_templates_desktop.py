@@ -13,7 +13,7 @@ import unittest
 from unittest.mock import patch
 
 from PySide6.QtCore import QCoreApplication, QEvent, QSettings, Qt
-from PySide6.QtTest import QSignalSpy, QTest
+from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QLineEdit, QPushButton
 from shiboken6 import isValid
 
@@ -94,12 +94,6 @@ class DialogueTemplateDesktopTests(QtTestCase):
     def dialog(self, records=None):
         return self.keep(DialogueTemplateDialog(self.records if records is None else records,
                                                 project_file=self.project_file))
-
-    def wait_until(self, predicate, message="Qt work did not finish"):
-        deadline = time.monotonic() + 3
-        while not predicate() and time.monotonic() < deadline:
-            QTest.qWait(5)
-        self.assertTrue(predicate(), message)
 
     def load(self, dialog, count=4):
         dialog.load_button.click()
