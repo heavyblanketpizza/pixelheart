@@ -6,8 +6,8 @@ from unittest.mock import patch
 from PIL import Image
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-from pixelheart import app as app_module
-from pixelheart_core.projects import ProjectError, load_project
+from meetcute import app as app_module
+from meetcute_core.projects import ProjectError, load_project
 
 from tests.qt_support import QtTestCase
 from tests import test_home_workspace as home_tests
@@ -136,7 +136,7 @@ class AutosaveRoomWindowTests(QtTestCase):
         editor = self.open_home(self.document([home], home=home), saved=True)
         self.window.identity.fields["name"].setText("Juniper")
         editor.load_atlas(self.texture("new.png", "#445566"))
-        with patch("pixelheart.app.save_project", side_effect=reject_projected_room):
+        with patch("meetcute.app.save_project", side_effect=reject_projected_room):
             self.window.autosave.timer.timeout.emit()
         saved = json.loads(self.window.project_file.read_text())
         self.assertEqual(saved["character"]["name"], "Juniper")
@@ -145,8 +145,8 @@ class AutosaveRoomWindowTests(QtTestCase):
         self.assertEqual(self.window.save_state.text(), "Saved, except the room you're editing")
         self.assertIn("This room has a problem.", self.window.save_state.toolTip())
         self.assertTrue(self.window.save_button.isHidden())
-        with (patch("pixelheart.app.save_project", side_effect=reject_projected_room),
-              patch("pixelheart.app.QMessageBox.warning", return_value=QMessageBox.StandardButton.Cancel) as question):
+        with (patch("meetcute.app.save_project", side_effect=reject_projected_room),
+              patch("meetcute.app.QMessageBox.warning", return_value=QMessageBox.StandardButton.Cancel) as question):
             self.assertFalse(self.window.confirm_discard())
         self.assertIn("This room has a problem.", question.call_args.args[2])
         self.assertIs(self.page.interior_editor, editor)

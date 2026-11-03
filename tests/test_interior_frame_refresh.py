@@ -13,11 +13,11 @@ from PIL import Image
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.interior_editor import InteriorEditor
-from pixelheart_core.interior_furniture import ROOM_FRAME_DOORWAY, ROOM_FRAME_TILES
-from pixelheart_core.interior_surface_design import stage_room_frame, stage_surface_library
-from pixelheart_core.interiors import new_interior
-from pixelheart_core.world import asset_path
+from meetcute.interior_editor import InteriorEditor
+from meetcute_core.interior_furniture import ROOM_FRAME_DOORWAY, ROOM_FRAME_TILES
+from meetcute_core.interior_surface_design import stage_room_frame, stage_surface_library
+from meetcute_core.interiors import new_interior
+from meetcute_core.world import asset_path
 from tests.qt_support import QtTestCase
 
 
@@ -56,10 +56,10 @@ class InteriorFrameRefreshTests(QtTestCase):
             project_file.write_text(json.dumps(design), encoding="utf-8")
             before_files = {path: path.read_bytes() for path in root.rglob("*") if path.is_file()}
             (library / "library.json").write_text(json.dumps({
-                "format": "pixelheart-interior-library", "version": 1,
+                "format": "meetcute-interior-library", "version": 1,
                 "definitions": [], "room_frame": new_frame}), encoding="utf-8")
             settings.setValue("interiors/libraryFolder", str(library))
-            with patch("pixelheart.interior_editor.game_import_settings", return_value=settings):
+            with patch("meetcute.interior_editor.game_import_settings", return_value=settings):
                 editor = InteriorEditor(project_file, design)
                 try:
                     upgraded = editor.draft.data

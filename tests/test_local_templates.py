@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from PIL import Image
 
-from pixelheart_core import local_templates as local
+from meetcute_core import local_templates as local
 
 
 def png_bytes(size):

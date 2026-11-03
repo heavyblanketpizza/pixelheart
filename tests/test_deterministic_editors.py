@@ -9,10 +9,10 @@ import unittest
 from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.editors import IdentityPage, SchedulePage
-from pixelheart.location_picker import MapSelector
-from pixelheart.schedule_time import ScheduleTime, game_minutes
-from pixelheart_core.projects import new_project
+from meetcute.editors import IdentityPage, SchedulePage
+from meetcute.location_picker import MapSelector
+from meetcute.schedule_time import ScheduleTime, game_minutes
+from meetcute_core.projects import new_project
 from tests.qt_support import QtTestCase
 
 

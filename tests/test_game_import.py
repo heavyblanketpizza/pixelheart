@@ -12,7 +12,7 @@ from PySide6.QtCore import QSettings
 from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.game_import import LocalGameSourceWidget
+from meetcute.game_import import LocalGameSourceWidget
 from tests.qt_support import QtTestCase
 
 
@@ -24,7 +24,7 @@ class LocalGameSourceTests(QtTestCase):
     def setUp(self):
         self.temporary = self.enterContext(tempfile.TemporaryDirectory())
         self.settings = QSettings(str(Path(self.temporary) / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=self.settings))
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=self.settings))
         self.widgets = []
 
     def tearDown(self):
@@ -41,7 +41,7 @@ class LocalGameSourceTests(QtTestCase):
     def test_browsing_remembers_folder_for_other_template_screen(self):
         dialogue = self.widget("dialogue")
         folder = str(Path(self.temporary) / "Game with spaces" / "patch export")
-        with patch("pixelheart.game_import.QFileDialog.getExistingDirectory", return_value=folder):
+        with patch("meetcute.game_import.QFileDialog.getExistingDirectory", return_value=folder):
             dialogue.browse_button.click()
         artwork = self.widget("artwork")
         self.assertEqual(artwork.directory(), folder)
@@ -51,7 +51,7 @@ class LocalGameSourceTests(QtTestCase):
         widget = self.widget("dialogue")
         widget.folder.setText(self.temporary)
         spy = QSignalSpy(widget.changed)
-        with patch("pixelheart.game_import.QFileDialog.getExistingDirectory", return_value=""):
+        with patch("meetcute.game_import.QFileDialog.getExistingDirectory", return_value=""):
             widget.browse_button.click()
         widget.set_template("elliott")
         self.assertEqual(widget.directory(), self.temporary)

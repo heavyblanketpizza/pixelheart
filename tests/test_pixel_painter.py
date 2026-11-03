@@ -16,11 +16,11 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QSpinBox
 from shiboken6 import isValid
 
-from pixelheart.pixel_painter import PixelPainterDialog, choose_tilesheet_size, image_from_qimage, qimage_from_image
-from pixelheart.theme import apply_theme
-from pixelheart_core.pixel_document import PixelDocument
-from pixelheart_core.pixel_layers import blank_painting
-from pixelheart_core.pixel_sheets import SheetError
+from meetcute.pixel_painter import PixelPainterDialog, choose_tilesheet_size, image_from_qimage, qimage_from_image
+from meetcute.theme import apply_theme
+from meetcute_core.pixel_document import PixelDocument
+from meetcute_core.pixel_layers import blank_painting
+from meetcute_core.pixel_sheets import SheetError
 from tests.qt_support import QtTestCase
 
 RED = (220, 40, 40, 255)
@@ -272,7 +272,7 @@ class PanelTests(PainterTestCase):
 
     def test_rename_layer(self):
         dialog = self.painter()
-        with patch("pixelheart.pixel_panels.QInputDialog.getText", return_value=("Outline", True)):
+        with patch("meetcute.pixel_panels.QInputDialog.getText", return_value=("Outline", True)):
             dialog.layer_panel.rename()
         self.assertEqual(dialog.document.layers[0].name, "Outline")
 
@@ -283,7 +283,7 @@ class PanelTests(PainterTestCase):
         self.assertEqual(dialog.color_panel.sheet_swatches.colors[0], RED)
         dialog.color_panel.sheet_swatches.chosen.emit(RED)
         self.assertEqual(dialog.tools.primary, RED)
-        with patch("pixelheart.pixel_panels.QColorDialog.getColor", return_value=QColor(*BLUE)):
+        with patch("meetcute.pixel_panels.QColorDialog.getColor", return_value=QColor(*BLUE)):
             dialog.color_panel.replace_color()
         self.assertEqual(dialog.document.pixel_at(3, 0), BLUE)
         self.assertIn("6", dialog.notice.text())
@@ -298,12 +298,12 @@ class PanelTests(PainterTestCase):
         self.assertEqual(dialog.tools.primary, (16, 32, 48, 128))
 
     def test_reference_from_file_and_from_a_supplied_source(self):
-        temporary = tempfile.TemporaryDirectory(prefix="pixelheart-reference-")
+        temporary = tempfile.TemporaryDirectory(prefix="meetcute-reference-")
         self.addCleanup(temporary.cleanup)
         path = Path(temporary.name) / "villager.png"
         Image.new("RGBA", (64, 128), BLUE).save(path)
         dialog = self.painter(references=[("Original upload", lambda: (Image.new("RGBA", (64, 128), RED), "Original"))])
-        with patch("pixelheart.pixel_painter.QFileDialog.getOpenFileName", return_value=(str(path), "")):
+        with patch("meetcute.pixel_painter.QFileDialog.getOpenFileName", return_value=(str(path), "")):
             dialog.add_reference_file()
         dialog.reference_actions[0].trigger()
         self.assertEqual([layer.reference for layer in dialog.document.layers], [False, True, True])
@@ -349,18 +349,18 @@ class SaveTests(PainterTestCase):
         dialog.show()
         dialog.tools.primary = RED
         self.click(dialog, 1, 1)
-        with patch("pixelheart.pixel_painter.QMessageBox.question", return_value=QMessageBox.StandardButton.Cancel) as asked:
+        with patch("meetcute.pixel_painter.QMessageBox.question", return_value=QMessageBox.StandardButton.Cancel) as asked:
             dialog.reject()
         asked.assert_called_once()
         self.assertTrue(dialog.isVisible())
-        with patch("pixelheart.pixel_painter.QMessageBox.question", return_value=QMessageBox.StandardButton.Discard):
+        with patch("meetcute.pixel_painter.QMessageBox.question", return_value=QMessageBox.StandardButton.Discard):
             dialog.reject()
         self.assertEqual(dialog.result(), QDialog.DialogCode.Rejected)
 
     def test_closing_without_changes_does_not_ask(self):
         dialog = self.painter()
         dialog.show()
-        with patch("pixelheart.pixel_painter.QMessageBox.question") as asked:
+        with patch("meetcute.pixel_painter.QMessageBox.question") as asked:
             dialog.reject()
         asked.assert_not_called()
 

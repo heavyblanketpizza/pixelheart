@@ -3,7 +3,7 @@ import copy
 import unittest
 import uuid
 
-from pixelheart_core.validation import (
+from meetcute_core.validation import (
     DraftValidationError,
     validate_draft,
     validate_nested,
@@ -77,7 +77,7 @@ class DraftValidationTests(unittest.TestCase):
                     with self.assertRaises(DraftValidationError) as raised:
                         validate_draft({"age": age, **romance_fields})
                     self.assertEqual(raised.exception.errors, {
-                        "age": "Choose adult. Pixelheart creates adult love-interest NPCs only.",
+                        "age": "Choose adult. MEETC#TE creates adult love-interest NPCs only.",
                     })
 
     def test_invalid_ages_are_rejected(self):

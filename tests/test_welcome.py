@@ -10,10 +10,10 @@ from unittest.mock import patch
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.app import MainWindow
-from pixelheart.game_connection import game_connection
-from pixelheart_core.library import TRASH_NAME
-from pixelheart_core.projects import new_project, save_project
+from meetcute.app import MainWindow
+from meetcute.game_connection import game_connection
+from meetcute_core.library import TRASH_NAME
+from meetcute_core.projects import new_project, save_project
 from tests.qt_support import QtTestCase
 from tests.test_game_install import fake_game
 
@@ -26,11 +26,11 @@ class WelcomeTests(QtTestCase):
     def setUp(self):
         self.folder = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.settings = QSettings(str(self.folder / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=self.settings))
-        self.library = self.folder / "Pixelheart"
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=self.settings))
+        self.library = self.folder / "MEETC#TE"
         self.projects = self.folder / "projects"
-        self.enterContext(patch.dict(os.environ, {"PIXELHEART_LIBRARY": str(self.library),
-                                                  "PIXELHEART_PROJECTS": str(self.projects)}))
+        self.enterContext(patch.dict(os.environ, {"MEETCUTE_LIBRARY": str(self.library),
+                                                  "MEETCUTE_PROJECTS": str(self.projects)}))
 
     def window(self, **options):
         window = MainWindow(**options)
@@ -222,10 +222,10 @@ class WelcomeTests(QtTestCase):
         self.assertIsNot(window.root_stack.currentWidget(), window.welcome)
 
     def test_launch_detects_the_game_once_and_opens_welcome(self):
-        from pixelheart import __main__ as launcher
+        from meetcute import __main__ as launcher
         with patch.object(launcher, "MainWindow") as window_class, \
              patch("PySide6.QtWidgets.QApplication.exec", return_value=0), \
-             patch("pixelheart.game_connection.find_games", return_value=[]) as finder:
+             patch("meetcute.game_connection.find_games", return_value=[]) as finder:
             self.assertEqual(launcher.main([]), 0)
             self.assertTrue(window_class.call_args.kwargs["show_welcome"])
             finder.assert_called_once()

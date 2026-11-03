@@ -2,10 +2,10 @@
 from copy import deepcopy
 import unittest
 
-from pixelheart_core.life import new_life_record
-from pixelheart_core.projects import new_project
-from pixelheart_core.story import new_event, new_relationship
-from pixelheart_core.story_planning import (
+from meetcute_core.life import new_life_record
+from meetcute_core.projects import new_project
+from meetcute_core.story import new_event, new_relationship
+from meetcute_core.story_planning import (
     StoryPlanningError, event_references, event_removal_issues, new_chapter, remove_event,
 )
 

@@ -8,7 +8,7 @@ NULL_WHEN = {"occasion": None, "day": None, "season": None, "hearts": None, "dat
              "location": None, "item": None, "liked": None}
 
 
-from pixelheart_designer.providers import ProviderError, Reply, Text, Turn  # noqa: E402
+from meetcute_designer.providers import ProviderError, Reply, Text, Turn  # noqa: E402
 
 
 def text_reply(text):

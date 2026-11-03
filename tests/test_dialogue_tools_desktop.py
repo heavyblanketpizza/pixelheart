@@ -11,8 +11,8 @@ from PySide6.QtCore import QSettings
 from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import QApplication, QPlainTextEdit
 
-from pixelheart.app import MainWindow
-from pixelheart.dialogue_tools import DialogueBoxPreview, EmotionBar, TriggerPicker, portrait_frames
+from meetcute.app import MainWindow
+from meetcute.dialogue_tools import DialogueBoxPreview, EmotionBar, TriggerPicker, portrait_frames
 from tests.qt_support import QtTestCase
 
 
@@ -158,9 +158,9 @@ class DialoguePageWiringTests(QtTestCase):
     def setUp(self):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=settings))
-        self.enterContext(patch("pixelheart.story_page.EventsPage.update_scene_preview"))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.story_page.EventsPage.update_scene_preview"))
         self.window = MainWindow(auto_download_icons=False)
         self.page = self.window.dialogue
 

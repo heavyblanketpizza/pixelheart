@@ -13,8 +13,8 @@ from PySide6.QtGui import QDragEnterEvent, QDropEvent, QMouseEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.interior_editor import InteriorEditor
-from pixelheart.interior_canvas import ROOM_MIME
+from meetcute.interior_editor import InteriorEditor
+from meetcute.interior_canvas import ROOM_MIME
 from tests.qt_support import QtTestCase
 
 try:
@@ -44,7 +44,7 @@ class InteriorLevelsEditorTests(QtTestCase):
     def setUp(self):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
         self.source = level_design(self.root)
         self.editor = InteriorEditor(self.root / "character.json", self.source, allow_rebase=True)
         self.editors = [self.editor]
@@ -145,7 +145,7 @@ class InteriorLevelsEditorTests(QtTestCase):
                 owner.assertTrue(drop.isAccepted())
                 return Qt.DropAction.CopyAction
         preset = self.editor.room_preset
-        with patch("pixelheart.interior_editor.QDrag", Drag):
+        with patch("meetcute.interior_editor.QDrag", Drag):
             point = preset.rect().center()
             QTest.mousePress(preset, Qt.MouseButton.LeftButton, pos=point)
             self.move(point + QPoint(QApplication.startDragDistance()+5, 0), preset)

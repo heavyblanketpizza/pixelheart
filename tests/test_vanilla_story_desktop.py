@@ -13,8 +13,8 @@ from PySide6.QtCore import QEventLoop, QSettings, QTimer, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
-from pixelheart.vanilla_story import VanillaStoryDialog, VanillaSourceDialog, VANILLA_NPCS
-from pixelheart_core.projects import new_project
+from meetcute.vanilla_story import VanillaStoryDialog, VanillaSourceDialog, VANILLA_NPCS
+from meetcute_core.projects import new_project
 from tests.qt_support import QtTestCase
 
 
@@ -54,14 +54,14 @@ class VanillaStoryDialogTests(QtTestCase):
         self.release = []
         self.character = new_project()["character"]
         self.character["name"] = "TestNPC test character"
-        self.enterContext(patch("pixelheart.vanilla_story.game_import_settings", return_value=self.settings))
-        self.enterContext(patch("pixelheart.vanilla_story.content_root", side_effect=lambda folder: Path(folder) / "Content"))
-        self.discover = self.enterContext(patch("pixelheart.vanilla_story.discover_game_root", return_value=self.root / "Discovered Game"))
-        self.loader = self.enterContext(patch("pixelheart.vanilla_story.load_vanilla_story", side_effect=lambda npc, *_args, **_kwargs: bundle(npc)))
-        self.scene_loader = self.enterContext(patch("pixelheart.vanilla_story.resolve_scene_preview", side_effect=self.scene))
-        self.apply = self.enterContext(patch("pixelheart.vanilla_story.apply_vanilla_story", side_effect=lambda character, *_args, **_kwargs: deepcopy(character)))
-        self.preview = self.enterContext(patch("pixelheart.vanilla_story.preview_vanilla_initialization", side_effect=self.impact))
-        self.initialize = self.enterContext(patch("pixelheart.vanilla_story.initialize_vanilla_story", side_effect=lambda character, *_args, **_kwargs: deepcopy(character)))
+        self.enterContext(patch("meetcute.vanilla_story.game_import_settings", return_value=self.settings))
+        self.enterContext(patch("meetcute.vanilla_story.content_root", side_effect=lambda folder: Path(folder) / "Content"))
+        self.discover = self.enterContext(patch("meetcute.vanilla_story.discover_game_root", return_value=self.root / "Discovered Game"))
+        self.loader = self.enterContext(patch("meetcute.vanilla_story.load_vanilla_story", side_effect=lambda npc, *_args, **_kwargs: bundle(npc)))
+        self.scene_loader = self.enterContext(patch("meetcute.vanilla_story.resolve_scene_preview", side_effect=self.scene))
+        self.apply = self.enterContext(patch("meetcute.vanilla_story.apply_vanilla_story", side_effect=lambda character, *_args, **_kwargs: deepcopy(character)))
+        self.preview = self.enterContext(patch("meetcute.vanilla_story.preview_vanilla_initialization", side_effect=self.impact))
+        self.initialize = self.enterContext(patch("meetcute.vanilla_story.initialize_vanilla_story", side_effect=lambda character, *_args, **_kwargs: deepcopy(character)))
 
     def tearDown(self):
         for release in self.release:
@@ -281,7 +281,7 @@ class VanillaStoryDialogTests(QtTestCase):
                 self.assertIn(word, wording)
             self.assertIn("Abigail", " ".join(button.text() for button in box.buttons()))
             return 0
-        with patch("pixelheart.vanilla_story.QMessageBox.exec", new=inspect_box):
+        with patch("meetcute.vanilla_story.QMessageBox.exec", new=inspect_box):
             self.assertFalse(dialog.confirm_initialization(impact))
 
     def test_blocked_life_links_prevent_confirmation_and_allow_append_mode(self):
@@ -328,7 +328,7 @@ class VanillaStoryDialogTests(QtTestCase):
         self.assertIsNone(dialog.bundle)
         self.assertFalse(dialog.use_button.isEnabled())
         self.assertEqual(dialog.change_source_button.text(), "Locate game…")
-        with patch("pixelheart.vanilla_story.QFileDialog.getExistingDirectory", return_value=""):
+        with patch("meetcute.vanilla_story.QFileDialog.getExistingDirectory", return_value=""):
             dialog.change_source()
         self.assertEqual(dialog.game_root, str(self.root / "Game"))
 

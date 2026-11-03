@@ -11,7 +11,7 @@ from unittest.mock import patch
 from PySide6.QtWidgets import QApplication, QWidget
 from shiboken6 import isValid
 
-from pixelheart.app import MainWindow
+from meetcute.app import MainWindow
 from tests.qt_support import QtTestCase
 
 

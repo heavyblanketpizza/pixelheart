@@ -12,12 +12,12 @@ from unittest.mock import patch
 
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.app import MainWindow
-from pixelheart.theme import apply_theme
-from pixelheart_core.playtesting import (
+from meetcute.app import MainWindow
+from meetcute.theme import apply_theme
+from meetcute_core.playtesting import (
     content_fingerprint, export_is_current, playtest_cases, record_export, record_install,
 )
-from pixelheart_core.projects import ProjectError, load_project
+from meetcute_core.projects import ProjectError, load_project
 from tests.qt_support import QtTestCase
 
 
@@ -28,7 +28,7 @@ class ProjectHistoryPlaytestTests(QtTestCase):
         apply_theme(cls.application)
 
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-playtest-history-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="meetcute-playtest-history-")
         self.root = Path(self.temporary.name)
         self.project_file = self.root / "character" / "character.json"
         self.error_patch = patch.object(MainWindow, "show_error")
@@ -176,7 +176,7 @@ class ProjectHistoryPlaytestTests(QtTestCase):
         page.save_test("failed")
         expected = deepcopy(self.window.document["creator"])
         before = (self.history().undo_count, self.history().redo_count)
-        with patch("pixelheart.app.save_project", side_effect=ProjectError("disk unavailable")):
+        with patch("meetcute.app.save_project", side_effect=ProjectError("disk unavailable")):
             self.assertFalse(self.window.save_to(self.project_file))
         self.assertEqual((self.history().undo_count, self.history().redo_count), before)
         self.assertEqual(self.window.document["creator"], expected)

@@ -10,9 +10,9 @@ from unittest.mock import patch
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.app import MainWindow
-from pixelheart_core.projects import load_project, save_project, new_project
-from pixelheart_core.vanilla_story import load_vanilla_story, apply_vanilla_story
+from meetcute.app import MainWindow
+from meetcute_core.projects import load_project, save_project, new_project
+from meetcute_core.vanilla_story import load_vanilla_story, apply_vanilla_story
 from tests.qt_support import QtTestCase
 from tests.test_vanilla_story import dictionary_xnb
 
@@ -37,9 +37,9 @@ class VanillaStoryIntegrationTests(QtTestCase):
         self.keys = [entry["key"] for entry in self.bundle["events"] if not entry["optional"]]
         self.assertEqual(len(self.keys), 2)
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=settings))
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
-        self.enterContext(patch("pixelheart.story_page.EventsPage.update_scene_preview"))
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.story_page.EventsPage.update_scene_preview"))
         self.window = MainWindow(auto_download_icons=False)
         self.addCleanup(self.close_window)
         self.window.open_section("story")
@@ -83,7 +83,7 @@ class VanillaStoryIntegrationTests(QtTestCase):
         save_project(self.window.project_snapshot(), destination)
         reopened = load_project(destination)
         self.assertEqual(reopened["character"]["events"][0]["story"]["vanilla_source"], reference)
-        with patch("pixelheart.vanilla_story.VanillaSourceDialog") as dialog:
+        with patch("meetcute.vanilla_story.VanillaSourceDialog") as dialog:
             story.events.open_vanilla_source()
             dialog.assert_called_once_with(reference, story.events)
         self.window.project_history.undo()

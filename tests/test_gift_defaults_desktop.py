@@ -13,10 +13,10 @@ from PySide6.QtCore import QEvent, Qt
 from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.app import MainWindow
-from pixelheart.gifts_page import GiftsPage, TASTES
-from pixelheart.item_icons import ItemIconStore
-from pixelheart_core.projects import load_project
+from meetcute.app import MainWindow
+from meetcute.gifts_page import GiftsPage, TASTES
+from meetcute.item_icons import ItemIconStore
+from meetcute_core.projects import load_project
 from tests.test_gifts import GiftDrop
 from tests.qt_support import QtTestCase
 
@@ -27,11 +27,11 @@ class GiftDefaultsDesktopTests(QtTestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="pixelheart-gift-defaults-")
+        self.temp = tempfile.TemporaryDirectory(prefix="meetcute-gift-defaults-")
         self.root = Path(self.temp.name)
         self.widgets = []
         store = ItemIconStore(self.root / "textures", self.root / "wiki-icons")
-        self.icon_patch = patch("pixelheart.gifts_page.ItemIconStore", return_value=store)
+        self.icon_patch = patch("meetcute.gifts_page.ItemIconStore", return_value=store)
         self.icon_patch.start()
         self.page = self.keep(GiftsPage())
 

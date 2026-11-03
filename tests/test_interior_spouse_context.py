@@ -5,11 +5,11 @@ import unittest
 
 from PIL import Image
 
-from pixelheart_core.interior_spouse_context import (
+from meetcute_core.interior_spouse_context import (
     SPOUSE_CONTEXT_ORIGIN, SPOUSE_CONTEXT_PIXEL_SIZE, SPOUSE_CONTEXT_SIZE,
     spouse_context_asset_refs, spouse_context_layers,
 )
-from pixelheart_core.world import WorldError
+from meetcute_core.world import WorldError
 
 
 class SpouseContextTests(unittest.TestCase):

@@ -16,10 +16,10 @@ from PIL import Image
 from PySide6.QtCore import Qt, QPoint, QRect
 from PySide6.QtWidgets import QApplication, QScrollArea
 
-from pixelheart.app import MainWindow, SECTION_INDEX
-from pixelheart.theme import apply_theme
-from pixelheart_core.projects import load_project
-from pixelheart_core.story import event_game_id, new_beat, normalize_relationship
+from meetcute.app import MainWindow, SECTION_INDEX
+from meetcute.theme import apply_theme
+from meetcute_core.projects import load_project
+from meetcute_core.story import event_game_id, new_beat, normalize_relationship
 from tests.qt_support import QtTestCase
 
 
@@ -30,13 +30,13 @@ class StoryDesktopTests(QtTestCase):
         apply_theme(cls.application)
 
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-story-test-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="meetcute-story-test-")
         self.root = Path(self.temporary.name)
         self.file = self.root / "project" / "character.json"
         self.windows = []
         self.error_patch = patch.object(MainWindow, "show_error")
         self.errors = self.error_patch.start()
-        self.enterContext(patch("pixelheart.story_page.EventsPage.update_scene_preview"))
+        self.enterContext(patch("meetcute.story_page.EventsPage.update_scene_preview"))
         self.window = self.make_window()
 
     def tearDown(self):
@@ -284,7 +284,7 @@ class StoryDesktopTests(QtTestCase):
         self.errors.assert_not_called()
 
     def test_saved_pending_effect_blocks_export_and_survives_scene_edits(self):
-        from pixelheart_core.story import new_planned_effect
+        from meetcute_core.story import new_planned_effect
         event = self.event()
         event['story']['planned_effects'] = [new_planned_effect('Send a letter three days later')]
         self.load_story(events=[event])
@@ -572,13 +572,13 @@ class StoryDesktopTests(QtTestCase):
             source = self.root / f"{kind}.png"
             with Image.new("RGBA", dimensions, (160, 90, 140, 255)) as image:
                 image.save(source)
-            with patch("pixelheart.artwork_page.QFileDialog.getOpenFileName", return_value=(str(source), "")):
+            with patch("meetcute.artwork_page.QFileDialog.getOpenFileName", return_value=(str(source), "")):
                 window.artwork.upload(kind)
         self.assertEqual([issue for issue in window.validate_project() if issue["level"] == "error"], [])
 
         destination = self.root / "story.zip"
-        with patch("pixelheart.app.QFileDialog.getSaveFileName", return_value=(str(destination), "")), \
-                patch("pixelheart.app.QMessageBox.information"):
+        with patch("meetcute.app.QFileDialog.getSaveFileName", return_value=(str(destination), "")), \
+                patch("meetcute.app.QMessageBox.information"):
             self.assertTrue(window.export_project())
         with zipfile.ZipFile(destination) as archive:
             content = json.loads(archive.read("[CP] NewCharacter/content.json"))

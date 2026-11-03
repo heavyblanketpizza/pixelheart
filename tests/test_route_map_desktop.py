@@ -11,8 +11,8 @@ from PySide6.QtGui import QImage
 from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.editors import SchedulePage
-from pixelheart.route_map import RouteCanvas, RouteMapPanel
+from meetcute.editors import SchedulePage
+from meetcute.route_map import RouteCanvas, RouteMapPanel
 from tests.qt_support import QtTestCase
 
 
@@ -242,12 +242,12 @@ class RouteMapWindowTests(QtTestCase):
         from pathlib import Path
         from unittest.mock import patch
         from PySide6.QtCore import QSettings
-        from pixelheart.app import MainWindow
+        from meetcute.app import MainWindow
         root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         settings = QSettings(str(root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=settings))
-        self.enterContext(patch("pixelheart.story_page.EventsPage.update_scene_preview"))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.story_page.EventsPage.update_scene_preview"))
         self.window = MainWindow(auto_download_icons=False)
 
     def tearDown(self):
@@ -266,7 +266,7 @@ class RouteMapWindowTests(QtTestCase):
 
     def test_a_map_job_reads_its_own_copy_of_the_project(self):
         from unittest.mock import patch
-        with patch("pixelheart.app.load_route_map", return_value={}) as load:
+        with patch("meetcute.app.load_route_map", return_value={}) as load:
             job = self.window.route_map("Town")
             self.window.document["character"]["name"] = "Changed later"
             job()

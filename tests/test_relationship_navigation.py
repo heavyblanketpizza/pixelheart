@@ -9,10 +9,10 @@ from unittest.mock import patch
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QListWidgetItem
 
-from pixelheart.app import MainWindow, SECTION_INDEX
-from pixelheart.theme import apply_theme
-from pixelheart_core.projects import new_project
-from pixelheart_core.story import new_relationship
+from meetcute.app import MainWindow, SECTION_INDEX
+from meetcute.theme import apply_theme
+from meetcute_core.projects import new_project
+from meetcute_core.story import new_relationship
 from tests.qt_support import QtTestCase
 
 
@@ -24,7 +24,7 @@ class RelationshipNavigationTests(QtTestCase):
 
     def test_legacy_issue_routes_to_visible_notice_without_changing_data_at_minimum_size(self):
         settings = SimpleNamespace(value=lambda *_: "")
-        with patch("pixelheart.game_import.game_import_settings", return_value=settings):
+        with patch("meetcute.game_import.game_import_settings", return_value=settings):
             window = MainWindow(preload_story=False)
             self.addCleanup(window.deleteLater)
             self.addCleanup(window.close)

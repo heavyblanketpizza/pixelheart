@@ -14,9 +14,9 @@ from PySide6.QtWidgets import (
     QPushButton, QVBoxLayout, QWidget,
 )
 
-from pixelheart.location_picker import MapSelector
-from pixelheart.project_history import ProjectHistoryController
-from pixelheart.stage_canvas import StageCanvas
+from meetcute.location_picker import MapSelector
+from meetcute.project_history import ProjectHistoryController
+from meetcute.stage_canvas import StageCanvas
 from tests.qt_support import QtTestCase
 
 
@@ -201,7 +201,7 @@ class ProjectHistoryControlTests(QtTestCase):
         self.assertFalse(independent.isHidden())
 
     def test_active_gesture_groups_updates_across_pauses_and_ends_before_next_edit(self):
-        with patch("pixelheart.project_history.time.monotonic", side_effect=(0, 5, 6)):
+        with patch("meetcute.project_history.time.monotonic", side_effect=(0, 5, 6)):
             self.controller.begin_gesture(("cast", "actor-1"))
             self.window.name.setText("first tile")
             self.window.name.setText("last tile")

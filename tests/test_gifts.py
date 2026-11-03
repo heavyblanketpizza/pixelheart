@@ -18,12 +18,12 @@ from PySide6.QtCore import QMimeData, Qt
 from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QApplication, QDialog
 
-from pixelheart.app import MainWindow
-from pixelheart.gifts_page import EXPORT_COMMAND, GIFT_MIME, GameImportDialog, GiftsPage
-from pixelheart_core.catalog import load_catalog
-from pixelheart_core.exporting import build_mod_archive, validate_character
-from pixelheart_core.projects import load_project
-from pixelheart_core.validation import validate_draft
+from meetcute.app import MainWindow
+from meetcute.gifts_page import EXPORT_COMMAND, GIFT_MIME, GameImportDialog, GiftsPage
+from meetcute_core.catalog import load_catalog
+from meetcute_core.exporting import build_mod_archive, validate_character
+from meetcute_core.projects import load_project
+from meetcute_core.validation import validate_draft
 from tests.qt_support import QtTestCase
 
 
@@ -65,7 +65,7 @@ class GiftEditorTests(QtTestCase):
         cls.application = QApplication.instance() or QApplication([])
 
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-gifts-test-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="meetcute-gifts-test-")
         self.root = Path(self.temporary.name)
         self.widgets = []
         self.page = self.keep(GiftsPage())
@@ -140,7 +140,7 @@ class GiftEditorTests(QtTestCase):
 
     def test_export_file_picker_imports_the_selected_snapshot(self):
         dialog = self.keep(GameImportDialog())
-        with patch("pixelheart.gifts_page.QFileDialog.getOpenFileName", return_value=(str(self.export_file), "")):
+        with patch("meetcute.gifts_page.QFileDialog.getOpenFileName", return_value=(str(self.export_file), "")):
             dialog.choose_export()
         self.assertIn(MOD_ITEM, {item["id"] for item in dialog.catalog["items"]})
 
@@ -155,7 +155,7 @@ class GiftEditorTests(QtTestCase):
                 game = self.root / f"game-{index}"
                 self.write_objects(game / relative)
                 dialog = self.keep(GameImportDialog())
-                with patch("pixelheart.gifts_page.QFileDialog.getExistingDirectory", return_value=str(game)):
+                with patch("meetcute.gifts_page.QFileDialog.getExistingDirectory", return_value=str(game)):
                     dialog.choose_game_folder()
                 self.assertEqual(dialog.result(), QDialog.DialogCode.Accepted)
                 self.assertIn(MOD_ITEM, {item["id"] for item in dialog.catalog["items"]})
@@ -169,7 +169,7 @@ class GiftEditorTests(QtTestCase):
                     self.write_objects(game / "Data_Objects.json")
                     self.write_objects(game / "patch export" / "Data_Objects.json")
                 dialog = self.keep(GameImportDialog())
-                with patch("pixelheart.gifts_page.QFileDialog.getExistingDirectory", return_value=str(game)):
+                with patch("meetcute.gifts_page.QFileDialog.getExistingDirectory", return_value=str(game)):
                     dialog.choose_game_folder()
                 self.assertIsNone(dialog.catalog)
                 self.assertNotEqual(dialog.result(), QDialog.DialogCode.Accepted)
@@ -177,8 +177,8 @@ class GiftEditorTests(QtTestCase):
 
     def test_cancelled_file_and_folder_pickers_do_not_import(self):
         dialog = self.keep(GameImportDialog())
-        with patch("pixelheart.gifts_page.QFileDialog.getOpenFileName", return_value=("", "")), \
-                patch("pixelheart.gifts_page.QFileDialog.getExistingDirectory", return_value=""):
+        with patch("meetcute.gifts_page.QFileDialog.getOpenFileName", return_value=("", "")), \
+                patch("meetcute.gifts_page.QFileDialog.getExistingDirectory", return_value=""):
             dialog.choose_export()
             dialog.choose_game_folder()
         self.assertIsNone(dialog.catalog)
@@ -205,7 +205,7 @@ class GiftEditorTests(QtTestCase):
         dialog = GameImportDialog(self.page)
         self.assertTrue(dialog.import_path(self.export_file))
         changes = QSignalSpy(self.page.changed)
-        with patch("pixelheart.gifts_page.GameImportDialog", return_value=dialog), \
+        with patch("meetcute.gifts_page.GameImportDialog", return_value=dialog), \
                 patch.object(dialog, "exec", return_value=QDialog.DialogCode.Accepted):
             self.page.import_game()
         self.assertEqual(self.page.catalog_snapshot(), dialog.catalog)
@@ -219,7 +219,7 @@ class GiftEditorTests(QtTestCase):
         changes = QSignalSpy(self.page.changed)
         dialog = GameImportDialog(self.page)
         dialog.catalog = deepcopy(self.page.base_catalog)
-        with patch("pixelheart.gifts_page.GameImportDialog", return_value=dialog), \
+        with patch("meetcute.gifts_page.GameImportDialog", return_value=dialog), \
                 patch.object(dialog, "exec", return_value=QDialog.DialogCode.Rejected):
             self.page.import_game()
         self.assertEqual(self.page.dump(), before)
@@ -399,7 +399,7 @@ class GiftEditorTests(QtTestCase):
         source = self.root / "original" / "character.json"
         destination = self.root / "copy" / "character.json"
         self.assertTrue(window.save_to(source))
-        with patch("pixelheart.app.QFileDialog.getSaveFileName", return_value=(str(destination), "")):
+        with patch("meetcute.app.QFileDialog.getSaveFileName", return_value=(str(destination), "")):
             self.assertTrue(window.save_as())
         self.export_file.unlink()
         source.unlink()

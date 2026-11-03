@@ -10,8 +10,8 @@ from unittest.mock import patch
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
 
-import pixelheart_core.scene_preview as scene_preview
-from pixelheart.game_connection import game_connection
+import meetcute_core.scene_preview as scene_preview
+from meetcute.game_connection import game_connection
 from tests.qt_support import QtTestCase
 from tests.test_game_install import fake_game
 
@@ -24,23 +24,23 @@ class RoutingTests(QtTestCase):
     def setUp(self):
         self.folder = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.settings = QSettings(str(self.folder / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=self.settings))
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=self.settings))
         self.game = fake_game(self.folder / "Stardew Valley", smapi=True)
 
     def test_scene_locator_opens_the_shared_dialog(self):
-        from pixelheart.story_page import CastEditor
+        from meetcute.story_page import CastEditor
         editor = CastEditor()
         self.addCleanup(editor.deleteLater)
-        with patch("pixelheart.game_connection.open_find_game", return_value=True) as opener:
+        with patch("meetcute.game_connection.open_find_game", return_value=True) as opener:
             editor.choose_game_artwork()
         opener.assert_called_once()
 
     def test_scene_preview_uses_connection_folder_without_scanning(self):
         game_connection().set_folder(self.game)
-        from pixelheart.app import MainWindow
+        from meetcute.app import MainWindow
         window = MainWindow()
         self.addCleanup(window.deleteLater)
-        with patch("pixelheart_core.game_scene_assets.discover_game_root", side_effect=AssertionError("no scan")), \
+        with patch("meetcute_core.game_scene_assets.discover_game_root", side_effect=AssertionError("no scan")), \
              patch.object(scene_preview, "resolve_scene_preview", wraps=scene_preview.resolve_scene_preview) as resolver:
             window.open_section("story")
             window.events.update_preview()
@@ -49,10 +49,10 @@ class RoutingTests(QtTestCase):
         window.close()
 
     def test_scene_preview_without_a_game_does_not_scan(self):
-        from pixelheart.app import MainWindow
+        from meetcute.app import MainWindow
         window = MainWindow()
         self.addCleanup(window.deleteLater)
-        with patch("pixelheart_core.game_scene_assets.discover_game_root", side_effect=AssertionError("no scan")), \
+        with patch("meetcute_core.game_scene_assets.discover_game_root", side_effect=AssertionError("no scan")), \
              patch.object(scene_preview, "resolve_scene_preview", wraps=scene_preview.resolve_scene_preview) as resolver:
             window.open_section("story")
             window.events.update_preview()
@@ -61,10 +61,10 @@ class RoutingTests(QtTestCase):
         window.close()
 
     def test_vanilla_story_remembers_through_connection(self):
-        from pixelheart.vanilla_story import VanillaStoryDialog
-        from pixelheart_core.projects import new_project
+        from meetcute.vanilla_story import VanillaStoryDialog
+        from meetcute_core.projects import new_project
         game_connection().set_folder(self.game)
-        with patch("pixelheart.vanilla_story.QTimer.singleShot"):
+        with patch("meetcute.vanilla_story.QTimer.singleShot"):
             dialog = VanillaStoryDialog(new_project()["character"])
         self.addCleanup(dialog.deleteLater)
         self.assertEqual(dialog.game_root, str(self.game.resolve()))
@@ -73,7 +73,7 @@ class RoutingTests(QtTestCase):
         self.assertEqual(game_connection().install().root, other.resolve())
 
     def test_install_defaults_to_the_games_mods_folder(self):
-        from pixelheart.playtest_page import default_mods_folder
+        from meetcute.playtest_page import default_mods_folder
         self.assertEqual(default_mods_folder(), "")
         game_connection().set_folder(self.game)
         self.assertEqual(default_mods_folder(), str((self.game / "Contents/MacOS/Mods").resolve()))

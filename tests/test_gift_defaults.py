@@ -5,7 +5,7 @@ import unittest
 from collections import Counter
 from pathlib import Path
 
-from pixelheart_core.gift_defaults import vanilla_gift_tastes
+from meetcute_core.gift_defaults import vanilla_gift_tastes
 
 
 class VanillaGiftDefaultsTests(unittest.TestCase):
@@ -13,7 +13,7 @@ class VanillaGiftDefaultsTests(unittest.TestCase):
         self.tastes = vanilla_gift_tastes()
 
     def test_complete_bundled_scope_except_special_stardrop_tea(self):
-        path = Path(__file__).resolve().parent.parent / "pixelheart_core/data/vanilla_items.json"
+        path = Path(__file__).resolve().parent.parent / "meetcute_core/data/vanilla_items.json"
         ids = {item["id"] for item in json.loads(path.read_text())["items"]}
         self.assertEqual(set(self.tastes), ids - {"StardropTea"})
         self.assertNotIn("StardropTea", self.tastes)

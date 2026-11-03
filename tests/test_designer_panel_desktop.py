@@ -11,15 +11,15 @@ from unittest.mock import patch
 from PySide6.QtCore import QUrl
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QLineEdit
 
-from pixelheart.app import MainWindow, SECTION_INDEX
-from pixelheart.designer_config import PANEL_VISIBLE_KEY, save_designer_config
-from pixelheart.game_import import game_import_settings
-from pixelheart import designer_setup
-from pixelheart.designer_setup import DesignerSetupDialog
-from pixelheart_core.projects import new_project
-from pixelheart.theme import apply_theme
-from pixelheart_designer.config import DesignerConfig
-from pixelheart_designer.providers import ProviderError, ToolCall
+from meetcute.app import MainWindow, SECTION_INDEX
+from meetcute.designer_config import PANEL_VISIBLE_KEY, save_designer_config
+from meetcute.game_import import game_import_settings
+from meetcute import designer_setup
+from meetcute.designer_setup import DesignerSetupDialog
+from meetcute_core.projects import new_project
+from meetcute.theme import apply_theme
+from meetcute_designer.config import DesignerConfig
+from meetcute_designer.providers import ProviderError, ToolCall
 from tests.designer_support import NULL_IDENTITY, ScriptedProvider, text_reply, tool_reply
 from tests.qt_support import QtTestCase
 
@@ -59,7 +59,7 @@ class SetupDialogTests(QtTestCase):
             time.sleep(0.4)
             return "ok"
 
-        with patch("pixelheart.designer_setup.make_provider", return_value=SimpleNamespace(check=slow_check)):
+        with patch("meetcute.designer_setup.make_provider", return_value=SimpleNamespace(check=slow_check)):
             dialog.run_check()
             dialog.done(0)
             dialog.deleteLater()
@@ -71,10 +71,10 @@ class SetupDialogTests(QtTestCase):
 
     def test_check_reports_provider_result(self):
         dialog = DesignerSetupDialog(None, DesignerConfig.from_mapping({"designer/provider": "local", "designer/local_model": "qwen"}), inline=True)
-        with patch("pixelheart.designer_setup.make_provider", return_value=SimpleNamespace(check=lambda: "Connected · 2 models available")):
+        with patch("meetcute.designer_setup.make_provider", return_value=SimpleNamespace(check=lambda: "Connected · 2 models available")):
             dialog.run_check()
         self.assertEqual(dialog.check_result.text(), "Connected · 2 models available")
-        with patch("pixelheart.designer_setup.make_provider", side_effect=ProviderError("not_running", "Nothing is answering")):
+        with patch("meetcute.designer_setup.make_provider", side_effect=ProviderError("not_running", "Nothing is answering")):
             dialog.run_check()
         self.assertEqual(dialog.check_result.text(), "Nothing is answering")
 

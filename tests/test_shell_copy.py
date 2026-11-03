@@ -6,7 +6,7 @@ import unittest
 
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.app import MainWindow, _export_completion_message
+from meetcute.app import MainWindow, _export_completion_message
 from tests.qt_support import QtTestCase
 
 

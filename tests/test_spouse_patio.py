@@ -10,14 +10,14 @@ import zipfile
 
 from PIL import Image
 
-from pixelheart_core.game_scene_assets import clear_game_cache
-from pixelheart_core.projects import new_project
-from pixelheart_core.spouse_patio import (
+from meetcute_core.game_scene_assets import clear_game_cache
+from meetcute_core.projects import new_project
+from meetcute_core.spouse_patio import (
     DEFAULT_STAND, compile_patio, erase, farm_context, farm_ground, fill, game_image_name, game_patios,
     game_sheet_choices, game_texture, import_own_sheet, new_patio, normalize_patio, paint, patio_issues,
     patio_structure_issues, patio_tmx, prune_sheets, render_patio, use_own_sheet,
 )
-from pixelheart_core.world import (
+from meetcute_core.world import (
     WorldError, compile_world, new_world, normalize_world, world_asset_references, world_issues,
     world_structure_issues,
 )
@@ -209,7 +209,7 @@ class PatioExportTests(unittest.TestCase):
         patio["layers"]["Buildings"][0] = ["own", 1]
         root = ET.fromstring(patio_tmx(patio))
         tilesets = {node.get("name"): node for node in root.findall("tileset")}
-        self.assertEqual(list(tilesets), ["own", "spring_outdoorsTileSheet", "pixelheart_paths"])
+        self.assertEqual(list(tilesets), ["own", "spring_outdoorsTileSheet", "meetcute_paths"])
         self.assertEqual(tilesets["spring_outdoorsTileSheet"].find("image").get("source"), "spring_outdoorsTileSheet")
         self.assertEqual(tilesets["own"].find("image").get("source"), "patio_tiles.png")
         layers = {node.get("name"): [int(v) for v in node.find("data").text.replace("\n", "").split(",")]
@@ -217,7 +217,7 @@ class PatioExportTests(unittest.TestCase):
         self.assertEqual(list(layers), ["Back", "Buildings", "Front", "Paths"])
         self.assertEqual(layers["Back"], [3] * 16)
         self.assertEqual(layers["Buildings"][0], 2)
-        paths_first = int(tilesets["pixelheart_paths"].get("firstgid"))
+        paths_first = int(tilesets["meetcute_paths"].get("firstgid"))
         self.assertEqual(layers["Paths"][2 * 4 + 1], paths_first + 7)
         self.assertEqual(sum(1 for value in layers["Paths"] if value), 1)
         self.assertEqual(root.find("layer[@name='Paths']").get("visible"), "0")
@@ -226,11 +226,11 @@ class PatioExportTests(unittest.TestCase):
         patio = filled()
         patio["sheets"]["own"] = self.own_sheet()
         patio["layers"]["Front"][5] = ["own", 0]
-        result = compile_patio(patio, "Pixelheart_abc_SpousePatio", self.root, "assets/patio/")
+        result = compile_patio(patio, "MeetCute_abc_SpousePatio", self.root, "assets/patio/")
         self.assertEqual(sorted(result["files"]), ["assets/patio/paths.png", "assets/patio/patio.tmx", "assets/patio/patio_tiles.png"])
-        self.assertEqual(result["patches"], [{"Action": "Load", "Target": "Maps/Pixelheart_abc_SpousePatio",
+        self.assertEqual(result["patches"], [{"Action": "Load", "Target": "Maps/MeetCute_abc_SpousePatio",
                                               "FromFile": "assets/patio/patio.tmx"}])
-        self.assertEqual(result["npc_field"], {"MapAsset": "Pixelheart_abc_SpousePatio",
+        self.assertEqual(result["npc_field"], {"MapAsset": "MeetCute_abc_SpousePatio",
                                                "MapSourceRect": {"X": 0, "Y": 0, "Width": 4, "Height": 4}})
         animated = filled(animation={"frames": [[16, 200], [17, 100]], "offset": [0, -8]})
         field = compile_patio(animated, "Id", self.root, "p/")["npc_field"]
@@ -279,7 +279,7 @@ class PatioExportTests(unittest.TestCase):
         self.assertEqual(world_structure_issues(world), [])
 
     def test_project_saves_loads_and_copies_the_patio_and_its_sheet(self):
-        from pixelheart_core.projects import copy_project, load_project, save_project
+        from meetcute_core.projects import copy_project, load_project, save_project
         document = new_project()
         project = self.root / "Mira" / "character.json"
         project.parent.mkdir()
@@ -294,7 +294,7 @@ class PatioExportTests(unittest.TestCase):
         self.assertTrue((copy.parent / patio["sheets"]["own"]["asset"]).is_file())
 
     def test_mod_archive_gives_the_character_their_patio(self):
-        from pixelheart_core.exporting import build_mod_archive
+        from meetcute_core.exporting import build_mod_archive
         world = {**new_world(), "spouse_patio": filled()}
         document = new_project()
         character = document["character"]

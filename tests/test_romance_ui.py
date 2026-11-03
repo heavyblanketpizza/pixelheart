@@ -10,11 +10,11 @@ from unittest.mock import patch
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication, QTabWidget
 
-from pixelheart.app import MainWindow, SECTION_INDEX
-from pixelheart_core.projects import new_project, save_project, load_project
-from pixelheart_core.romance import ROMANCE_HEARTS, new_romance_event
-from pixelheart_core.story import compile_story, new_relationship
-from pixelheart_core.story_planning import new_chapter
+from meetcute.app import MainWindow, SECTION_INDEX
+from meetcute_core.projects import new_project, save_project, load_project
+from meetcute_core.romance import ROMANCE_HEARTS, new_romance_event
+from meetcute_core.story import compile_story, new_relationship
+from meetcute_core.story_planning import new_chapter
 from tests.qt_support import QtTestCase
 
 
@@ -26,9 +26,9 @@ class RomanceUITests(QtTestCase):
     def setUp(self):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         settings = QSettings(str(self.root / 'settings.ini'), QSettings.Format.IniFormat)
-        self.enterContext(patch('pixelheart.game_import.game_import_settings', return_value=settings))
-        self.enterContext(patch('pixelheart.interior_editor.game_import_settings', return_value=settings))
-        self.enterContext(patch('pixelheart.story_page.EventsPage.update_scene_preview'))
+        self.enterContext(patch('meetcute.game_import.game_import_settings', return_value=settings))
+        self.enterContext(patch('meetcute.interior_editor.game_import_settings', return_value=settings))
+        self.enterContext(patch('meetcute.story_page.EventsPage.update_scene_preview'))
         self.window = MainWindow(auto_download_icons=False)
         self.addCleanup(self.close_window)
         self.errors = self.enterContext(patch.object(self.window, 'show_error'))
@@ -89,7 +89,7 @@ class RomanceUITests(QtTestCase):
         self.assertFalse(self.window.dirty)
 
     def test_minimum_window_keeps_dialogue_input_and_stage_in_view(self):
-        from pixelheart.theme import apply_theme
+        from meetcute.theme import apply_theme
         apply_theme(self.app)
         self.window.show()
         for width, height in ((1360, 900), (1020, 700)):

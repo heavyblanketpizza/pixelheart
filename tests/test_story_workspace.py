@@ -10,12 +10,12 @@ import tempfile
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.app import MainWindow
-from pixelheart.theme import apply_theme
-from pixelheart.schedule_time import EventTime
-from pixelheart_core.story import new_relationship
-from pixelheart_core.projects import new_project
-from pixelheart_core.story_planning import new_chapter
+from meetcute.app import MainWindow
+from meetcute.theme import apply_theme
+from meetcute.schedule_time import EventTime
+from meetcute_core.story import new_relationship
+from meetcute_core.projects import new_project
+from meetcute_core.story_planning import new_chapter
 from tests.qt_support import QtTestCase
 
 
@@ -27,7 +27,7 @@ class StoryWorkspaceTests(QtTestCase):
 
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
-        self.settings = patch("pixelheart.game_import.game_import_settings", return_value=SimpleNamespace(value=lambda *_: self.temporary.name))
+        self.settings = patch("meetcute.game_import.game_import_settings", return_value=SimpleNamespace(value=lambda *_: self.temporary.name))
         self.settings.start()
         self.window = MainWindow()
         self.window.resize(1440, 900)

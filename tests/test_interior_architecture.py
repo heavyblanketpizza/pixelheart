@@ -8,14 +8,14 @@ import xml.etree.ElementTree as ET
 
 from PIL import Image
 
-from pixelheart_core.interior_architecture import (
+from meetcute_core.interior_architecture import (
     architecture_bounds, architecture_candidate, architecture_cells,
     architecture_preview, architecture_walkable_connected, remove_architecture_candidate,
     stage_architecture_library, validate_architecture_definition,
 )
-from pixelheart_core.interior_furniture import FurnitureValidationError, import_furniture_library
-from pixelheart_core.interior_layout import partition_candidate, resize_room_candidate
-from pixelheart_core.interiors import (
+from meetcute_core.interior_furniture import FurnitureValidationError, import_furniture_library
+from meetcute_core.interior_layout import partition_candidate, resize_room_candidate
+from meetcute_core.interiors import (
     InteriorDraft, InteriorError, compile_interior, ensure_doorway,
     interior_asset_references, interior_tmx, map_layers, new_interior,
     normalize_interior, reachable_tiles, render_interior, room_edit_candidate,
@@ -203,7 +203,7 @@ class ArchitectureModelTests(unittest.TestCase):
         self.assertEqual(draft.data["architecture"][0]["x"], 8)
 
     def test_existing_furniture_collision_rejects_fixture(self):
-        from pixelheart_core.interior_furniture import validate_definition
+        from meetcute_core.interior_furniture import validate_definition
         data = design()
         data["catalog"] = [validate_definition(dict(id="(F)Example.Chair", name="Chair", kind="chair", footprint=[1, 1], sprite_size=[1, 1], rotations=1))]
         draft = InteriorDraft(data)
@@ -289,7 +289,7 @@ class ArchitectureAssetsTests(unittest.TestCase):
         self.assertNotIn("architecture_catalog", data)
 
     def test_library_preflights_bad_architecture_before_copying_other_assets(self):
-        library = {"format": "pixelheart-interior-library", "version": 1, "definitions": [],
+        library = {"format": "meetcute-interior-library", "version": 1, "definitions": [],
                    "architecture": [self.external, {**self.external, "id": "bad", "preview_asset": "missing.png"}]}
         path = self.root / "library.json"
         path.write_text(json.dumps(library))
@@ -300,7 +300,7 @@ class ArchitectureAssetsTests(unittest.TestCase):
 
     def test_library_import_copies_checked_assets_and_stages(self):
         path = self.root / "library.json"
-        path.write_text(json.dumps({"format": "pixelheart-interior-library", "version": 1,
+        path.write_text(json.dumps({"format": "meetcute-interior-library", "version": 1,
                                     "definitions": [], "architecture": [self.external]}))
         destination = self.root / "project"
         library = import_furniture_library(path, destination)

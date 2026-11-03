@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import unittest
 
-from pixelheart_core.gift_presets import (
+from meetcute_core.gift_presets import (
     GIFT_PRESETS,
     RECOMMENDED_GIFT_PRESET_ID,
     TASTES,
@@ -17,7 +17,7 @@ from pixelheart_core.gift_presets import (
 class GiftPresetTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        path = Path(__file__).resolve().parent.parent / "pixelheart_core" / "data" / "vanilla_items.json"
+        path = Path(__file__).resolve().parent.parent / "meetcute_core" / "data" / "vanilla_items.json"
         catalog = json.loads(path.read_text(encoding="utf-8"))
         cls.items = {item["id"]: item for item in catalog["items"]}
 

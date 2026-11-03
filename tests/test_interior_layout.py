@@ -7,16 +7,16 @@ import xml.etree.ElementTree as ET
 
 from PIL import Image
 
-from pixelheart_core.interior_layout import (
+from meetcute_core.interior_layout import (
     corridor_candidate, opening_candidate, partition_candidate, partition_cells,
     partition_span, remove_partition_candidate, resize_room_candidate,
 )
-from pixelheart_core.interiors import (
+from meetcute_core.interiors import (
     InteriorDraft, InteriorError, compile_interior, import_atlas, interior_tmx,
     map_layers, new_interior, normalize_interior, place_doorway, reachable_tiles,
     render_interior, room_edit_candidate,
 )
-from pixelheart_core.interior_furniture import ROOM_FRAME_TILES, validate_definition
+from meetcute_core.interior_furniture import ROOM_FRAME_TILES, validate_definition
 
 
 def furnished():

@@ -6,11 +6,11 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from pixelheart_core.library import (
-    character_folder, default_library_root, edited_ago, folder_name, internal_name_for, library_projects,
+from meetcute_core.library import (
+    character_folder, default_library_root, edited_ago, folder_name, internal_name_for, library_projects, library_roots,
     new_project_path, project_card, remember_recent, workspace_projects_root,
 )
-from pixelheart_core.projects import new_project, save_project
+from meetcute_core.projects import new_project, save_project
 
 
 class LibraryTests(unittest.TestCase):
@@ -18,14 +18,25 @@ class LibraryTests(unittest.TestCase):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
 
     def test_default_root_is_documents_unless_overridden(self):
-        with patch.dict(os.environ, {"PIXELHEART_LIBRARY": str(self.root)}):
+        with patch.dict(os.environ, {"MEETCUTE_LIBRARY": str(self.root)}):
             self.assertEqual(default_library_root(), self.root)
         with patch.dict(os.environ, {}, clear=True), \
-             patch("pixelheart_core.library.Path.home", return_value=Path("/home/me")):
-            self.assertEqual(default_library_root(), Path("/home/me/Documents/Pixelheart"))
+             patch("meetcute_core.library.Path.home", return_value=Path("/home/me")):
+            self.assertEqual(default_library_root(), Path("/home/me/Documents/MEETC#TE"))
 
-    def test_workspace_projects_are_beside_pixelheart_unless_overridden(self):
-        with patch.dict(os.environ, {"PIXELHEART_PROJECTS": str(self.root)}):
+    def test_existing_library_is_visible_before_and_after_creating_a_new_one(self):
+        legacy = self.root / "Documents" / "Pixelheart"
+        current = legacy.with_name("MEETC#TE")
+        legacy.mkdir(parents=True)
+        with patch.dict(os.environ, {}, clear=True), patch("meetcute_core.library.Path.home", return_value=self.root):
+            self.assertEqual(default_library_root(), legacy)
+            current.mkdir()
+            self.assertEqual(library_roots(), (current, legacy))
+            with patch.dict(os.environ, {"PIXELHEART_LIBRARY": str(self.root)}):
+                self.assertEqual(library_roots(), (self.root,))
+
+    def test_workspace_projects_are_beside_meetcute_unless_overridden(self):
+        with patch.dict(os.environ, {"MEETCUTE_PROJECTS": str(self.root)}):
             self.assertEqual(workspace_projects_root(), self.root)
         with patch.dict(os.environ, {}, clear=True):
             self.assertEqual(workspace_projects_root(), Path(__file__).resolve().parents[1] / "projects")
@@ -64,7 +75,7 @@ class LibraryTests(unittest.TestCase):
         self.assertIsNotNone(project_card(self.root / "Gone/character.json")["error"])
 
     def test_only_a_characters_own_library_folder_can_be_trashed(self):
-        library, projects = self.root / "Pixelheart", self.root / "projects"
+        library, projects = self.root / "MEETC#TE", self.root / "projects"
         own = save_project(new_project(), library / "Mira" / "character.json")
         old = save_project(new_project(), projects / "iris" / "character.json")
         loose = save_project(new_project(), library / "character.json")
@@ -76,7 +87,7 @@ class LibraryTests(unittest.TestCase):
             linked = True
         except OSError:  # Windows may not allow symlinks without extra privileges.
             linked = False
-        with patch.dict(os.environ, {"PIXELHEART_LIBRARY": str(library), "PIXELHEART_PROJECTS": str(projects)}):
+        with patch.dict(os.environ, {"MEETCUTE_LIBRARY": str(library), "MEETCUTE_PROJECTS": str(projects)}):
             self.assertEqual(character_folder(own), own.parent)
             self.assertEqual(character_folder(str(old)), old.parent)
             self.assertIsNone(character_folder(loose))

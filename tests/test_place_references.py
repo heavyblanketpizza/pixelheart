@@ -2,11 +2,11 @@
 from copy import deepcopy
 import unittest
 
-from pixelheart_core.life import new_life_record, normalize_life
-from pixelheart_core.place_references import place_references, place_removal_blockers, rename_place
-from pixelheart_core.projects import new_project
-from pixelheart_core.story import new_event
-from pixelheart_core.world import WorldError, exported_location_id, new_companion, new_location, new_world
+from meetcute_core.life import new_life_record, normalize_life
+from meetcute_core.place_references import place_references, place_removal_blockers, rename_place
+from meetcute_core.projects import new_project
+from meetcute_core.story import new_event
+from meetcute_core.world import WorldError, exported_location_id, new_companion, new_location, new_world
 
 
 class PlaceReferencesTests(unittest.TestCase):

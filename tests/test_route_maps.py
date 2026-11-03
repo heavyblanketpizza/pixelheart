@@ -6,10 +6,10 @@ from unittest.mock import patch
 
 from PIL import Image
 
-from pixelheart_core.interiors import ensure_doorway, new_interior
-from pixelheart_core.projects import new_project
-from pixelheart_core.route_maps import load_route_map
-from pixelheart_core.world import new_location, new_world
+from meetcute_core.interiors import ensure_doorway, new_interior
+from meetcute_core.projects import new_project
+from meetcute_core.route_maps import load_route_map
+from meetcute_core.world import new_location, new_world
 
 
 class RouteMapTests(unittest.TestCase):
@@ -46,7 +46,7 @@ class RouteMapTests(unittest.TestCase):
     def test_a_game_map(self):
         game = {"image": Image.new("RGBA", (32, 32)), "foreground": Image.new("RGBA", (32, 32)),
                 "map_size": (2, 2), "path": self.root / "Town.xnb", "cache_key": (), "source": "Stardew Valley game map"}
-        with patch("pixelheart_core.scene_preview.load_game_map", return_value=game) as loader:
+        with patch("meetcute_core.scene_preview.load_game_map", return_value=game) as loader:
             result = load_route_map(self.document, self.project_file, "Town", game_root=self.root)
         loader.assert_called_once()
         self.assertEqual(result["map_size"], (2, 2))
@@ -61,7 +61,7 @@ class RouteMapTests(unittest.TestCase):
         result = load_route_map(self.document, self.project_file, "Bookshop")
         self.assertIsNone(result["image"])
         self.assertEqual(result["note"], "This place has no map to show yet.")
-        with patch("pixelheart_core.scene_preview.load_game_map", side_effect=ValueError("Game asset Maps/Nowhere is unavailable.")):
+        with patch("meetcute_core.scene_preview.load_game_map", side_effect=ValueError("Game asset Maps/Nowhere is unavailable.")):
             result = load_route_map(self.document, self.project_file, "Nowhere", game_root=self.root)
         self.assertIn("isn't in your game", result["note"])
         self.assertEqual(load_route_map(self.document, self.project_file, "")["note"], "Choose a place for this stop.")

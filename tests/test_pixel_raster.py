@@ -4,7 +4,7 @@ import unittest
 
 from PIL import Image
 
-from pixelheart_core.pixel_raster import (
+from meetcute_core.pixel_raster import (
     Mask, apply_mask, brush_mask, ellipse_mask, equal_color_mask, flood_mask,
     line_points, mirror_mask, rectangle_mask, union,
 )

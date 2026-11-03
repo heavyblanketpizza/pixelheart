@@ -9,9 +9,9 @@ import unittest
 
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.app import MainWindow
-from pixelheart_core.life import COLLECTIONS, new_life_record, normalize_life
-from pixelheart_core.projects import load_project
+from meetcute.app import MainWindow
+from meetcute_core.life import COLLECTIONS, new_life_record, normalize_life
+from meetcute_core.projects import load_project
 from tests.qt_support import QtTestCase
 
 

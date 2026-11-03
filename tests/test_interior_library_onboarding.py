@@ -8,7 +8,7 @@ import unittest
 
 from PIL import Image
 
-from pixelheart_core.interior_furniture import (
+from meetcute_core.interior_furniture import (
     FurnitureValidationError, discover_furniture_libraries,
     import_furniture_library, preview_surface, resolve_furniture_library,
     validate_surface,
@@ -26,7 +26,7 @@ class InteriorLibraryOnboardingTests(unittest.TestCase):
     def library(self, directory, **values):
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / "library.json"
-        path.write_text(json.dumps({"format": "pixelheart-interior-library", "version": 1,
+        path.write_text(json.dumps({"format": "meetcute-interior-library", "version": 1,
                                     "definitions": [], **values}), encoding="utf-8")
         return path
 
@@ -148,7 +148,7 @@ class InteriorLibraryOnboardingTests(unittest.TestCase):
             resolve_furniture_library(self.root)
         message = str(error.exception)
         self.assertIn("load a save once", message)
-        self.assertNotIn("pixelheart_export", message)
+        self.assertNotIn("meetcute_export", message)
         self.assertNotIn("JSON", message)
 
 

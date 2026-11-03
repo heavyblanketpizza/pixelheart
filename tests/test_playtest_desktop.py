@@ -12,11 +12,11 @@ import zipfile
 from PIL import Image
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.app import MainWindow
-from pixelheart.theme import apply_theme
-from pixelheart_core.playtesting import content_fingerprint, export_is_current, playtest_cases
-from pixelheart_core.projects import new_project
-from pixelheart_core.story import new_beat, new_event
+from meetcute.app import MainWindow
+from meetcute.theme import apply_theme
+from meetcute_core.playtesting import content_fingerprint, export_is_current, playtest_cases
+from meetcute_core.projects import new_project
+from meetcute_core.story import new_beat, new_event
 from tests.qt_support import QtTestCase
 
 
@@ -27,7 +27,7 @@ class PlaytestDesktopTests(QtTestCase):
         apply_theme(cls.application)
 
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix='pixelheart-playtest-test-')
+        self.temporary = tempfile.TemporaryDirectory(prefix='meetcute-playtest-test-')
         self.root = Path(self.temporary.name)
         self.project_file = self.root / 'project' / 'character.json'
         self.windows = []
@@ -69,14 +69,14 @@ class PlaytestDesktopTests(QtTestCase):
             path = self.root / (kind + '.png')
             with Image.new('RGBA', dimensions, (150, 90, 130, 255)) as image:
                 image.save(path)
-            with patch('pixelheart.artwork_page.QFileDialog.getOpenFileName', return_value=(str(path), '')):
+            with patch('meetcute.artwork_page.QFileDialog.getOpenFileName', return_value=(str(path), '')):
                 self.window.artwork.upload(kind)
         self.errors.assert_not_called()
 
     def export(self):
         path = self.root / 'Rowan.zip'
-        with patch('pixelheart.app.QFileDialog.getSaveFileName', return_value=(str(path), '')), \
-             patch('pixelheart.app.QMessageBox.information'):
+        with patch('meetcute.app.QFileDialog.getSaveFileName', return_value=(str(path), '')), \
+             patch('meetcute.app.QMessageBox.information'):
             self.assertTrue(self.window.export_project(), self.window.validate_project())
         self.errors.assert_not_called()
         return path
@@ -97,7 +97,7 @@ class PlaytestDesktopTests(QtTestCase):
         self.assertEqual(sum('/Friendship ' in key for entry in scenes for key in entry['Entries']), 1)
         mods = self.root / 'Mods'
         mods.mkdir()
-        with patch('pixelheart.playtest_page.QFileDialog.getExistingDirectory', return_value=str(mods)):
+        with patch('meetcute.playtest_page.QFileDialog.getExistingDirectory', return_value=str(mods)):
             playtest.install_mod()
         self.errors.assert_not_called()
         installed = self.window.document['creator']['last_install']

@@ -8,13 +8,13 @@ from unittest.mock import patch
 
 from PIL import Image
 
-from pixelheart_core.game_scene_assets import (
+from meetcute_core.game_scene_assets import (
     asset_path, clear_game_cache, compose_farmer, content_root, discover_game_root,
     load_farmer, load_game_map, load_texture, parse_tbin,
 )
-from pixelheart_core.projects import new_project
-from pixelheart_core.scene_preview import clear_preview_cache, resolve_scene_preview
-from pixelheart_core.xnb_preview import XnbError, decode_xnb, texture_image
+from meetcute_core.projects import new_project
+from meetcute_core.scene_preview import clear_preview_cache, resolve_scene_preview
+from meetcute_core.xnb_preview import XnbError, decode_xnb, texture_image
 
 
 def i32(n):
@@ -96,7 +96,7 @@ def map_xnb(**kwargs):
 
 class XnbPreviewTests(unittest.TestCase):
     def test_lzx_verbatim_and_aligned_huffman_matches(self):
-        from pixelheart_core.xnb_preview import _lzx
+        from meetcute_core.xnb_preview import _lzx
         for kind in (1, 2):
             # A compact handcrafted tree emits A..P, then a two-byte match
             # sixteen bytes back. It exercises both offset coding modes.
@@ -138,7 +138,7 @@ class XnbPreviewTests(unittest.TestCase):
             decode_xnb(container('x', b'x', 'lzx')[:-1])
 
     def test_lz4_overlap_and_malformed_distance(self):
-        from pixelheart_core.xnb_preview import _lz4
+        from meetcute_core.xnb_preview import _lz4
         self.assertEqual(_lz4(b'\x11a\x01\x00', 6), b'aaaaaa')
         for data in (b'\x01\x00\x00', b'\x11a\x02\x00', b'\xf0\xff'):
             with self.assertRaises(XnbError):
@@ -184,13 +184,13 @@ class InstalledSceneTests(unittest.TestCase):
         self.assertEqual(content_root(self.game), self.content)
         self.assertEqual(content_root(self.content), self.content)
         self.assertEqual(content_root(self.game / 'Contents/Resources'), self.content)
-        with patch('pixelheart_core.game_scene_assets.discover_game_root', side_effect=AssertionError('must not scan')):
+        with patch('meetcute_core.game_scene_assets.discover_game_root', side_effect=AssertionError('must not scan')):
             result = resolve_scene_preview(self.document, self.project_file, self.event, export_root=self.root)
         self.assertIsNone(result['background'])
 
     def test_actual_background_foreground_and_cache_reuse_dependency_refresh(self):
-        from pixelheart_core.game_scene_assets import parse_tbin as parser
-        with patch('pixelheart_core.game_scene_assets.parse_tbin', wraps=parser) as parsed:
+        from meetcute_core.game_scene_assets import parse_tbin as parser
+        with patch('meetcute_core.game_scene_assets.parse_tbin', wraps=parser) as parsed:
             first = load_game_map(self.game, 'Town')
             again = load_game_map(self.game, 'Town')
             self.assertEqual(parsed.call_count, 1)
@@ -222,7 +222,7 @@ class InstalledSceneTests(unittest.TestCase):
         self.assertEqual(removed['image'].getpixel((0, 0)), (20, 80, 120, 255))
 
     def test_combined_map_texture_budget_applies_beyond_global_cache_eviction(self):
-        with patch('pixelheart_core.game_scene_assets._MAX_MAP_TEXTURE_PIXELS', 200):
+        with patch('meetcute_core.game_scene_assets._MAX_MAP_TEXTURE_PIXELS', 200):
             with self.assertRaisesRegex(XnbError, 'combined preview image limit'):
                 load_game_map(self.game, 'Town')
 
@@ -300,8 +300,8 @@ class InstalledSceneTests(unittest.TestCase):
 
     def test_farmer_caches_and_invalidates_every_layer(self):
         self.farmer()
-        from pixelheart_core.game_scene_assets import compose_farmer as compositor
-        with patch('pixelheart_core.game_scene_assets.compose_farmer', wraps=compositor) as compose:
+        from meetcute_core.game_scene_assets import compose_farmer as compositor
+        with patch('meetcute_core.game_scene_assets.compose_farmer', wraps=compositor) as compose:
             image, _, key = load_farmer(self.game, 'female')
             again, _, key2 = load_farmer(self.game, 'female')
             self.assertEqual(compose.call_count, 1)

@@ -13,9 +13,9 @@ from PySide6.QtGui import QMouseEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.interior_editor import InteriorEditor
-from pixelheart_core.interiors import new_interior, reachable_tiles
-from pixelheart_core.interior_furniture import validate_definition
+from meetcute.interior_editor import InteriorEditor
+from meetcute_core.interiors import new_interior, reachable_tiles
+from meetcute_core.interior_furniture import validate_definition
 from tests.qt_support import QtTestCase
 
 
@@ -27,7 +27,7 @@ class FloorplanEditorTests(QtTestCase):
     def setUp(self):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
         self.source = new_interior()
         self.source["catalog"] = [validate_definition({"id": "(F)Chair", "kind": "chair", "footprint": [1, 1]})]
         self.source["furniture"] = [{"id": "chair", "item_id": "(F)Chair", "x": 8, "y": 10,

@@ -9,11 +9,11 @@ import zipfile
 
 from PIL import Image
 
-from pixelheart.app import _export_completion_message
-from pixelheart_core.exporting import build_mod_archive, ExportValidationError
-from pixelheart_core.interiors import doorway_exit, ensure_doorway, import_atlas, new_interior
-from pixelheart_core.projects import new_project, load_project, save_project
-from pixelheart_core.world import (
+from meetcute.app import _export_completion_message
+from meetcute_core.exporting import build_mod_archive, ExportValidationError
+from meetcute_core.interiors import doorway_exit, ensure_doorway, import_atlas, new_interior
+from meetcute_core.projects import new_project, load_project, save_project
+from meetcute_core.world import (
     WorldError, import_map, new_location, new_world, normalize_world, world_issues,
 )
 try:
@@ -144,7 +144,7 @@ class HomeEntranceExportTests(unittest.TestCase):
             {"id": "Pixelheart.Interiors", "minimum_version": "0.1.0", "required": False},
         ]
         message = _export_completion_message("Mira.zip", self.manifest())
-        self.assertNotIn("Pixelheart", message)
+        self.assertNotIn("MEETC#TE", message)
         self.assertIn("SMAPI and Content Patcher", message)
 
 

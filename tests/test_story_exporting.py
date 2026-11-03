@@ -10,8 +10,8 @@ import zipfile
 
 from PIL import Image
 
-from pixelheart_core.exporting import ExportValidationError, build_mod_archive, validate_character
-from pixelheart_core.story import event_game_id
+from meetcute_core.exporting import ExportValidationError, build_mod_archive, validate_character
+from meetcute_core.story import event_game_id
 
 
 class StoryExportTests(unittest.TestCase):
@@ -162,7 +162,7 @@ class StoryExportTests(unittest.TestCase):
         self.assertEqual(len(exported_ids()), 3)
 
     def test_daily_choice_guide_describes_both_outcomes_without_counting_fork_as_scene(self):
-        from pixelheart_core.story import new_beat
+        from meetcute_core.story import new_beat
         event = self.ready_event()
         choice = new_beat("choice")
         choice["text"] = "Will you stay?"

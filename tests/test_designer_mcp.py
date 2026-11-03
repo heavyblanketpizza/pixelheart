@@ -12,8 +12,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from pixelheart_core.projects import load_project, new_project, save_project
-from pixelheart_designer.tools import tool_specs
+from meetcute_core.projects import load_project, new_project, save_project
+from meetcute_designer.tools import tool_specs
 from tests.designer_support import NULL_IDENTITY, NULL_WHEN
 
 
@@ -27,7 +27,7 @@ class ServerProcess:
     """Drives the server over its pipes with plain JSON-RPC lines, the way any MCP client does."""
 
     def __init__(self, project):
-        self.process = subprocess.Popen([sys.executable, "-m", "pixelheart_designer.mcp", "--project", str(project)],
+        self.process = subprocess.Popen([sys.executable, "-m", "meetcute_designer.mcp", "--project", str(project)],
                                         cwd=ROOT, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                         text=True, encoding="utf-8")
         self.replies = queue.Queue()
@@ -74,7 +74,7 @@ class ServerProcess:
 
     def start(self):
         result = self.request("initialize", {"protocolVersion": "2025-06-18", "capabilities": {},
-                                             "clientInfo": {"name": "pixelheart-tests", "version": "1"}})
+                                             "clientInfo": {"name": "meetcute-tests", "version": "1"}})
         self.notify("notifications/initialized")
         return result
 
@@ -101,7 +101,7 @@ class ServerProcess:
 
 class ServerTests(unittest.TestCase):
     def setUp(self):
-        self.root = Path(tempfile.mkdtemp(prefix="pixelheart-mcp-"))
+        self.root = Path(tempfile.mkdtemp(prefix="meetcute-mcp-"))
         self.addCleanup(shutil.rmtree, self.root, True)
         self.project = save_project(new_project(), self.root / "Mira")   # a folder stands for its character.json
         self.server = ServerProcess(self.project)
@@ -109,7 +109,7 @@ class ServerTests(unittest.TestCase):
         self.initialized = self.server.start()
 
     def test_introduces_itself_and_lists_every_designer_tool_with_its_schema(self):
-        self.assertEqual(self.initialized["serverInfo"]["name"], "pixelheart-designer")
+        self.assertEqual(self.initialized["serverInfo"]["name"], "meetcute-designer")
         self.assertIn("tools", self.initialized["capabilities"])
         listed = {tool["name"]: tool for tool in self.server.request("tools/list")["tools"]}
         self.assertEqual(list(listed), [spec.name for spec in tool_specs()])
@@ -136,7 +136,7 @@ class ServerTests(unittest.TestCase):
         self.assertFalse(is_error, text)
         record = load_project(self.project)["character"]["dialogues"][0]
         self.assertEqual(record["text"], "Oh! Hi.$h")
-        self.assertEqual(record["source"]["source_name"], "AI designer · mcp-pixelheart-tests")
+        self.assertEqual(record["source"]["source_name"], "AI designer · mcp-meetcute-tests")
 
     def test_edits_made_by_hand_between_calls_are_seen(self):
         document = load_project(self.project)
@@ -153,9 +153,9 @@ class ServerTests(unittest.TestCase):
         self.assertIn("Town · Pelican Town", text)
         self.assertEqual(self.project.read_bytes(), before)
 
-    def test_banner_warns_to_close_the_character_in_pixelheart(self):
+    def test_banner_warns_to_close_the_character_in_meetcute(self):
         self.server.close()
-        self.assertIn("Close this character in Pixelheart", self.server.stderr)
+        self.assertIn("Close this character in MEETC#TE", self.server.stderr)
         self.assertIn(str(self.project), self.server.stderr)
 
 
@@ -163,25 +163,25 @@ class CallTests(unittest.TestCase):
     """The call path in this process: what reaches the client when a tool or the file misbehaves."""
 
     def setUp(self):
-        self.root = Path(tempfile.mkdtemp(prefix="pixelheart-mcp-"))
+        self.root = Path(tempfile.mkdtemp(prefix="meetcute-mcp-"))
         self.addCleanup(shutil.rmtree, self.root, True)
         self.project = save_project(new_project(), self.root / "Mira")
 
     def test_a_tool_bug_becomes_an_error_result_not_a_crash(self):
-        from pixelheart_designer import mcp as server
+        from meetcute_designer import mcp as server
         with mock.patch.object(server, "run_tool", side_effect=RuntimeError("boom")):
             result = server.call_tool(self.project, "read_character", {}, "mcp:test")
         self.assertTrue(result.is_error)
         self.assertEqual(result.content[0].text, "The tool failed unexpectedly (RuntimeError). Nothing was changed.")
 
     def test_an_unknown_tool_is_an_error_result(self):
-        from pixelheart_designer import mcp as server
+        from meetcute_designer import mcp as server
         result = server.call_tool(self.project, "paint_portrait", {}, "mcp:test")
         self.assertTrue(result.is_error)
         self.assertEqual(result.content[0].text, "There is no tool called 'paint_portrait'.")
 
     def test_a_project_that_vanished_is_an_error_result(self):
-        from pixelheart_designer import mcp as server
+        from meetcute_designer import mcp as server
         self.project.unlink()
         result = server.call_tool(self.project, "read_character", {}, "mcp:test")
         self.assertTrue(result.is_error)
@@ -192,11 +192,11 @@ class StartupTests(unittest.TestCase):
     """Argument handling runs in this process; nothing here reaches the server loop."""
 
     def setUp(self):
-        self.root = Path(tempfile.mkdtemp(prefix="pixelheart-mcp-"))
+        self.root = Path(tempfile.mkdtemp(prefix="meetcute-mcp-"))
         self.addCleanup(shutil.rmtree, self.root, True)
 
     def run_main(self, *argv):
-        from pixelheart_designer.mcp import main
+        from meetcute_designer.mcp import main
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             try:
@@ -208,7 +208,7 @@ class StartupTests(unittest.TestCase):
     def test_a_missing_project_exits_with_a_clear_message(self):
         code, _, err = self.run_main("--project", str(self.root / "nowhere"))
         self.assertEqual(code, 2)
-        self.assertIn("No Pixelheart project at", err)
+        self.assertIn("No MEETC#TE project at", err)
         self.assertIn("nowhere", err)
 
     def test_a_file_that_is_not_a_project_is_refused(self):
@@ -216,7 +216,7 @@ class StartupTests(unittest.TestCase):
         other.write_text('{"hello": 1}', encoding="utf-8")
         code, _, err = self.run_main("--project", str(other))
         self.assertEqual(code, 2)
-        self.assertIn("does not contain a Pixelheart character project", err)
+        self.assertIn("does not contain a MEETC#TE character project", err)
 
     def test_help_prints_usage(self):
         code, out, _ = self.run_main("--help")

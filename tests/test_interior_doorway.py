@@ -3,13 +3,13 @@ from copy import deepcopy
 import unittest
 import xml.etree.ElementTree as ET
 
-from pixelheart_core.interior_furniture import validate_definition
-from pixelheart_core.interiors import (
+from meetcute_core.interior_furniture import validate_definition
+from meetcute_core.interiors import (
     InteriorDraft, InteriorError, compile_interior, doorway_exit, ensure_doorway,
     floor_cells, map_layers, new_interior, normalize_interior, place_doorway,
     reachable_tiles, render_interior, room_edit_candidate,
 )
-from pixelheart_core.world import exported_location_id, world_issues
+from meetcute_core.world import exported_location_id, world_issues
 from tests import test_interior_exporting as export_fixture
 
 

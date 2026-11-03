@@ -11,13 +11,13 @@ import unittest
 
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.storyline_page import StorylinePage
-from pixelheart_core.life import new_life_record
-from pixelheart_core.projects import (
+from meetcute.storyline_page import StorylinePage
+from meetcute_core.life import new_life_record
+from meetcute_core.projects import (
     ProjectError, new_project, save_project, load_project,
     untouched_story_starter, clear_story_starter,
 )
-from pixelheart_core.story import compile_story
+from meetcute_core.story import compile_story
 from tests.qt_support import QtTestCase
 from tests.test_storyline_desktop import WorkshopStub
 

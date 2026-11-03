@@ -7,9 +7,9 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.interior_canvas import InteriorCanvas
-from pixelheart_core.interior_furniture import validate_definition
-from pixelheart_core.interiors import InteriorDraft, InteriorError, new_interior, normalize_interior
+from meetcute.interior_canvas import InteriorCanvas
+from meetcute_core.interior_furniture import validate_definition
+from meetcute_core.interiors import InteriorDraft, InteriorError, new_interior, normalize_interior
 from tests.qt_support import QtTestCase
 
 

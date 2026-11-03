@@ -2,8 +2,8 @@
 from copy import deepcopy
 import unittest
 
-from pixelheart_core.projects import new_project
-from pixelheart_core.story import (
+from meetcute_core.projects import new_project
+from meetcute_core.story import (
     StoryValidationError, new_event, new_beat, event_game_id, compile_story,
     event_issues, story_repeat_events, structure_issues,
 )

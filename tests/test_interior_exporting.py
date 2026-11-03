@@ -11,12 +11,12 @@ import zipfile
 
 from PIL import Image
 
-from pixelheart_core.exporting import ExportValidationError, build_mod_archive
-from pixelheart_core.interior_furniture import attach_texture, validate_definition
-from pixelheart_core.interiors import InteriorDraft, import_atlas, interior_asset_references, new_interior
-from pixelheart_core.installation import dependency_report
-from pixelheart_core.projects import ProjectError, copy_project, load_project, new_project, save_project
-from pixelheart_core.world import (
+from meetcute_core.exporting import ExportValidationError, build_mod_archive
+from meetcute_core.interior_furniture import attach_texture, validate_definition
+from meetcute_core.interiors import InteriorDraft, import_atlas, interior_asset_references, new_interior
+from meetcute_core.installation import dependency_report
+from meetcute_core.projects import ProjectError, copy_project, load_project, new_project, save_project
+from meetcute_core.world import (
     WorldError, compile_world, exported_location_id, exported_npc_id, new_location,
     new_world, normalize_world, world_issues,
 )

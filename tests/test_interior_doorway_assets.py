@@ -7,13 +7,13 @@ import unittest
 
 from PIL import Image
 
-from pixelheart_core.interior_furniture import (
+from meetcute_core.interior_furniture import (
     ROOM_FRAME_DOORWAY, ROOM_FRAME_JOINS, ROOM_FRAME_TILES,
     import_furniture_library,
 )
-from pixelheart_core.interior_surface_design import stage_room_frame
-from pixelheart_core.interiors import InteriorError, new_interior
-from pixelheart_core.world import asset_path
+from meetcute_core.interior_surface_design import stage_room_frame
+from meetcute_core.interiors import InteriorError, new_interior
+from meetcute_core.world import asset_path
 
 
 class InteriorDoorwayAssetTests(unittest.TestCase):
@@ -33,7 +33,7 @@ class InteriorDoorwayAssetTests(unittest.TestCase):
         self.frame = {"preview_asset": "frame.png", "tiles": {
             role: [index * 16, 0, 16, 16] for index, role in enumerate(roles)}}
         self.path = self.library / "library.json"
-        self.path.write_text(json.dumps({"format": "pixelheart-interior-library",
+        self.path.write_text(json.dumps({"format": "meetcute-interior-library",
                                         "version": 1, "definitions": [],
                                         "room_frame": self.frame}), encoding="utf-8")
 

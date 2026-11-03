@@ -5,7 +5,7 @@ import unittest
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QImage, QPainter
 
-from pixelheart.calendar_art import MOTIF_SIZE, draw_motif
+from meetcute.calendar_art import MOTIF_SIZE, draw_motif
 
 
 class CalendarArtTests(unittest.TestCase):

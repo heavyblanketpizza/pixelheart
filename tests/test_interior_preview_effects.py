@@ -7,7 +7,7 @@ import unittest
 
 from PIL import Image
 
-from pixelheart_core.interior_furniture import (
+from meetcute_core.interior_furniture import (
     MAX_FRAMES, MAX_PREVIEW_LIGHTS, FurnitureValidationError, attach_texture,
     clear_preview_cache, definition_assets, frame_at, import_catalog_textures,
     import_furniture_library, preview_frame, preview_frame_offset, validate_definition,
@@ -60,7 +60,7 @@ class InteriorPreviewEffectsTests(unittest.TestCase):
 
     def library(self, entries):
         path = self.root / "library.json"
-        path.write_text(json.dumps({"format": "pixelheart-interior-library", "version": 1,
+        path.write_text(json.dumps({"format": "meetcute-interior-library", "version": 1,
                                     "definitions": entries}), encoding="utf-8")
         return path
 

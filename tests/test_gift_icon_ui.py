@@ -14,8 +14,8 @@ from PySide6.QtGui import QColor, QImage
 from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QApplication, QDialog, QListWidget, QPushButton
 
-from pixelheart.gifts_page import GIFT_MIME, GiftsPage, ItemIconsDialog
-from pixelheart.item_icons import ItemIconStore, export_filename
+from meetcute.gifts_page import GIFT_MIME, GiftsPage, ItemIconsDialog
+from meetcute.item_icons import ItemIconStore, export_filename
 from tests.qt_support import QtTestCase
 
 
@@ -33,7 +33,7 @@ class GiftIconUITests(QtTestCase):
         self.cache = self.root / "cache"
         self.store = ItemIconStore(self.cache)
         # Patch construction too, so tests never depend on the user's icon cache.
-        with patch("pixelheart.gifts_page.ItemIconStore", return_value=self.store):
+        with patch("meetcute.gifts_page.ItemIconStore", return_value=self.store):
             self.page = GiftsPage()
         self.addCleanup(self.page.deleteLater)
         self.page.resize(1100, 760)
@@ -44,7 +44,7 @@ class GiftIconUITests(QtTestCase):
 
     def set_custom_catalog(self):
         self.page.load_catalog_snapshot({
-            "format": "pixelheart-item-catalog", "version": 1, "label": "Test mod objects",
+            "format": "meetcute-item-catalog", "version": 1, "label": "Test mod objects",
             "source": "content-patcher-export", "imported_at": "2026-09-19T00:00:00Z",
             "items": [self.record], "warnings": [],
         })
@@ -92,7 +92,7 @@ class GiftIconUITests(QtTestCase):
         changed = QSignalSpy(self.page.changed)
 
         def choose_and_close(dialog):
-            with patch("pixelheart.gifts_page.QFileDialog.getExistingDirectory", return_value=str(self.exports)):
+            with patch("meetcute.gifts_page.QFileDialog.getExistingDirectory", return_value=str(self.exports)):
                 dialog.choose_folder()
             self.assertIn("1 textures imported; 1 item sprites available", dialog.status.text())
             dialog.reject()
@@ -131,7 +131,7 @@ class GiftIconUITests(QtTestCase):
             def exec(self, *args):
                 captured["actions"] = args
 
-        with patch("pixelheart.gifts_page.QDrag", Drag):
+        with patch("meetcute.gifts_page.QDrag", Drag):
             self.page.library.startDrag(Qt.DropAction.MoveAction)
         self.assertIs(captured["source"], self.page.library)
         self.assertEqual(json.loads(bytes(captured["mime"].data(GIFT_MIME))), ["(O)Example.Mod_Coffee"])
@@ -152,23 +152,23 @@ class GiftIconUITests(QtTestCase):
 
     def test_dialog_reports_missing_unreadable_and_failed_folder_imports(self):
         dialog = self.dialog()
-        with patch("pixelheart.gifts_page.QFileDialog.getExistingDirectory", return_value=str(self.exports)):
+        with patch("meetcute.gifts_page.QFileDialog.getExistingDirectory", return_value=str(self.exports)):
             dialog.choose_folder()
         self.assertIn("0 textures imported; 0 item sprites available", dialog.status.text())
         self.assertIn("1 textures were missing or unreadable", dialog.status.text())
         path = self.exports / export_filename(self.record["icon"]["texture"])
         path.write_text("not PNG")
-        with patch("pixelheart.gifts_page.QFileDialog.getExistingDirectory", return_value=str(self.exports)):
+        with patch("meetcute.gifts_page.QFileDialog.getExistingDirectory", return_value=str(self.exports)):
             dialog.choose_folder()
         self.assertIn("must be a PNG", dialog.status.text())
-        with patch("pixelheart.gifts_page.QFileDialog.getExistingDirectory", return_value=str(self.root / "missing")):
+        with patch("meetcute.gifts_page.QFileDialog.getExistingDirectory", return_value=str(self.root / "missing")):
             dialog.choose_folder()
         self.assertIn("Could not load item icons", dialog.status.text())
         self.assertFalse(self.cache.exists())
 
     def test_cancel_does_not_import_or_write_and_legacy_metadata_is_explained(self):
         dialog = self.dialog()
-        with patch("pixelheart.gifts_page.QFileDialog.getExistingDirectory", return_value=""), \
+        with patch("meetcute.gifts_page.QFileDialog.getExistingDirectory", return_value=""), \
                 patch.object(self.store, "import_folder") as import_folder:
             dialog.choose_folder()
         import_folder.assert_not_called()

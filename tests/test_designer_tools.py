@@ -1,11 +1,11 @@
 """The designer's tools: document in, new document plus a receipt out."""
 import unittest
 
-from pixelheart_core.projects import new_project
-from pixelheart_designer.summary import summarize
-from pixelheart_designer.tools import ToolContext, ToolError, run_tool, tool_specs
-from pixelheart_designer.tools.dialogue import occasion_key, provenance_source
-from pixelheart_designer.tools.routine import known_places
+from meetcute_core.projects import new_project
+from meetcute_designer.summary import summarize
+from meetcute_designer.tools import ToolContext, ToolError, run_tool, tool_specs
+from meetcute_designer.tools.dialogue import occasion_key, provenance_source
+from meetcute_designer.tools.routine import known_places
 from tests.designer_support import IDENTITY_FIELDS, NULL_IDENTITY, NULL_WHEN  # noqa: F401
 
 
@@ -90,7 +90,7 @@ class DialogueToolTests(unittest.TestCase):
         self.assertEqual(records["Introduction"]["text"], "Hello! It's lovely to meet you.$h")
         self.assertEqual(records["Mon"]["text"], "Mondays.#$b#Ugh.$s")
         self.assertEqual(records["Mon"]["source"], {"provider": "ai-designer", "source_name": "AI designer · claude-opus-5-5",
-            "attribution": "Written by an AI model from the creator's own description in Pixelheart. Review before sharing."})
+            "attribution": "Written by an AI model from the creator's own description in MEETC#TE. Review before sharing."})
         self.assertEqual(outcome.receipt["detail"], "1 lines written · 1 kept")
 
     def test_fill_writes_over_blank_existing_lines(self):

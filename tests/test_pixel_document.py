@@ -4,8 +4,8 @@ import unittest
 
 from PIL import Image
 
-from pixelheart_core.pixel_document import MAX_LAYERS, PixelDocument, PixelError
-from pixelheart_core.pixel_raster import brush_mask, rectangle_mask
+from meetcute_core.pixel_document import MAX_LAYERS, PixelDocument, PixelError
+from meetcute_core.pixel_raster import brush_mask, rectangle_mask
 
 RED = (220, 40, 40, 255)
 BLUE = (40, 60, 220, 255)

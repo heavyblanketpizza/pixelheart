@@ -4,14 +4,14 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from pixelheart_core.interior_furniture import validate_definition
-from pixelheart_core.interiors import (
+from meetcute_core.interior_furniture import validate_definition
+from meetcute_core.interiors import (
     InteriorDraft, InteriorError, interior_export_issues, interior_tmx,
     new_interior, normalize_interior, reachable_tiles, spouse_access_issues,
     spouse_entrance_tiles, validate_spouse_access,
 )
-from pixelheart_core.projects import load_project, new_project, save_project
-from pixelheart_core.world import new_location, new_world
+from meetcute_core.projects import load_project, new_project, save_project
+from meetcute_core.world import new_location, new_world
 
 
 def design(kind="spouse"):

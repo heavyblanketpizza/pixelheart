@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from pixelheart_core.installation import dependency_report
+from meetcute_core.installation import dependency_report
 
 
 class DependencyTests(unittest.TestCase):

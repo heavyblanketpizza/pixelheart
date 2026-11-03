@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from PIL import Image
 
-from pixelheart_core.interior_furniture import (
+from meetcute_core.interior_furniture import (
     FurnitureValidationError, import_furniture_library, validate_spouse_context,
 )
 
@@ -30,7 +30,7 @@ class SpouseContextImportTests(unittest.TestCase):
         with Image.new("RGBA", (16, 16), "red") as image:
             image.save(self.bundle / "chair.png")
         self.data = {
-            "format": "pixelheart-interior-library", "version": 1,
+            "format": "meetcute-interior-library", "version": 1,
             "definitions": [{
                 "id": "(F)0", "name": "Chair", "kind": "chair",
                 "footprint": [1, 1], "sprite_size": [1, 1], "rotations": 1,
@@ -104,7 +104,7 @@ class SpouseContextImportTests(unittest.TestCase):
                           for name in ("chair.png", "background.png", "foreground.png"))
         for limit, value, message in (("MAX_IMPORT_TEXTURES", 2, "unique PNG"),
                                       ("MAX_IMPORT_BYTES", total_bytes - 1, "combined PNG")):
-            with self.subTest(limit=limit), patch(f"pixelheart_core.interior_furniture.{limit}", value):
+            with self.subTest(limit=limit), patch(f"meetcute_core.interior_furniture.{limit}", value):
                 with self.assertRaisesRegex(FurnitureValidationError, message):
                     self.import_library()
             self.assert_no_assets()

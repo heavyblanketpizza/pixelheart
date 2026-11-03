@@ -9,11 +9,11 @@ from unittest.mock import patch
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.interior_editor import InteriorEditor
-from pixelheart_core.interior_furniture import import_texture, validate_definition
-from pixelheart_core.interiors import InteriorDraft, new_interior
-from pixelheart_core.painted_furniture import LOCAL_PREFIX
-from pixelheart_core.pixel_layers import load_layers
+from meetcute.interior_editor import InteriorEditor
+from meetcute_core.interior_furniture import import_texture, validate_definition
+from meetcute_core.interiors import InteriorDraft, new_interior
+from meetcute_core.painted_furniture import LOCAL_PREFIX
+from meetcute_core.pixel_layers import load_layers
 from tests.qt_support import QtTestCase
 from tests.test_painted_furniture import chair, game_sheet, mirrored
 from tests.test_tilesheet_painting import PainterPatch, RED, dot
@@ -30,7 +30,7 @@ class FurniturePaintingDesktopTests(QtTestCase):
         project.mkdir()
         self.project_file = project / "character.json"
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
         sheet = self.root / "sheet.png"
         mirrored(game_sheet()).save(sheet)
         reference = import_texture(sheet, project)

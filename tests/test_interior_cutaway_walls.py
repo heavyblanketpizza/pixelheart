@@ -10,20 +10,20 @@ import xml.etree.ElementTree as ET
 
 from PIL import Image
 
-from pixelheart_core.interior_furniture import (
+from meetcute_core.interior_furniture import (
     ROOM_FRAME_JOINS, ROOM_FRAME_TILES, validate_definition,
 )
-from pixelheart_core.interior_layout import (
+from meetcute_core.interior_layout import (
     opening_approaches, partition_candidate, partition_cells, partition_footprint,
     partition_opening_rectangle, partition_rectangle, resize_room_candidate,
     shell_floor_cells, shell_wall_regions,
 )
-from pixelheart_core.interiors import (
+from meetcute_core.interiors import (
     InteriorError, compile_interior, floor_cells, import_atlas, interior_background,
     interior_tmx, map_layers, new_interior, normalize_interior, reachable_tiles,
     render_interior,
 )
-from pixelheart_core.world import asset_path
+from meetcute_core.world import asset_path
 
 
 class InteriorCutawayWallTests(unittest.TestCase):

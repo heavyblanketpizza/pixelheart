@@ -10,7 +10,7 @@ from urllib.request import Request
 
 from PIL import Image
 
-from pixelheart_core import wiki_items as wiki
+from meetcute_core import wiki_items as wiki
 
 
 def png_bytes(size=(48, 48), color=(120, 80, 190, 255)):

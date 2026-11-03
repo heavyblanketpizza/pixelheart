@@ -17,11 +17,11 @@ from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QLineEdit, QPushButton
 from shiboken6 import isValid
 
-from pixelheart.app import MainWindow
-from pixelheart.dialogue_templates import DialogueTemplateDialog
-from pixelheart.editors import DialoguePage
-from pixelheart_core.projects import load_project, save_project
-from pixelheart_core.local_templates import load_project_dialogue
+from meetcute.app import MainWindow
+from meetcute.dialogue_templates import DialogueTemplateDialog
+from meetcute.editors import DialoguePage
+from meetcute_core.projects import load_project, save_project
+from meetcute_core.local_templates import load_project_dialogue
 from tests.qt_support import QtTestCase
 
 
@@ -58,13 +58,13 @@ class DialogueTemplateDesktopTests(QtTestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-dialogue-examples-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="meetcute-dialogue-examples-")
         self.root = Path(self.temporary.name)
         self.project_file = self.root / "character.json"
         self.widgets = []
-        self.cache_patch = patch("pixelheart.game_import.game_import_settings", side_effect=lambda: QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat))
+        self.cache_patch = patch("meetcute.game_import.game_import_settings", side_effect=lambda: QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat))
         self.cache_patch.start()
-        self.load_patch = patch("pixelheart.dialogue_templates.load_project_dialogue", return_value=example_payload())
+        self.load_patch = patch("meetcute.dialogue_templates.load_project_dialogue", return_value=example_payload())
         self.read_template = self.load_patch.start()
         self.records = [{"id": "my-introduction", "trigger": " Introduction ", "text": "My own introduction.",
                          "extension": {"notes": ["Keep this metadata."]}}]
@@ -352,14 +352,14 @@ class DialogueTemplateDesktopTests(QtTestCase):
         remembered = self.root / "old artwork exports"
         settings.setValue("localGame/contentPatcherExportFolder", str(remembered))
         settings.sync()
-        with patch("pixelheart.game_import.QFileDialog.getExistingDirectory") as picker, patch("pixelheart.game_import.game_import_settings") as read_settings:
+        with patch("meetcute.game_import.QFileDialog.getExistingDirectory") as picker, patch("meetcute.game_import.game_import_settings") as read_settings:
             dialog = self.dialog()
             self.assertIsInstance(dialog.game_source.folder, QLabel)
             self.assertEqual(dialog.game_source.findChildren(QLineEdit), [])
             self.assertFalse(hasattr(dialog.game_source, "browse_button"))
             self.assertEqual(dialog.game_source.folder.text(), str(self.root / "dialogue"))
             self.assertTrue((self.root / "dialogue").is_dir())
-            with patch("pixelheart.game_import.QDesktopServices.openUrl", return_value=True) as open_url:
+            with patch("meetcute.game_import.QDesktopServices.openUrl", return_value=True) as open_url:
                 dialog.game_source.open_button.click()
             open_url.assert_called_once()
             self.assertEqual(open_url.call_args.args[0].toLocalFile(), str(self.root / "dialogue"))
@@ -412,7 +412,7 @@ class DialogueTemplateDesktopTests(QtTestCase):
         window.load_document(document)
         original = deepcopy(window.document)
         changed = QSignalSpy(window.dialogue.changed)
-        with patch("pixelheart.app.QFileDialog.getSaveFileName", return_value=("", "")) as save_dialog, patch.object(DialogueTemplateDialog, "exec") as browse:
+        with patch("meetcute.app.QFileDialog.getSaveFileName", return_value=("", "")) as save_dialog, patch.object(DialogueTemplateDialog, "exec") as browse:
             window.dialogue.open_examples()
         save_dialog.assert_called_once()
         browse.assert_not_called()

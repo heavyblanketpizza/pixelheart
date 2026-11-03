@@ -3,10 +3,10 @@ from copy import deepcopy
 import json
 import unittest
 
-from pixelheart_core.romance import (
+from meetcute_core.romance import (
     ROMANCE_HEARTS, RomanceError, group_romance_events, new_romance_event, new_romance_events,
 )
-from pixelheart_core.story import compile_story, structure_issues
+from meetcute_core.story import compile_story, structure_issues
 
 
 class RomanceTests(unittest.TestCase):

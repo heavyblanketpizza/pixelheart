@@ -14,7 +14,7 @@ from PySide6.QtCore import QEvent, QSettings, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.interior_editor import InteriorEditor
+from meetcute.interior_editor import InteriorEditor
 from tests.test_interior_decorating_flow import make_library
 from tests.qt_support import QtTestCase
 
@@ -28,7 +28,7 @@ class SpouseLibraryRefreshTests(QtTestCase):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.project = self.root / "project" / "character.json"
         self.settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=self.settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=self.settings))
         self.dialogs = []
         self.library = make_library(self.root / "library")
         bundle = json.loads(self.library.read_text(encoding="utf-8"))

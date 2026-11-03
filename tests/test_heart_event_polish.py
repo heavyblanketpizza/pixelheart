@@ -10,8 +10,8 @@ from PySide6.QtCore import QSettings
 from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import QApplication, QPushButton
 
-from pixelheart.app import MainWindow
-from pixelheart.dialogue_tools import EmotionBar
+from meetcute.app import MainWindow
+from meetcute.dialogue_tools import EmotionBar
 from tests.qt_support import QtTestCase
 
 
@@ -23,9 +23,9 @@ class HeartEventPolishTests(QtTestCase):
     def setUp(self):
         root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         settings = QSettings(str(root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=settings))
-        self.enterContext(patch("pixelheart.story_page.EventsPage.update_scene_preview"))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.story_page.EventsPage.update_scene_preview"))
         self.window = MainWindow(auto_download_icons=False)
         self.window.resize(1360, 900)
         self.window.show()

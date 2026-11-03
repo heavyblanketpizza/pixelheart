@@ -13,8 +13,8 @@ from PySide6.QtGui import QMouseEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.interior_editor import InteriorEditor
-from pixelheart_core.interiors import doorway_exit, new_interior
+from meetcute.interior_editor import InteriorEditor
+from meetcute_core.interiors import doorway_exit, new_interior
 from tests.qt_support import QtTestCase
 
 
@@ -26,7 +26,7 @@ class DoorwayEditorTests(QtTestCase):
     def setUp(self):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
         self.original = new_interior()
         self.before = deepcopy(self.original)
         self.editor = InteriorEditor(self.root / "character.json", self.original)

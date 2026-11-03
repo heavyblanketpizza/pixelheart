@@ -8,11 +8,11 @@ import zipfile
 
 from PIL import Image
 
-from pixelheart_core.projects import new_project, load_project
-from pixelheart_core.exporting import build_mod_archive, validate_character, ExportValidationError
-from pixelheart_core.world import new_world, new_companion, new_location, import_map, exported_location_id
-from pixelheart_core.story import new_event, new_beat, exported_npc_id, event_game_id
-from pixelheart_core.life import new_life_record
+from meetcute_core.projects import new_project, load_project
+from meetcute_core.exporting import build_mod_archive, validate_character, ExportValidationError
+from meetcute_core.world import new_world, new_companion, new_location, import_map, exported_location_id
+from meetcute_core.story import new_event, new_beat, exported_npc_id, event_game_id
+from meetcute_core.life import new_life_record
 try:
     from .test_world import make_map
 except ImportError:

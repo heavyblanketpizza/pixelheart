@@ -1,7 +1,7 @@
 """The game clock lives in core so routine tools and editors share one rule."""
 import unittest
 
-from pixelheart_core.game_clock import clock_label, game_minutes, game_time
+from meetcute_core.game_clock import clock_label, game_minutes, game_time
 
 
 class GameClockTests(unittest.TestCase):

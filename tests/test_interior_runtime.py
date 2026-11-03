@@ -5,7 +5,7 @@ from pathlib import Path
 import unittest
 import xml.etree.ElementTree as ET
 
-from pixelheart_core.interior_runtime import (
+from meetcute_core.interior_runtime import (
     INTERIORS_MOD_ID, INTERIORS_MIN_VERSION, INTERIORS_MIN_SMAPI_VERSION,
     minimum_interiors_version,
 )
@@ -13,10 +13,12 @@ from pixelheart_core.interior_runtime import (
 
 class InteriorRuntimeCompatibilityTests(unittest.TestCase):
     def test_export_contract_matches_the_tracked_companion_build(self):
-        runtime = Path(__file__).resolve().parents[1] / "runtime/Pixelheart.Interiors"
+        runtime = Path(__file__).resolve().parents[1] / "runtime/MeetCute.Interiors"
         manifest = json.loads((runtime / "manifest.json.in").read_text(encoding="utf-8"))
-        project = ET.parse(runtime / "Pixelheart.Interiors.csproj").getroot()
+        project = ET.parse(runtime / "MeetCute.Interiors.csproj").getroot()
         self.assertEqual(INTERIORS_MOD_ID, manifest["UniqueID"])
+        self.assertEqual(manifest["EntryDll"], project.findtext("PropertyGroup/AssemblyName") + ".dll")
+        self.assertTrue((runtime / project.find("ItemGroup/EmbeddedResource").attrib["Include"]).is_file())
         self.assertEqual(INTERIORS_MIN_VERSION, manifest["Version"])
         self.assertEqual(INTERIORS_MIN_VERSION, project.findtext("PropertyGroup/Version"))
         self.assertEqual(INTERIORS_MIN_SMAPI_VERSION, manifest["MinimumApiVersion"])

@@ -10,8 +10,8 @@ from pathlib import Path
 
 from PIL import Image
 
-from pixelheart_core.exporting import ExportValidationError, build_mod_archive, validate_character
-from pixelheart_core.projects import load_project, resolve_artwork
+from meetcute_core.exporting import ExportValidationError, build_mod_archive, validate_character
+from meetcute_core.projects import load_project, resolve_artwork
 
 
 class ExportTests(unittest.TestCase):
@@ -109,16 +109,16 @@ class ExportTests(unittest.TestCase):
         # must travel with every exported pack.
         notice = " ".join(readme.split())
         for required in (
-            "use, copy, modify, and distribute Pixelheart-owned template material",
+            "use, copy, modify, and distribute MEETC#TE-owned template material",
             "free Stardew Valley NPC packs",
             "Recipients receive the same permission",
             "Retain this output-permission notice with the pack",
             "may not be sold, paywalled, require payment or a subscription for access, or earn Donation Points",
             "gameplay videos, recordings, and livestreams, including monetized content",
-            "Pixelheart claims no ownership of uploaded artwork, authored dialogue, character data",
-            "does not authorize distributing the Pixelheart editor",
-            "Pixelheart is not affiliated with, sponsored by, or endorsed by ConcernedApe or ConcernedApe LLC",
-            "Pixelheart grants no rights in those third-party works or marks",
+            "MEETC#TE claims no ownership of uploaded artwork, authored dialogue, character data",
+            "does not authorize distributing the MEETC#TE editor",
+            "MEETC#TE is not affiliated with, sponsored by, or endorsed by ConcernedApe or ConcernedApe LLC",
+            "MEETC#TE grants no rights in those third-party works or marks",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, notice)

@@ -13,8 +13,8 @@ from PySide6.QtGui import QColor, QImage, QPainter
 from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.birthday_calendar import BirthdayCalendar, CalendarLegend
-from pixelheart.calendar_icons import (
+from meetcute.birthday_calendar import BirthdayCalendar, CalendarLegend
+from meetcute.calendar_icons import (
     CalendarIconStore, MAX_ATLAS_BYTES, MAX_ATLAS_PIXELS, SOURCE_RECTS, _read_atlas,
 )
 from tests.qt_support import QtTestCase
@@ -26,7 +26,7 @@ class CalendarIconTests(QtTestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def setUp(self):
-        temporary = tempfile.TemporaryDirectory(prefix="pixelheart-calendar-icons-")
+        temporary = tempfile.TemporaryDirectory(prefix="meetcute-calendar-icons-")
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
         self.settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
@@ -172,7 +172,7 @@ class CalendarIconTests(QtTestCase):
         with path.open("wb") as stream:
             stream.truncate(MAX_ATLAS_BYTES + 1)
 
-        with patch.object(Path, "open") as open_file, patch("pixelheart.calendar_icons.QImageReader") as reader:
+        with patch.object(Path, "open") as open_file, patch("meetcute.calendar_icons.QImageReader") as reader:
             self.assertIsNone(_read_atlas(path))
 
         open_file.assert_not_called()
@@ -181,7 +181,7 @@ class CalendarIconTests(QtTestCase):
     def test_oversized_decoded_dimensions_are_rejected_before_decode(self):
         path = self.root / "dimensions.png"
         self.atlas(path)
-        with patch("pixelheart.calendar_icons.QImageReader") as reader:
+        with patch("meetcute.calendar_icons.QImageReader") as reader:
             reader.return_value.size.return_value = QSize(MAX_ATLAS_PIXELS + 1, 1)
 
             self.assertIsNone(_read_atlas(path))
@@ -266,7 +266,7 @@ class CalendarIconTests(QtTestCase):
     def test_calendar_shares_icons_and_refreshes_sources_without_changing_birthday(self):
         first, first_atlas = self.library("first", "#193b75")
         second, second_atlas = self.library("second", "#a16132")
-        with patch("pixelheart.calendar_icons.game_import_settings", return_value=self.settings):
+        with patch("meetcute.calendar_icons.game_import_settings", return_value=self.settings):
             calendar = BirthdayCalendar()
         self.addCleanup(calendar.deleteLater)
         self.addCleanup(calendar.close)

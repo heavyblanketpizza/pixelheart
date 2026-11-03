@@ -9,8 +9,8 @@ import xml.etree.ElementTree as ET
 
 from PIL import Image
 
-from pixelheart_core.interior_furniture import attach_texture, validate_definition
-from pixelheart_core.interiors import (
+from meetcute_core.interior_furniture import attach_texture, validate_definition
+from meetcute_core.interiors import (
     InteriorDraft, InteriorError, animation_tile, compile_interior, floor_cells,
     footprint,
     import_atlas, interior_asset_references, interior_export_issues, interior_tmx,
@@ -307,7 +307,7 @@ class InteriorTests(unittest.TestCase):
         data = self.design("spouse")
         compiled = compile_interior(data, "MySpouseRoom", "MyNPC", self.root, "spouse/")
         root = ET.fromstring(compiled["files"]["spouse/room_0.tmx"])
-        marker = root.find("tileset[@name='pixelheart_spouse_marker']")
+        marker = root.find("tileset[@name='meetcute_spouse_marker']")
         gid = int(marker.attrib["firstgid"])
         marker_property = marker.find("tile/properties/property")
         self.assertEqual(marker_property.attrib, {"name": "Pixelheart.Interiors/SpouseRoom", "value": "MySpouseRoom"})
@@ -329,7 +329,7 @@ class InteriorTests(unittest.TestCase):
             {"tile_id": 1, "duration_ms": 100}, {"tile_id": 2, "duration_ms": 100}]}]
         compiled = compile_interior(data, "MySpouseRoom", "MyNPC", self.root, "spouse/")
         root = ET.fromstring(compiled["files"]["spouse/room_0.tmx"])
-        marker = root.find("tileset[@name='pixelheart_spouse_marker']")
+        marker = root.find("tileset[@name='meetcute_spouse_marker']")
         tile = marker.find("tile[@id='3']")
         self.assertIsNotNone(tile.find("properties/property[@name='Pixelheart.Interiors/SpouseRoom']"))
         self.assertEqual([frame.attrib for frame in tile.findall("animation/frame")],

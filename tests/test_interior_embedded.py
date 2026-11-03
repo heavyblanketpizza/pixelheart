@@ -13,7 +13,7 @@ from PySide6.QtGui import QShortcut
 from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget
 
-from pixelheart.interior_editor import InteriorEditor
+from meetcute.interior_editor import InteriorEditor
 from tests.qt_support import QtTestCase
 
 
@@ -25,7 +25,7 @@ class EmbeddedInteriorTests(QtTestCase):
     def setUp(self):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
         self.project = self.root / "project" / "character.json"
         self.sheet = self.root / "sheet.png"
         with Image.new("RGBA", (32, 16), "#aabbcc") as image:

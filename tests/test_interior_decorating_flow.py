@@ -15,7 +15,7 @@ from PySide6.QtGui import QMouseEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QPushButton
 
-from pixelheart.interior_editor import InteriorEditor
+from meetcute.interior_editor import InteriorEditor
 from tests.qt_support import QtTestCase
 
 
@@ -45,7 +45,7 @@ def make_library(root):
         draw.line((8, 0, 8, 8), fill="#796d5d")
         draw.line((23, 8, 23, 16), fill="#796d5d")
         image.save(root / "floor.png")
-    bundle = {"format": "pixelheart-interior-library", "version": 1,
+    bundle = {"format": "meetcute-interior-library", "version": 1,
               "definitions": [{"id": "(F)Test.Chair", "name": "Blue chair", "kind": "chair",
                                "footprint": [1, 2], "rotations": 2,
                                "rotation_footprints": {"1": [2, 1]},
@@ -73,7 +73,7 @@ class InteriorDecoratingFlowTests(QtTestCase):
         self.root = Path(self.directory)
         self.library = make_library(self.root / "library")
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
         self.dialogs = []
 
     def tearDown(self):
@@ -88,8 +88,8 @@ class InteriorDecoratingFlowTests(QtTestCase):
         dialog.show()
         self.app.processEvents()
         if connected:
-            with patch("pixelheart_core.interior_furniture.discover_furniture_libraries", return_value=[self.library]), \
-                    patch("pixelheart.interior_editor.QDialog.exec", return_value=0):
+            with patch("meetcute_core.interior_furniture.discover_furniture_libraries", return_value=[self.library]), \
+                    patch("meetcute.interior_editor.QDialog.exec", return_value=0):
                 QTest.mouseClick(dialog.library_welcome_button, Qt.MouseButton.LeftButton)
             self.app.processEvents()
             self.assertEqual(dialog.catalog_list.count(), 1)
@@ -149,8 +149,8 @@ class InteriorDecoratingFlowTests(QtTestCase):
             dialog.tabs.setCurrentIndex(index)
             self.app.processEvents()
             self.assertEqual(len(offers()), 1, dialog.tabs.tabText(index))
-        with patch("pixelheart_core.interior_furniture.discover_furniture_libraries", return_value=[self.library]), \
-                patch("pixelheart.interior_editor.QDialog.exec", return_value=0):
+        with patch("meetcute_core.interior_furniture.discover_furniture_libraries", return_value=[self.library]), \
+                patch("meetcute.interior_editor.QDialog.exec", return_value=0):
             QTest.mouseClick(dialog.library_welcome_button, Qt.MouseButton.LeftButton)
         self.app.processEvents()
         self.assertEqual(offers(), [])

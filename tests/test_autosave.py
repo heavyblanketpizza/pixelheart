@@ -9,7 +9,7 @@ from unittest.mock import patch
 from PySide6.QtCore import QObject, QSettings, Qt
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.autosave import AutosaveController, autosave_enabled, set_autosave_enabled
+from meetcute.autosave import AutosaveController, autosave_enabled, set_autosave_enabled
 from tests.qt_support import QtTestCase
 
 
@@ -41,7 +41,7 @@ class AutosaveControllerTests(QtTestCase):
     def setUp(self):
         root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.settings = QSettings(str(root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=self.settings))
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=self.settings))
         self.window = FakeWindow()
         self.autosave = AutosaveController(self.window)
         self.addCleanup(self.window.deleteLater)
@@ -71,7 +71,7 @@ class AutosaveControllerTests(QtTestCase):
         self.assertEqual(self.window.saves, 1)
 
     def test_waits_while_a_mouse_button_is_held(self):
-        with patch("pixelheart.autosave.QApplication.mouseButtons", return_value=Qt.MouseButton.LeftButton):
+        with patch("meetcute.autosave.QApplication.mouseButtons", return_value=Qt.MouseButton.LeftButton):
             self.autosave.timer.timeout.emit()
         self.assertEqual(self.window.saves, 0)
         self.assertTrue(self.autosave.pending())

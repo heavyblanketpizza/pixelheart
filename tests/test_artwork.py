@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from PIL import Image, PngImagePlugin
 
-from pixelheart_core.artwork import (
+from meetcute_core.artwork import (
     MAX_ARTWORK_BYTES,
     ArtworkValidationError,
     inspect_artwork,
@@ -239,11 +239,11 @@ class ArtworkTests(unittest.TestCase):
     def test_failed_replacement_preserves_previous_copy_and_cleans_temporary_file(self):
         self.make_png()
         self.destination.write_bytes(b"previous prepared artwork")
-        with patch("pixelheart_core.artwork.os.replace", side_effect=PermissionError("read-only destination")):
+        with patch("meetcute_core.artwork.os.replace", side_effect=PermissionError("read-only destination")):
             with self.assertRaisesRegex(ArtworkValidationError, "writable destination"):
                 self.prepare()
         self.assertEqual(self.destination.read_bytes(), b"previous prepared artwork")
-        self.assertEqual(list(self.directory.glob(".pixelheart-*")), [])
+        self.assertEqual(list(self.directory.glob(".meetcute-*")), [])
 
     def test_output_parent_directories_are_created(self):
         self.make_png()

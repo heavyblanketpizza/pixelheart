@@ -13,10 +13,10 @@ from PySide6.QtGui import QMouseEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLabel
 
-from pixelheart.interior_editor import InteriorEditor
-from pixelheart.world_page import WorldPage
-from pixelheart_core.interiors import new_interior
-from pixelheart_core.interior_furniture import validate_definition
+from meetcute.interior_editor import InteriorEditor
+from meetcute.world_page import WorldPage
+from meetcute_core.interiors import new_interior
+from meetcute_core.interior_furniture import validate_definition
 from tests.test_interior_decorating_flow import make_library
 from tests.qt_support import QtTestCase
 
@@ -29,7 +29,7 @@ class InteriorInteractionRegressionTests(QtTestCase):
     def setUp(self):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=self.settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=self.settings))
         self.dialogs = []
 
     def tearDown(self):
@@ -163,7 +163,7 @@ class InteriorInteractionRegressionTests(QtTestCase):
         source.parent.mkdir()
         source.write_text("{}")
         self.settings.setValue("interiors/librarySource", str(source))
-        with patch("pixelheart_core.interior_furniture.discover_furniture_libraries", return_value=[source]) as discover, \
+        with patch("meetcute_core.interior_furniture.discover_furniture_libraries", return_value=[source]) as discover, \
                 patch.object(editor, "load_catalog", return_value=True) as load:
             editor.connect_library()
         discover.assert_not_called()
@@ -172,7 +172,7 @@ class InteriorInteractionRegressionTests(QtTestCase):
     def test_missing_remembered_source_requires_explicit_reconnection(self):
         editor = self.editor(self.chair_design())
         self.settings.setValue("interiors/librarySource", str(self.root / "missing.json"))
-        with patch("pixelheart_core.interior_furniture.discover_furniture_libraries", return_value=[]) as discover, \
+        with patch("meetcute_core.interior_furniture.discover_furniture_libraries", return_value=[]) as discover, \
                 patch.object(editor, "change_library") as change, patch.object(editor, "load_catalog") as load:
             editor.connect_library()
         discover.assert_not_called()
@@ -181,7 +181,7 @@ class InteriorInteractionRegressionTests(QtTestCase):
 
     def test_change_library_opens_setup_without_reloading_existing_source(self):
         editor = self.editor(self.chair_design())
-        with patch("pixelheart.interior_editor.QDialog.exec", return_value=0) as execute, \
+        with patch("meetcute.interior_editor.QDialog.exec", return_value=0) as execute, \
                 patch.object(editor, "load_catalog") as load:
             editor.change_library_button.click()
         execute.assert_called_once()
@@ -214,7 +214,7 @@ class InteriorInteractionRegressionTests(QtTestCase):
         self.assertFalse(spouse.selection_bar.isVisible())
 
     def test_minimum_window_fits_after_hidden_import_without_horizontal_room_scroll(self):
-        from pixelheart.skin import build_stylesheet, refresh_pieces
+        from meetcute.skin import build_stylesheet, refresh_pieces
         editor = InteriorEditor(self.root / "project" / "character.json")
         self.dialogs.append(editor)
         editor.setStyleSheet(build_stylesheet(refresh_pieces(None)))

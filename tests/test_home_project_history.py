@@ -8,10 +8,10 @@ from PySide6.QtGui import QKeySequence
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart_core.life import new_life_record
-from pixelheart_core.story import new_actor, new_beat, new_event
-from pixelheart_core.world import exported_location_id, new_companion, new_location
-from pixelheart_core.projects import ProjectError, load_project
+from meetcute_core.life import new_life_record
+from meetcute_core.story import new_actor, new_beat, new_event
+from meetcute_core.world import exported_location_id, new_companion, new_location
+from meetcute_core.projects import ProjectError, load_project
 from tests.qt_support import QtTestCase
 from tests import test_home_workspace as home_tests
 from tests.test_interior_decorating_flow import make_library
@@ -256,7 +256,7 @@ class HomeProjectHistoryTests(QtTestCase):
         controller = self.window.project_history
         before_count = controller.history.undo_count
         expected = self.window.project_snapshot()
-        with patch("pixelheart.app.copy_project", side_effect=ProjectError("Disk unavailable")):
+        with patch("meetcute.app.copy_project", side_effect=ProjectError("Disk unavailable")):
             self.assertFalse(self.window.save_to(self.root / "blocked" / "character.json"))
         self.assertEqual(controller.history.undo_count, before_count)
         self.assertEqual(self.window.project_snapshot(), expected)

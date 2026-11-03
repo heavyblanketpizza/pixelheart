@@ -14,10 +14,10 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QApplication, QCheckBox, QGridLayout
 
-from pixelheart.app import MainWindow, SECTION_INDEX
-from pixelheart.theme import apply_theme
-from pixelheart_core.birthdays import SEASONS, birthdays_for_season
-from pixelheart_core.projects import load_project
+from meetcute.app import MainWindow, SECTION_INDEX
+from meetcute.theme import apply_theme
+from meetcute_core.birthdays import SEASONS, birthdays_for_season
+from meetcute_core.projects import load_project
 from tests.qt_support import QtTestCase
 
 
@@ -28,7 +28,7 @@ class BirthdayCalendarTests(QtTestCase):
         apply_theme(cls.application)
 
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-birthday-test-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="meetcute-birthday-test-")
         self.project_file = Path(self.temporary.name) / "character.json"
         self.windows = []
         self.error_patch = patch.object(MainWindow, "show_error")

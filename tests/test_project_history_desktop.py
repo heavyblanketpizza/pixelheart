@@ -13,8 +13,8 @@ from PySide6.QtGui import QKeySequence
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog
 
-from pixelheart.app import MainWindow, SECTION_INDEX
-from pixelheart_core.projects import ProjectError, new_project
+from meetcute.app import MainWindow, SECTION_INDEX
+from meetcute_core.projects import ProjectError, new_project
 from tests.qt_support import QtTestCase
 
 
@@ -26,9 +26,9 @@ class ProjectHistoryDesktopTests(QtTestCase):
     def setUp(self):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=settings))
-        self.enterContext(patch("pixelheart.story_page.EventsPage.update_scene_preview"))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.story_page.EventsPage.update_scene_preview"))
         self.window = MainWindow(auto_download_icons=False)
         self.errors = self.enterContext(patch.object(self.window, "show_error"))
         self.controller = self.window.project_history
@@ -119,9 +119,9 @@ class ProjectHistoryDesktopTests(QtTestCase):
         name.setText("Rin")
         self.controller.undo()
         current = self.window.project_snapshot()
-        with patch("pixelheart.app.save_project", side_effect=ProjectError("Disk full")):
+        with patch("meetcute.app.save_project", side_effect=ProjectError("Disk full")):
             self.assertFalse(self.window.save_to(self.path))
-        with patch("pixelheart.app.QFileDialog.getSaveFileName", return_value=("", "")):
+        with patch("meetcute.app.QFileDialog.getSaveFileName", return_value=("", "")):
             self.assertFalse(self.window.save())
         self.assertEqual(self.window.project_snapshot(), current)
         self.assertEqual((self.history.undo_count, self.history.redo_count), (1, 1))
@@ -192,7 +192,7 @@ class ProjectHistoryDesktopTests(QtTestCase):
         self.assertNotIn(event_id, [record["id"] for record in window.events.records])
 
     def test_live_staging_dialog_refreshes_after_undo(self):
-        from pixelheart.stage_canvas import StageCanvas
+        from meetcute.stage_canvas import StageCanvas
         window = self.window
         window.open_section("story")
         window.story.milestones.buttons[10].click()

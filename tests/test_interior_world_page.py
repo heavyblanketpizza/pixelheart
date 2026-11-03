@@ -11,15 +11,15 @@ from unittest.mock import patch
 from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication, QDialog
 
-from pixelheart.editors import IdentityPage, SchedulePage
-from pixelheart.life_page import LifePage
-from pixelheart.story_page import StoryPage
-from pixelheart.world_page import WorldPage
-from pixelheart_core.interiors import new_interior, floor_cells
-from pixelheart_core.projects import new_project, save_project, load_project
-from pixelheart_core.world import new_location, new_companion, exported_location_id
-from pixelheart_core.life import new_life_record
-from pixelheart_core.story import new_event, new_actor, new_beat
+from meetcute.editors import IdentityPage, SchedulePage
+from meetcute.life_page import LifePage
+from meetcute.story_page import StoryPage
+from meetcute.world_page import WorldPage
+from meetcute_core.interiors import new_interior, floor_cells
+from meetcute_core.projects import new_project, save_project, load_project
+from meetcute_core.world import new_location, new_companion, exported_location_id
+from meetcute_core.life import new_life_record
+from meetcute_core.story import new_event, new_actor, new_beat
 from tests.qt_support import QtTestCase
 
 try:
@@ -84,7 +84,7 @@ class InteriorWorldPageTests(QtTestCase):
         identity = self.two_locations()
         design = new_interior()
         spy = QSignalSpy(self.page.changed)
-        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+        with patch("meetcute.interior_editor.InteriorEditor") as constructor:
             dialog = constructor.return_value
             dialog.exec.return_value = QDialog.DialogCode.Accepted
             dialog.result_design = deepcopy(design)
@@ -106,7 +106,7 @@ class InteriorWorldPageTests(QtTestCase):
         identity = self.two_locations()
         before = self.page.dump()
         spy = QSignalSpy(self.page.changed)
-        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+        with patch("meetcute.interior_editor.InteriorEditor") as constructor:
             constructor.return_value.exec.return_value = QDialog.DialogCode.Rejected
             constructor.return_value.result_design = new_interior()
             self.page.design_interior()
@@ -134,7 +134,7 @@ class InteriorWorldPageTests(QtTestCase):
         self.page.select_location(0)
         before_home = self.window.document["character"]["home_map"]
         design = new_interior("spouse")
-        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+        with patch("meetcute.interior_editor.InteriorEditor") as constructor:
             constructor.return_value.exec.return_value = QDialog.DialogCode.Accepted
             constructor.return_value.result_design = design
             self.page.design_interior()
@@ -154,7 +154,7 @@ class InteriorWorldPageTests(QtTestCase):
         self.page.world["locations"][0]["interior"] = new_interior()
         self.page.select_location(0)
         source = make_map(self.root / "source")
-        with patch("pixelheart.world_page.QFileDialog.getOpenFileName", return_value=(str(source), "")):
+        with patch("meetcute.world_page.QFileDialog.getOpenFileName", return_value=(str(source), "")):
             self.page.import_location()
         self.assertFalse(self.window.errors)
         record = self.page.world["locations"][0]
@@ -169,7 +169,7 @@ class InteriorWorldPageTests(QtTestCase):
         self.page.select_location(0)
         self.window.ensure_saved()
         before = self.page.dump()
-        with patch("pixelheart.interior_editor.InteriorEditor", side_effect=ValueError("Invalid texture reference")):
+        with patch("meetcute.interior_editor.InteriorEditor", side_effect=ValueError("Invalid texture reference")):
             self.page.design_interior()
         self.assertEqual(self.page.dump(), before)
         self.assertIn("Invalid texture reference", self.window.errors[-1][1])
@@ -199,7 +199,7 @@ class InteriorWorldPageTests(QtTestCase):
         self.window.document["character"].update(name="TestNPC", internal_name="TestNPC")
         self.window.identity.load(self.window.document["character"])
         before_home = self.window.document["character"]["home_map"]
-        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+        with patch("meetcute.interior_editor.InteriorEditor") as constructor:
             dialog = constructor.return_value
             dialog.result_design = new_interior()
             def accept():
@@ -227,7 +227,7 @@ class InteriorWorldPageTests(QtTestCase):
         self.page.add_location()
         design = new_interior()
         design["entry"] = [5, 10]
-        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+        with patch("meetcute.interior_editor.InteriorEditor") as constructor:
             constructor.return_value.exec.return_value = QDialog.DialogCode.Accepted
             constructor.return_value.result_design = design
             self.page.build_home()
@@ -273,7 +273,7 @@ class InteriorWorldPageTests(QtTestCase):
         self.page.location_fields["internal_name"].setText("Cottage")
         self.page.location_fields["entry_x"].setValue(3)
         self.page.location_fields["entry_y"].setValue(6)
-        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+        with patch("meetcute.interior_editor.InteriorEditor") as constructor:
             constructor.return_value.exec.return_value = QDialog.DialogCode.Accepted
             constructor.return_value.result_design = new_interior()
             self.page.build_home()
@@ -297,7 +297,7 @@ class InteriorWorldPageTests(QtTestCase):
         return record, design
 
     def accept_design(self, design):
-        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+        with patch("meetcute.interior_editor.InteriorEditor") as constructor:
             constructor.return_value.exec.return_value = QDialog.DialogCode.Accepted
             constructor.return_value.result_design = design
             self.assertTrue(self.page.design_interior())
@@ -395,7 +395,7 @@ class InteriorWorldPageTests(QtTestCase):
         record, design = self.moving_home()
         self.window.document["character"]["schedule"] = [{"location": "TheirHome", "x": 7, "y": 8}]
         before_world, before_character = self.page.dump(), deepcopy(self.window.document["character"])
-        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+        with patch("meetcute.interior_editor.InteriorEditor") as constructor:
             constructor.return_value.exec.return_value = QDialog.DialogCode.Rejected
             constructor.return_value.result_design = design
             self.assertFalse(self.page.design_interior())
@@ -420,7 +420,7 @@ class InteriorWorldPageTests(QtTestCase):
         before = self.page.dump()
         home = self.window.document["character"]["home_map"]
         spy = QSignalSpy(self.page.changed)
-        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+        with patch("meetcute.interior_editor.InteriorEditor") as constructor:
             constructor.return_value.exec.return_value = QDialog.DialogCode.Rejected
             self.page.build_home()
         self.assertEqual(self.page.dump(), before)
@@ -432,7 +432,7 @@ class InteriorWorldPageTests(QtTestCase):
     def test_cancel_or_error_creating_another_home_restores_previous_selection(self):
         identity = self.two_locations()
         before = self.page.dump()
-        with patch("pixelheart.interior_editor.InteriorEditor", side_effect=ValueError("Missing library")):
+        with patch("meetcute.interior_editor.InteriorEditor", side_effect=ValueError("Missing library")):
             self.page.build_home()
         self.assertEqual(self.page.dump(), before)
         self.assertEqual(self.page.world["locations"][self.page.location_index]["id"], identity)
@@ -440,7 +440,7 @@ class InteriorWorldPageTests(QtTestCase):
         self.assertIn("Missing library", self.window.errors[-1][1])
 
     def test_cancelling_project_save_never_creates_a_place_or_opens_designer(self):
-        with patch.object(self.window, "ensure_saved", return_value=False), patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+        with patch.object(self.window, "ensure_saved", return_value=False), patch("meetcute.interior_editor.InteriorEditor") as constructor:
             self.page.build_home()
             constructor.assert_not_called()
         self.assertEqual(self.page.world["locations"], [])
@@ -449,7 +449,7 @@ class InteriorWorldPageTests(QtTestCase):
         self.window.document["character"].update(name="TestNPC", internal_name="TestNPC")
         self.window.identity.load(self.window.document["character"])
         before_home = self.window.document["character"]["home_map"]
-        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+        with patch("meetcute.interior_editor.InteriorEditor") as constructor:
             constructor.return_value.exec.return_value = QDialog.DialogCode.Accepted
             constructor.return_value.result_design = new_interior("spouse")
             self.page.design_spouse_room()
@@ -459,7 +459,7 @@ class InteriorWorldPageTests(QtTestCase):
         self.assertTrue(record["spouse_room"])
         self.assertEqual(self.window.document["character"]["home_map"], before_home)
         identity = record["id"]
-        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+        with patch("meetcute.interior_editor.InteriorEditor") as constructor:
             constructor.return_value.exec.return_value = QDialog.DialogCode.Rejected
             self.page.design_spouse_room()
             self.assertEqual(constructor.call_args.args[1], new_interior("spouse"))
@@ -475,7 +475,7 @@ class InteriorWorldPageTests(QtTestCase):
         self.assertFalse(self.page.world["locations"][1]["spouse_room"])
         self.window.ensure_saved()
         before = self.page.dump()
-        with patch("pixelheart.map_workshop.MapWorkshop") as constructor:
+        with patch("meetcute.map_workshop.MapWorkshop") as constructor:
             dialog = constructor.return_value
             dialog.exec.return_value = QDialog.DialogCode.Accepted
             dialog.result_reference = "assets/maps/unused/map.tmx"
@@ -498,7 +498,7 @@ class InteriorWorldPageTests(QtTestCase):
         existing = self.page.world["locations"][0]
         existing.update(name="Existing home", internal_name="testnpchome")
         before = deepcopy(existing)
-        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+        with patch("meetcute.interior_editor.InteriorEditor") as constructor:
             constructor.return_value.exec.return_value = QDialog.DialogCode.Accepted
             constructor.return_value.result_design = new_interior()
             self.page.build_home()
@@ -513,7 +513,7 @@ class InteriorWorldPageTests(QtTestCase):
             records.append(record)
         records[3].update(spouse_room=True, interior=new_interior("spouse"))
         self.page.load({**self.page.dump(), "locations": records})
-        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+        with patch("meetcute.interior_editor.InteriorEditor") as constructor:
             self.page.build_home()
             constructor.assert_not_called()
             self.assertIn("32 places", self.window.errors[-1][1])

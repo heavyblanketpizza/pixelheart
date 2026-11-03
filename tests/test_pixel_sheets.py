@@ -5,7 +5,7 @@ import unittest
 
 from PIL import Image
 
-from pixelheart_core.pixel_sheets import (
+from meetcute_core.pixel_sheets import (
     MAX_CANVAS_PIXELS, SheetError, encode_png, new_sheet_size, open_png, sheet_spec,
 )
 

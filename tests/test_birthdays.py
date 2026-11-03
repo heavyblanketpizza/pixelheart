@@ -2,7 +2,7 @@
 
 import unittest
 
-from pixelheart_core.birthdays import (
+from meetcute_core.birthdays import (
     DAYS_PER_SEASON,
     SEASONS,
     birthdays_for_season,

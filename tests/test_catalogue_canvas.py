@@ -12,7 +12,7 @@ from PySide6.QtGui import QColor, QImage, QPainter
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.catalogue_canvas import CataloguePreviewCanvas
+from meetcute.catalogue_canvas import CataloguePreviewCanvas
 from tests.qt_support import QtTestCase
 
 

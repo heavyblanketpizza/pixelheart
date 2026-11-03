@@ -11,11 +11,11 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QTabWidget, QWidget
 
-from pixelheart.storyline_page import StorylinePage, StoryStarterDialog
-from pixelheart.theme import apply_theme
-from pixelheart_core.projects import new_project
-from pixelheart_core.story import new_event, new_relationship
-from pixelheart_core.story_planning import new_chapter, preview_story_starter, storyline_structure_issues
+from meetcute.storyline_page import StorylinePage, StoryStarterDialog
+from meetcute.theme import apply_theme
+from meetcute_core.projects import new_project
+from meetcute_core.story import new_event, new_relationship
+from meetcute_core.story_planning import new_chapter, preview_story_starter, storyline_structure_issues
 from tests.qt_support import QtTestCase
 
 

@@ -12,11 +12,11 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtGui import QColor, QImage
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.item_icons import (
+from meetcute.item_icons import (
     IconImportError, ItemIconStore, _read_texture, default_wiki_cache_dir, export_filename, texture_commands,
 )
-from pixelheart_core.catalog import validate_catalog
-from pixelheart_core.wiki_items import WikiItemError
+from meetcute_core.catalog import validate_catalog
+from meetcute_core.wiki_items import WikiItemError
 from tests.qt_support import QtTestCase
 
 
@@ -84,7 +84,7 @@ class ItemIconTests(QtTestCase):
                 records.append({**self.record, "id": f"Mod_{atlas}_{index}", "icon": {"texture": texture, "index": index}})
         self.store.import_folder(self.exports, records)
         self.store = ItemIconStore(self.cache, self.wiki_cache)
-        with patch("pixelheart.item_icons._read_texture", wraps=_read_texture) as read:
+        with patch("meetcute.item_icons._read_texture", wraps=_read_texture) as read:
             self.store.prepare(records)
             self.assertTrue(all(self.store.has_icon(record) for record in records))
             self.assertEqual(read.call_count, 8)
@@ -105,7 +105,7 @@ class ItemIconTests(QtTestCase):
         self.store.import_folder(self.exports, records)
         self.assertTrue(self.store.has_icon(records[0]))
         self.assertFalse(self.store.has_icon(records[1]))
-        with patch("pixelheart.item_icons.MAX_CATALOG_ITEMS", 3):
+        with patch("meetcute.item_icons.MAX_CATALOG_ITEMS", 3):
             for record in records:
                 self.store.has_icon(record)
             # Existing entries are trimmed when a new crop is inserted.
@@ -138,7 +138,7 @@ class ItemIconTests(QtTestCase):
     def test_wiki_icon_is_complete_image_and_local_texture_takes_precedence(self):
         record = self.wiki_record()
         path = self.wiki_image()
-        with patch("pixelheart.item_icons.cached_item_icon", return_value=path):
+        with patch("meetcute.item_icons.cached_item_icon", return_value=path):
             self.assertFalse(self.store.has_local_icon(record))
             self.assertTrue(self.store.has_wiki_icon(record))
             self.assertTrue(self.store.has_icon(record))
@@ -159,7 +159,7 @@ class ItemIconTests(QtTestCase):
             {**record, "icon": {"texture": "Maps/springobjects", "index": 396}},
             {**record, "icon": {"texture": "../invalid", "index": 395}},
         ]
-        with patch("pixelheart.item_icons.cached_item_icon", return_value=path) as cached:
+        with patch("meetcute.item_icons.cached_item_icon", return_value=path) as cached:
             for altered in altered_records:
                 self.assertFalse(self.store.has_wiki_icon(altered))
             cached.assert_not_called()
@@ -168,11 +168,11 @@ class ItemIconTests(QtTestCase):
 
     def test_wiki_cache_refresh_updates_missing_and_previously_rendered_icons(self):
         record = self.wiki_record()
-        with patch("pixelheart.item_icons.cached_item_icon", return_value=None):
+        with patch("meetcute.item_icons.cached_item_icon", return_value=None):
             self.assertFalse(self.store.has_icon(record))
             placeholder = self.store.icon(record).cacheKey()
         path = self.wiki_image()
-        with patch("pixelheart.item_icons.cached_item_icon", return_value=path):
+        with patch("meetcute.item_icons.cached_item_icon", return_value=path):
             self.assertFalse(self.store.has_icon(record))
             self.store.invalidate_wiki_icons(["395"])
             self.assertTrue(self.store.has_icon(record))
@@ -184,28 +184,28 @@ class ItemIconTests(QtTestCase):
 
     def test_missing_wiki_ids_excludes_local_cached_unknown_and_modded_records(self):
         record = self.wiki_record()
-        with patch("pixelheart.item_icons.cached_item_icon", return_value=None):
+        with patch("meetcute.item_icons.cached_item_icon", return_value=None):
             self.assertEqual(self.store.missing_wiki_ids([record, record, self.record]), ["395"])
         self.store.invalidate_wiki_icons()
-        with patch("pixelheart.item_icons.cached_item_icon", return_value=self.wiki_image()):
+        with patch("meetcute.item_icons.cached_item_icon", return_value=self.wiki_image()):
             self.assertEqual(self.store.missing_wiki_ids([record]), [])
         self.store.invalidate_wiki_icons()
         self.texture("Maps/springobjects", size=(256, 400), colors=("green", "green"))
         self.store.import_folder(self.exports, [record])
-        with patch("pixelheart.item_icons.cached_item_icon", return_value=None):
+        with patch("meetcute.item_icons.cached_item_icon", return_value=None):
             self.assertEqual(self.store.missing_wiki_ids([record]), [])
 
     def test_unavailable_wiki_cache_keeps_placeholder_and_does_not_create_files(self):
         record = self.wiki_record()
-        with patch("pixelheart.item_icons.cached_item_icon", side_effect=WikiItemError("unavailable")):
+        with patch("meetcute.item_icons.cached_item_icon", side_effect=WikiItemError("unavailable")):
             self.assertFalse(self.store.has_icon(record))
             self.assertFalse(self.store.icon(record).isNull())
         self.assertFalse(self.cache.exists())
         self.assertFalse(self.wiki_cache.exists())
 
     def test_default_wiki_cache_is_stable_user_cache_and_constructor_does_not_write(self):
-        with patch("pixelheart.item_icons.QStandardPaths.writableLocation", return_value=str(self.root)):
-            expected = self.root / "Pixelheart" / "wiki-items"
+        with patch("meetcute.item_icons.QStandardPaths.writableLocation", return_value=str(self.root)):
+            expected = self.root / "MEETC#TE" / "wiki-items"
             self.assertEqual(default_wiki_cache_dir(), expected)
             self.assertEqual(ItemIconStore(self.cache).wiki_cache_dir, expected)
             self.assertFalse(expected.exists())
@@ -227,9 +227,9 @@ class ItemIconTests(QtTestCase):
         self.texture(size=(31, 16))
         self.assertEqual(self.store.import_folder(self.exports, [self.record]).imported_textures, 0)
         self.texture()
-        with patch("pixelheart.item_icons.MAX_TEXTURE_BYTES", 10):
+        with patch("meetcute.item_icons.MAX_TEXTURE_BYTES", 10):
             self.assertEqual(self.store.import_folder(self.exports, [self.record]).imported_textures, 0)
-        with patch("pixelheart.item_icons.MAX_TEXTURE_PIXELS", 32):
+        with patch("meetcute.item_icons.MAX_TEXTURE_PIXELS", 32):
             self.assertEqual(self.store.import_folder(self.exports, [self.record]).imported_textures, 0)
 
     def test_symlinks_cannot_read_beyond_selected_directory(self):
@@ -265,7 +265,7 @@ class ItemIconTests(QtTestCase):
             self.store.import_folder(self.exports, [self.record])
 
     def test_bundled_metadata_uses_exact_indexes_including_nonnumeric_ids(self):
-        path = Path(__file__).parents[1] / "pixelheart_core/data/vanilla_items.json"
+        path = Path(__file__).parents[1] / "meetcute_core/data/vanilla_items.json"
         catalog = validate_catalog(json.loads(path.read_text()))
         by_id = {record["id"]: record for record in catalog["items"]}
         self.assertEqual(len(by_id), 637)

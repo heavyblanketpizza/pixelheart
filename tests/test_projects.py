@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 import uuid
 
-from pixelheart_core.projects import (
+from meetcute_core.projects import (
     APPEARANCE_VARIANTS,
     ProjectError,
     copy_project,
@@ -19,7 +19,9 @@ from pixelheart_core.projects import (
     resolve_artwork,
     save_project,
 )
-from pixelheart_core.validation import EDITABLE_FIELDS, validate_draft
+from meetcute_core.story import exported_mod_id, exported_npc_id
+from meetcute_core.world import exported_location_id
+from meetcute_core.validation import EDITABLE_FIELDS, validate_draft
 
 
 class ProjectTestCase(unittest.TestCase):
@@ -64,6 +66,23 @@ class ProjectTests(ProjectTestCase):
         self.assertEqual(self.document, before)
         save_project(load_project(self.file), self.file)
         self.assertEqual(load_project(self.file), before)
+
+    def test_reopened_pre_rename_projects_keep_their_in_game_identities(self):
+        current = self.document["character"]
+        current.update(id="stable-id", internal_name="Mira")
+        modern_mod = exported_mod_id(current)
+        self.assertTrue(modern_mod.startswith("MeetCute.Mira_"))
+        self.document["format"] = "pixelheart-project"
+        del current["game_namespace"]
+        loaded = load_project(self.write_raw(self.document))
+        self.assertEqual(loaded["format"], "meetcute-project")
+        save_project(loaded, self.file)
+        character = load_project(self.file)["character"]
+        old_mod = modern_mod.replace("MeetCute.", "Pixelheart.")
+        self.assertEqual(exported_mod_id(character), old_mod)
+        self.assertEqual(exported_npc_id(character), old_mod + "_Mira")
+        self.assertEqual(exported_location_id({"internal_name": "Home"}, character),
+                         "Pixelheart_" + old_mod.split("_")[-1] + "_Home")
 
     def test_existing_and_new_folders_target_character_json(self):
         folder = self.root / "new project"
@@ -123,7 +142,7 @@ class ProjectTests(ProjectTestCase):
         save_project(self.document, self.file)
         previous = self.file.read_bytes()
         self.document["character"]["name"] = "Changed"
-        with patch("pixelheart_core.projects.os.replace", side_effect=OSError("disk full")):
+        with patch("meetcute_core.projects.os.replace", side_effect=OSError("disk full")):
             with self.assertRaisesRegex(ProjectError, "disk full"):
                 save_project(self.document, self.file)
         self.assertEqual(self.file.read_bytes(), previous)
@@ -132,7 +151,7 @@ class ProjectTests(ProjectTestCase):
     def test_failed_flush_keeps_old_file_and_cleans_temporary_file(self):
         save_project(self.document, self.file)
         previous = self.file.read_bytes()
-        with patch("pixelheart_core.projects.os.fsync", side_effect=OSError("write failed")):
+        with patch("meetcute_core.projects.os.fsync", side_effect=OSError("write failed")):
             with self.assertRaisesRegex(ProjectError, "write failed"):
                 save_project(self.document, self.file)
         self.assertEqual(self.file.read_bytes(), previous)
@@ -154,7 +173,7 @@ class ProjectTests(ProjectTestCase):
                 document = {**self.document, "version": version}
                 with self.assertRaisesRegex(ProjectError, "Unsupported.*version"):
                     load_project(self.write_raw(document))
-        with self.assertRaisesRegex(ProjectError, "not a Pixelheart"):
+        with self.assertRaisesRegex(ProjectError, "not a MEETC#TE"):
             load_project(self.write_raw({**self.document, "format": "another-app"}))
 
     def test_non_adult_load_and_save_are_rejected_even_without_romance(self):
@@ -190,10 +209,10 @@ class ProjectTests(ProjectTestCase):
 
     def test_bare_character_and_unversioned_envelope_migrate_without_identity_change(self):
         character = {"id": "legacy-id", "name": "Ada", "internal_name": "ForeverAda", "dialogues": [{"id": "entry-1", "text": "Original text"}], "notes": {"keep": "me"}}
-        for legacy in (character, {"character": character, "custom": 42}, {"format": "pixelheart-project", "version": 0, "character": character}):
+        for legacy in (character, {"character": character, "custom": 42}, {"format": "meetcute-project", "version": 0, "character": character}):
             with self.subTest(legacy=legacy):
                 loaded = load_project(self.write_raw(legacy))
-                self.assertEqual(loaded["format"], "pixelheart-project")
+                self.assertEqual(loaded["format"], "meetcute-project")
                 self.assertEqual(loaded["version"], 1)
                 self.assertEqual(loaded["character"]["id"], "legacy-id")
                 self.assertEqual(loaded["character"]["internal_name"], "ForeverAda")

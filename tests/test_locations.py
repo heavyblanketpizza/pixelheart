@@ -9,8 +9,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.location_picker import MapSelector
-from pixelheart_core.locations import LOCATIONS_BY_ID, VANILLA_LOCATIONS, location_name, location_note
+from meetcute.location_picker import MapSelector
+from meetcute_core.locations import LOCATIONS_BY_ID, VANILLA_LOCATIONS, location_name, location_note
 from tests.qt_support import QtTestCase
 
 

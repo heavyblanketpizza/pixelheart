@@ -12,11 +12,11 @@ from PIL import Image
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication, QDialog
 
-from pixelheart.app import MainWindow, SECTION_INDEX
-from pixelheart.interior_editor import InteriorEditor
-from pixelheart_core.interiors import doorway_exit, ensure_doorway, new_interior
-from pixelheart_core.projects import ProjectError, load_project, new_project, save_project
-from pixelheart_core.world import exported_location_id, new_location, new_world
+from meetcute.app import MainWindow, SECTION_INDEX
+from meetcute.interior_editor import InteriorEditor
+from meetcute_core.interiors import doorway_exit, ensure_doorway, new_interior
+from meetcute_core.projects import ProjectError, load_project, new_project, save_project
+from meetcute_core.world import exported_location_id, new_location, new_world
 from tests.qt_support import QtTestCase
 
 
@@ -31,7 +31,7 @@ class HomeWorkspaceTests(QtTestCase):
         with Image.new("RGBA", (32, 16), "#aabbcc") as image:
             image.save(self.sheet)
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
         self.window = MainWindow(auto_download_icons=False)
         self.errors = self.enterContext(patch.object(self.window, "show_error"))
         self.page = self.window.world
@@ -194,7 +194,7 @@ class HomeWorkspaceTests(QtTestCase):
     def test_failed_project_save_reopens_the_applied_room_with_its_staged_assets(self):
         editor = self.open_home()
         self.edit_floor(editor)
-        with patch("pixelheart.app.copy_project", side_effect=ProjectError("Disk is unavailable")):
+        with patch("meetcute.app.copy_project", side_effect=ProjectError("Disk is unavailable")):
             self.assertFalse(self.window.save_to(self.root / "unavailable" / "character.json"))
         restored = self.page.interior_editor
         self.assertIsNotNone(restored)
@@ -231,7 +231,7 @@ class HomeWorkspaceTests(QtTestCase):
             dialog.save_design()
             return QDialog.DialogCode.Accepted
 
-        with patch("pixelheart.app.QFileDialog.getSaveFileName", return_value=(str(destination), "")), \
+        with patch("meetcute.app.QFileDialog.getSaveFileName", return_value=(str(destination), "")), \
                 patch.object(InteriorEditor, "exec", accept_change):
             self.assertTrue(self.page.design_interior())
         self.assertIsNone(self.page.interior_editor)

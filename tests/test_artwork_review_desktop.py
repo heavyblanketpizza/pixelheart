@@ -15,9 +15,9 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog
 from shiboken6 import isValid
 
-from pixelheart.app import MainWindow
-from pixelheart.theme import apply_theme
-from pixelheart_core.projects import import_artwork, new_project
+from meetcute.app import MainWindow
+from meetcute.theme import apply_theme
+from meetcute_core.projects import import_artwork, new_project
 from tests.qt_support import QtTestCase
 
 
@@ -28,7 +28,7 @@ class ArtworkReviewDesktopTests(QtTestCase):
         apply_theme(cls.application)
 
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-review-test-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="meetcute-review-test-")
         self.root = Path(self.temporary.name)
         self.project_file = self.root / "project" / "character.json"
         self.window = MainWindow()
@@ -337,7 +337,7 @@ class ArtworkReviewDesktopTests(QtTestCase):
         before = self.project_snapshot()
         source_bytes = {path: path.read_bytes() for path in (portrait, sprite)}
 
-        with patch("pixelheart.artwork_review.ArtworkTemplateDialog") as template_dialog, \
+        with patch("meetcute.artwork_review.ArtworkTemplateDialog") as template_dialog, \
                 patch.object(self.window.artwork, "apply_template") as apply_template:
             picker = template_dialog.return_value
             picker.exec.return_value = QDialog.DialogCode.Accepted
@@ -361,7 +361,7 @@ class ArtworkReviewDesktopTests(QtTestCase):
         previous = dict(dialog.references)
         before = self.project_snapshot()
 
-        with patch("pixelheart.artwork_review.ArtworkTemplateDialog") as template_dialog:
+        with patch("meetcute.artwork_review.ArtworkTemplateDialog") as template_dialog:
             picker = template_dialog.return_value
             picker.exec.return_value = QDialog.DialogCode.Rejected
             picker.loaded = None
@@ -381,7 +381,7 @@ class ArtworkReviewDesktopTests(QtTestCase):
         previous = dict(dialog.references)
         before = self.project_snapshot()
 
-        with patch("pixelheart.artwork_review.ArtworkTemplateDialog") as template_dialog:
+        with patch("meetcute.artwork_review.ArtworkTemplateDialog") as template_dialog:
             picker = template_dialog.return_value
             picker.exec.return_value = QDialog.DialogCode.Accepted
             picker.loaded = {"portrait": portrait, "sprite": invalid_sprite, "name": "Invalid pair"}

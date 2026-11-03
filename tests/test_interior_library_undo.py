@@ -15,8 +15,8 @@ from PySide6.QtGui import QKeySequence
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.interior_editor import InteriorEditor
-from pixelheart_core.interior_furniture import ROOM_FRAME_DOORWAY, ROOM_FRAME_TILES
+from meetcute.interior_editor import InteriorEditor
+from meetcute_core.interior_furniture import ROOM_FRAME_DOORWAY, ROOM_FRAME_TILES
 from tests.test_interior_decorating_flow import make_library
 from tests.qt_support import QtTestCase
 
@@ -29,7 +29,7 @@ class InteriorLibraryUndoTests(QtTestCase):
     def setUp(self):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=self.settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=self.settings))
         self.dialogs = []
         self.library = make_library(self.root / "library")
         bundle = self.bundle()
@@ -164,7 +164,7 @@ class InteriorLibraryUndoTests(QtTestCase):
 
     def test_explicit_first_connection_initializes_without_setup_undo(self):
         dialog = self.editor()
-        with patch("pixelheart_core.interior_furniture.discover_furniture_libraries", return_value=[self.library]):
+        with patch("meetcute_core.interior_furniture.discover_furniture_libraries", return_value=[self.library]):
             QTest.mouseClick(dialog.library_welcome_button, Qt.MouseButton.LeftButton)
         initialized = dialog.draft.snapshot()
         self.assert_connected(dialog)
@@ -178,7 +178,7 @@ class InteriorLibraryUndoTests(QtTestCase):
         self.assertTrue(dialog.place_room_drop(12, 5, 4, 4))
         enlarged_rooms = deepcopy(dialog.draft.data["rooms"])
         self.assertEqual(len(dialog.draft._undo), 1)
-        with patch("pixelheart_core.interior_furniture.discover_furniture_libraries", return_value=[self.library]):
+        with patch("meetcute_core.interior_furniture.discover_furniture_libraries", return_value=[self.library]):
             QTest.mouseClick(dialog.library_welcome_button, Qt.MouseButton.LeftButton)
         self.assertEqual(len(dialog.draft._undo), 1)
         dialog.undo()
@@ -219,7 +219,7 @@ class InteriorLibraryUndoTests(QtTestCase):
         self.assertFalse(dialog.undo_button.isEnabled())
 
     def test_failed_refresh_of_historical_snapshot_keeps_current_and_both_histories(self):
-        from pixelheart_core.interiors import normalize_interior
+        from meetcute_core.interiors import normalize_interior
         self.remember()
         dialog = self.editor()
         # The original one-tile-wide chair fits at the room's right edge. It

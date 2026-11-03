@@ -14,8 +14,8 @@ from PySide6.QtGui import QMouseEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog
 
-from pixelheart.interior_editor import InteriorEditor
-from pixelheart_core.interiors import interior_asset_references, interior_tmx, render_interior
+from meetcute.interior_editor import InteriorEditor
+from meetcute_core.interiors import interior_asset_references, interior_tmx, render_interior
 from tests.test_interior_spouse_access import blocked_legacy, design
 from tests.qt_support import QtTestCase
 
@@ -29,7 +29,7 @@ class SpouseEditorTests(QtTestCase):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.project = self.root / "project" / "character.json"
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
         self.dialogs = []
 
     def tearDown(self):
@@ -150,7 +150,7 @@ class SpouseEditorTests(QtTestCase):
         self.assertEqual(dialog.draft.data["catalog"], before["catalog"])
 
     def test_auto_fit_settles_without_scrollbars_at_odd_and_even_window_sizes(self):
-        from pixelheart.skin import build_stylesheet, refresh_pieces
+        from meetcute.skin import build_stylesheet, refresh_pieces
         dialog = self.editor()
         dialog.setStyleSheet(build_stylesheet(refresh_pieces(None)))
         with patch.object(dialog, "center_room", wraps=dialog.center_room) as center:

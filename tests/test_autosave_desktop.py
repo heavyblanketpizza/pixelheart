@@ -10,9 +10,9 @@ from unittest.mock import patch
 from PySide6.QtCore import QSettings, Qt
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-from pixelheart.app import MainWindow
-from pixelheart.autosave import autosave_enabled
-from pixelheart_core.projects import ProjectError
+from meetcute.app import MainWindow
+from meetcute.autosave import autosave_enabled
+from meetcute_core.projects import ProjectError
 from tests.qt_support import QtTestCase
 
 
@@ -24,9 +24,9 @@ class AutosaveDesktopTests(QtTestCase):
     def setUp(self):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=self.settings))
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=self.settings))
-        self.enterContext(patch("pixelheart.story_page.EventsPage.update_scene_preview"))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=self.settings))
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=self.settings))
+        self.enterContext(patch("meetcute.story_page.EventsPage.update_scene_preview"))
         self.window = MainWindow(auto_download_icons=False)
         self.errors = self.enterContext(patch.object(self.window, "show_error"))
         self.history = self.window.project_history.history
@@ -84,7 +84,7 @@ class AutosaveDesktopTests(QtTestCase):
         self.saved_project()
         before = self.path.read_bytes()
         self.name.setText("Mira")
-        with patch("pixelheart.app.save_project", side_effect=ProjectError("Disk full")):
+        with patch("meetcute.app.save_project", side_effect=ProjectError("Disk full")):
             self.pause()
         self.assertEqual(self.path.read_bytes(), before)
         self.assertEqual(self.window.save_state.text(), "Couldn't save your changes")
@@ -109,7 +109,7 @@ class AutosaveDesktopTests(QtTestCase):
     def test_closing_saves_without_asking(self):
         self.saved_project()
         self.name.setText("Mira")
-        with patch("pixelheart.app.QMessageBox.warning") as question:
+        with patch("meetcute.app.QMessageBox.warning") as question:
             self.assertTrue(self.window.close())
         question.assert_not_called()
         self.assertEqual(self.on_disk(), "Mira")
@@ -117,8 +117,8 @@ class AutosaveDesktopTests(QtTestCase):
     def test_closing_after_a_failed_save_asks(self):
         self.saved_project()
         self.name.setText("Mira")
-        with (patch("pixelheart.app.save_project", side_effect=ProjectError("Disk full")),
-              patch("pixelheart.app.QMessageBox.warning", return_value=QMessageBox.StandardButton.Cancel) as question):
+        with (patch("meetcute.app.save_project", side_effect=ProjectError("Disk full")),
+              patch("meetcute.app.QMessageBox.warning", return_value=QMessageBox.StandardButton.Cancel) as question):
             self.assertFalse(self.window.close())
         question.assert_called_once()
         self.assertIn("Disk full", question.call_args.args[2])

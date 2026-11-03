@@ -1,7 +1,7 @@
 """Dialogue split into game-style boxes, each with its portrait."""
 import unittest
 
-from pixelheart_core.dialogue_pages import BOX_LINES, EMOTIONS, LINE_CHARS, dialogue_pages, set_emotion
+from meetcute_core.dialogue_pages import BOX_LINES, EMOTIONS, LINE_CHARS, dialogue_pages, set_emotion
 
 
 class DialoguePageTests(unittest.TestCase):

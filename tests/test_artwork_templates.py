@@ -17,10 +17,10 @@ from PySide6.QtCore import QEventLoop, QSettings, QThread, QTimer, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox
 
-from pixelheart.app import MainWindow
-from pixelheart.artwork_templates import ArtworkTemplateDialog
-from pixelheart.theme import apply_theme
-from pixelheart_core.projects import ProjectError, import_artwork, load_project, resolve_artwork
+from meetcute.app import MainWindow
+from meetcute.artwork_templates import ArtworkTemplateDialog
+from meetcute.theme import apply_theme
+from meetcute_core.projects import ProjectError, import_artwork, load_project, resolve_artwork
 from tests.qt_support import QtTestCase
 
 
@@ -31,18 +31,18 @@ class ArtworkTemplateTests(QtTestCase):
         apply_theme(cls.application)
 
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-template-test-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="meetcute-template-test-")
         self.root = Path(self.temporary.name)
         self.file = self.root / "project" / "character.json"
         self.dialogs = []
         self.release_events = []
         self.window = MainWindow()
         self.errors = self.enterContext(patch.object(MainWindow, "show_error"))
-        self.load = self.enterContext(patch("pixelheart.artwork_templates.load_local_artwork"))
+        self.load = self.enterContext(patch("meetcute.artwork_templates.load_local_artwork"))
         self.load.side_effect = AssertionError("Test must explicitly provide a synthetic import")
         self.exports = self.root / "patch export"
         self.settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=self.settings))
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=self.settings))
         self.template = {
             "id": "abigail",
             "name": "Abigail",
@@ -176,7 +176,7 @@ class ArtworkTemplateTests(QtTestCase):
         }
         for kind, asset in (("portrait", "Portraits/Elliott"), ("sprite", "Characters/Elliott")):
             elliott[kind + "_source"] = {"asset": asset, "sha256": hashlib.sha256(elliott[kind].read_bytes()).hexdigest()}
-        self.enterContext(patch("pixelheart.artwork_templates.LOCAL_TEMPLATES", {
+        self.enterContext(patch("meetcute.artwork_templates.LOCAL_TEMPLATES", {
             "abigail": self.template, "elliott": elliott,
         }))
         self.load.side_effect = [self.template, elliott]
@@ -333,7 +333,7 @@ class ArtworkTemplateTests(QtTestCase):
                 raise ProjectError("Synthetic second import failure")
             return import_artwork(source, project_file, kind)
 
-        with patch("pixelheart.artwork_page.import_artwork", side_effect=fail_sprite) as imports:
+        with patch("meetcute.artwork_page.import_artwork", side_effect=fail_sprite) as imports:
             self.assertFalse(self.window.artwork.apply_template(self.template))
         self.assertEqual(imports.call_count, 2)
         self.assertEqual(self.window.document, before)
@@ -358,7 +358,7 @@ class ArtworkTemplateTests(QtTestCase):
         self.assertTrue(self.window.artwork.apply_template(self.template))
         previous_source = deepcopy(self.window.document["artwork"]["portrait"]["source"])
         replacement = self.make_png("replacement.png", (128, 192), (40, 160, 70, 255))
-        with patch("pixelheart.artwork_page.QFileDialog.getOpenFileName", return_value=(str(replacement), "PNG artwork (*.png)")):
+        with patch("meetcute.artwork_page.QFileDialog.getOpenFileName", return_value=(str(replacement), "PNG artwork (*.png)")):
             self.window.artwork.upload("portrait")
         record = self.window.document["artwork"]["portrait"]
         self.assertNotIn("source", record)
@@ -367,7 +367,7 @@ class ArtworkTemplateTests(QtTestCase):
         self.assertEqual(resolve_artwork(self.window.document, self.file, "portrait").read_bytes(), replacement.read_bytes())
         self.assertTrue(self.window.save())
         self.assertEqual(load_project(self.file)["artwork"]["portrait"], record)
-        with patch("pixelheart.artwork_page.QFileDialog.getOpenFileName", return_value=(str(replacement), "PNG artwork (*.png)")):
+        with patch("meetcute.artwork_page.QFileDialog.getOpenFileName", return_value=(str(replacement), "PNG artwork (*.png)")):
             self.window.artwork.upload("portrait")
         self.assertEqual(self.window.document["artwork"]["portrait"]["source_history"], [previous_source])
         self.errors.assert_not_called()
@@ -375,7 +375,7 @@ class ArtworkTemplateTests(QtTestCase):
     def test_cancelling_project_save_does_not_import_or_change_project(self):
         before = deepcopy(self.window.document)
         with patch.object(self.window, "ensure_saved", return_value=False), \
-                patch("pixelheart.artwork_page.import_artwork") as imports:
+                patch("meetcute.artwork_page.import_artwork") as imports:
             self.assertFalse(self.window.artwork.apply_template(self.template))
         imports.assert_not_called()
         self.assertEqual(self.window.document, before)
@@ -387,7 +387,7 @@ class ArtworkTemplateTests(QtTestCase):
         source = resolve_artwork(before, self.file, "portrait")
         payload = source.read_bytes()
         destination = self.root / "editable portrait"
-        with patch("pixelheart.artwork_page.QFileDialog.getSaveFileName", return_value=(str(destination), "PNG artwork (*.png)")):
+        with patch("meetcute.artwork_page.QFileDialog.getSaveFileName", return_value=(str(destination), "PNG artwork (*.png)")):
             self.window.artwork.save_png_copy("portrait")
         self.assertEqual(destination.with_suffix(".png").read_bytes(), payload)
         self.assertEqual(source.read_bytes(), payload)
@@ -399,7 +399,7 @@ class ArtworkTemplateTests(QtTestCase):
         self.add_original_artwork()
         source = resolve_artwork(self.window.document, self.file, "portrait")
         payload = source.read_bytes()
-        with patch("pixelheart.artwork_page.QFileDialog.getSaveFileName", return_value=(str(source), "PNG artwork (*.png)")):
+        with patch("meetcute.artwork_page.QFileDialog.getSaveFileName", return_value=(str(source), "PNG artwork (*.png)")):
             self.window.artwork.save_png_copy("portrait")
         self.assertEqual(source.read_bytes(), payload)
         self.errors.assert_called_once()
@@ -414,7 +414,7 @@ class ArtworkTemplateTests(QtTestCase):
             with self.subTest(variant=variant, kind=kind):
                 source = resolve_artwork(self.window.document, self.file, kind, variant=variant)
                 payload = source.read_bytes()
-                with patch("pixelheart.artwork_page.QFileDialog.getSaveFileName", return_value=(str(source), "PNG artwork (*.png)")):
+                with patch("meetcute.artwork_page.QFileDialog.getSaveFileName", return_value=(str(source), "PNG artwork (*.png)")):
                     self.window.artwork.save_png_copy("portrait")
                 self.assertEqual(source.read_bytes(), payload)
                 self.assertIn("separate file", self.errors.call_args.args[1])

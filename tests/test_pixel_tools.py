@@ -2,8 +2,8 @@
 
 import unittest
 
-from pixelheart_core.pixel_document import PixelDocument, PixelError
-from pixelheart_core.pixel_tools import MAX_RECENT_COLORS, PixelTools
+from meetcute_core.pixel_document import PixelDocument, PixelError
+from meetcute_core.pixel_tools import MAX_RECENT_COLORS, PixelTools
 
 RED = (220, 40, 40, 255)
 BLUE = (40, 60, 220, 255)

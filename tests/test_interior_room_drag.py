@@ -12,9 +12,9 @@ from PySide6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDragMoveEvent, QDro
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QWidget
 
-from pixelheart.interior_canvas import InteriorCanvas, ROOM_MIME
-from pixelheart_core.interior_furniture import validate_definition
-from pixelheart_core.interiors import InteriorDraft, new_interior, room_edit_candidate
+from meetcute.interior_canvas import InteriorCanvas, ROOM_MIME
+from meetcute_core.interior_furniture import validate_definition
+from meetcute_core.interiors import InteriorDraft, new_interior, room_edit_candidate
 from tests.qt_support import QtTestCase
 
 

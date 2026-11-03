@@ -3,9 +3,9 @@ import unittest
 from unittest.mock import patch
 
 import tests  # noqa: F401  (isolates settings)
-from pixelheart.designer_config import load_designer_config, save_designer_config
-from pixelheart_designer.config import DEFAULTS, DesignerConfig, make_provider, url_is_loopback, validate_base_url
-from pixelheart_designer.providers import LocalServerProvider, ProviderError
+from meetcute.designer_config import load_designer_config, save_designer_config
+from meetcute_designer.config import DEFAULTS, DesignerConfig, make_provider, url_is_loopback, validate_base_url
+from meetcute_designer.providers import LocalServerProvider, ProviderError
 
 
 class ConfigTests(unittest.TestCase):
@@ -35,7 +35,7 @@ class ConfigTests(unittest.TestCase):
         with self.assertRaises(ProviderError) as blank:
             make_provider(DesignerConfig.from_mapping({"designer/provider": "local"}))
         self.assertEqual(blank.exception.kind, "model")
-        with patch("pixelheart_designer.config.AnthropicProvider") as anthropic_cls:
+        with patch("meetcute_designer.config.AnthropicProvider") as anthropic_cls:
             make_provider(DesignerConfig.from_mapping({"designer/provider": "anthropic", "designer/anthropic_api_key": "k"}))
         anthropic_cls.assert_called_once_with(model="claude-opus-5-5", api_key="k")
 

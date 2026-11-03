@@ -12,15 +12,15 @@ from PySide6.QtCore import Qt, QPoint
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog
 
-from pixelheart.map_workshop import TileMapDraft, MapWorkshop, inspect_tilesheet, read_painted_map, LAYERS
-from pixelheart_core.world import WorldError, map_bundle
-from pixelheart.theme import apply_theme
+from meetcute.map_workshop import TileMapDraft, MapWorkshop, inspect_tilesheet, read_painted_map, LAYERS
+from meetcute_core.world import WorldError, map_bundle
+from meetcute.theme import apply_theme
 from tests.qt_support import QtTestCase
 
 
 class _MapFiles:
     def setUp(self):
-        self.directory = tempfile.TemporaryDirectory(prefix="pixelheart-map-test-")
+        self.directory = tempfile.TemporaryDirectory(prefix="meetcute-map-test-")
         self.root = Path(self.directory.name)
         self.source = self.root / "tiles.png"
         image = Image.new("RGBA", (32, 32), "#b9c4a0")
@@ -148,7 +148,7 @@ class MapDraftTests(_MapFiles, unittest.TestCase):
         path = self.root / "place.tmx"
         path.write_bytes(ET.tostring(root))
         before = path.read_bytes()
-        with self.assertRaisesRegex(WorldError, "outside Pixelheart"):
+        with self.assertRaisesRegex(WorldError, "outside MEETC#TE"):
             read_painted_map(path)
         self.assertEqual(path.read_bytes(), before)
 

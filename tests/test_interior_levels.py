@@ -5,12 +5,12 @@ import unittest
 
 from PIL import Image
 
-from pixelheart_core.interior_architecture import architecture_candidate, remove_architecture_candidate
-from pixelheart_core.interior_architecture_rules import architecture_rule_issues
-from pixelheart_core.interior_furniture import validate_definition
-from pixelheart_core.interior_layout import resize_room_candidate
-from pixelheart_core.interior_levels import raised_room_candidate, set_room_enabled_candidate, stair_connection_clearance, validate_levels
-from pixelheart_core.interiors import InteriorDraft, InteriorError, compile_interior, interior_tmx, new_interior, normalize_interior, room_edit_candidate
+from meetcute_core.interior_architecture import architecture_candidate, remove_architecture_candidate
+from meetcute_core.interior_architecture_rules import architecture_rule_issues
+from meetcute_core.interior_furniture import validate_definition
+from meetcute_core.interior_layout import resize_room_candidate
+from meetcute_core.interior_levels import raised_room_candidate, set_room_enabled_candidate, stair_connection_clearance, validate_levels
+from meetcute_core.interiors import InteriorDraft, InteriorError, compile_interior, interior_tmx, new_interior, normalize_interior, room_edit_candidate
 
 
 def base():

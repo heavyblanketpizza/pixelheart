@@ -8,8 +8,8 @@ from copy import deepcopy
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QListWidgetItem
 
-from pixelheart.app import MainWindow, SECTION_INDEX
-from pixelheart_core.projects import new_project
+from meetcute.app import MainWindow, SECTION_INDEX
+from meetcute_core.projects import new_project
 from tests.qt_support import QtTestCase
 
 

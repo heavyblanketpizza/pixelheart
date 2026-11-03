@@ -2,11 +2,11 @@
 from copy import deepcopy
 import unittest
 
-from pixelheart_core.projects import new_project
-from pixelheart_designer.prompts import SYSTEM_PROMPT, context_block
-from pixelheart_designer.providers import ProviderError, Reply, Text, ToolCall
-from pixelheart_designer.session import DesignerSession
-from pixelheart_designer.tools import tool_specs
+from meetcute_core.projects import new_project
+from meetcute_designer.prompts import SYSTEM_PROMPT, context_block
+from meetcute_designer.providers import ProviderError, Reply, Text, ToolCall
+from meetcute_designer.session import DesignerSession
+from meetcute_designer.tools import tool_specs
 from tests.designer_support import NULL_IDENTITY, ScriptedProvider, text_reply, tool_reply
 
 

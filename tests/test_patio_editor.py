@@ -11,10 +11,10 @@ from PIL import Image
 from PySide6.QtCore import QPointF, QSettings
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.game_connection import game_connection
-from pixelheart.patio_editor import PatioEditor
-from pixelheart_core.game_scene_assets import clear_game_cache
-from pixelheart_core.projects import new_project, save_project
+from meetcute.game_connection import game_connection
+from meetcute.patio_editor import PatioEditor
+from meetcute_core.game_scene_assets import clear_game_cache
+from meetcute_core.projects import new_project, save_project
 from tests.qt_support import QtTestCase
 from tests.test_game_install import fake_game
 from tests.test_spouse_patio import add_patio_maps
@@ -28,7 +28,7 @@ class PatioEditorTests(QtTestCase):
     def setUp(self):
         self.folder = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.settings = QSettings(str(self.folder / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=self.settings))
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=self.settings))
         clear_game_cache()
         self.addCleanup(clear_game_cache)
         self.character = {**new_project()["character"], "name": "Mira", "romanceable": True}
@@ -211,11 +211,11 @@ class HomePatioTests(QtTestCase):
     def setUp(self):
         self.folder = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.settings = QSettings(str(self.folder / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=self.settings))
-        self.enterContext(patch.dict(os.environ, {"PIXELHEART_LIBRARY": str(self.folder / "library")}))
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=self.settings))
+        self.enterContext(patch.dict(os.environ, {"MEETCUTE_LIBRARY": str(self.folder / "library")}))
 
     def window(self):
-        from pixelheart.app import MainWindow, SECTION_INDEX
+        from meetcute.app import MainWindow, SECTION_INDEX
         document = new_project()
         document["character"].update(name="Mira", internal_name="Mira", romanceable=True)
         path = save_project(document, self.folder / "Mira" / "character.json")

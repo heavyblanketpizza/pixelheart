@@ -6,9 +6,9 @@ import unittest
 
 from PySide6.QtWidgets import QApplication, QLabel, QSizePolicy, QWidget
 
-from pixelheart.app import MainWindow, SECTION_INDEX
-from pixelheart.pixel_widgets import PortraitFrame
-from pixelheart.theme import apply_theme
+from meetcute.app import MainWindow, SECTION_INDEX
+from meetcute.pixel_widgets import PortraitFrame
+from meetcute.theme import apply_theme
 from tests.qt_support import QtTestCase
 
 

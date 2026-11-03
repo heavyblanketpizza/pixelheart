@@ -16,13 +16,13 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.app import MainWindow, SECTION_INDEX
-from pixelheart.gifts_page import GiftsPage, TASTES
-from pixelheart.item_icons import ItemIconStore
-from pixelheart_core.gift_presets import (
+from meetcute.app import MainWindow, SECTION_INDEX
+from meetcute.gifts_page import GiftsPage, TASTES
+from meetcute.item_icons import ItemIconStore
+from meetcute_core.gift_presets import (
     GIFT_PRESETS, RECOMMENDED_GIFT_PRESET_ID, get_gift_preset,
 )
-from pixelheart_core.projects import load_project
+from meetcute_core.projects import load_project
 from tests.qt_support import QtTestCase
 
 
@@ -32,11 +32,11 @@ class GiftPresetDesktopTests(QtTestCase):
         cls.application = QApplication.instance() or QApplication([])
 
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-gift-presets-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="meetcute-gift-presets-")
         self.root = Path(self.temporary.name)
         self.widgets = []
         self.store = ItemIconStore(self.root / "textures", self.root / "wiki-icons")
-        self.icon_patch = patch("pixelheart.gifts_page.ItemIconStore", return_value=self.store)
+        self.icon_patch = patch("meetcute.gifts_page.ItemIconStore", return_value=self.store)
         self.icon_patch.start()
         self.page = self.keep(GiftsPage())
         self.page.resize(1100, 800)
@@ -164,7 +164,7 @@ class GiftPresetDesktopTests(QtTestCase):
         before = deepcopy(self.page.assignments)
         original = deepcopy(self.page.original)
         changed = QSignalSpy(self.page.changed)
-        with patch("pixelheart.gifts_page.MAX_GIFTS_PER_TASTE", 2):
+        with patch("meetcute.gifts_page.MAX_GIFTS_PER_TASTE", 2):
             self.page.apply_preset()
         self.assertEqual(self.page.assignments, before)
         self.assertEqual(self.page.original, original)
@@ -254,11 +254,11 @@ class GiftPresetDesktopTests(QtTestCase):
             for kind, dimensions in (("portrait", (128, 192)), ("sprite", (64, 416))):
                 source = self.root / (kind + ".png")
                 Image.new("RGBA", dimensions, (120, 160, 90, 255)).save(source)
-                with patch("pixelheart.artwork_page.QFileDialog.getOpenFileName", return_value=(str(source), "")):
+                with patch("meetcute.artwork_page.QFileDialog.getOpenFileName", return_value=(str(source), "")):
                     reopened.artwork.upload(kind)
             archive_path = self.root / "starter.zip"
-            with patch("pixelheart.app.QFileDialog.getSaveFileName", return_value=(str(archive_path), "")), \
-                    patch("pixelheart.app.QMessageBox.information"):
+            with patch("meetcute.app.QFileDialog.getSaveFileName", return_value=(str(archive_path), "")), \
+                    patch("meetcute.app.QMessageBox.information"):
                 self.assertTrue(reopened.export_project())
             errors.assert_not_called()
         with zipfile.ZipFile(archive_path) as archive:

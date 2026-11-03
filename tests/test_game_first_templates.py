@@ -11,7 +11,7 @@ from PIL import Image
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.game_connection import game_connection
+from meetcute.game_connection import game_connection
 from tests.qt_support import QtTestCase
 from tests.test_game_install import fake_game
 from tests.test_game_templates import texture_from
@@ -26,7 +26,7 @@ class GameFirstTemplateTests(QtTestCase):
     def setUp(self):
         self.folder = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.settings = QSettings(str(self.folder / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=self.settings))
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=self.settings))
         game = fake_game(self.folder / "Stardew Valley")
         content = game / "Contents/Resources/Content"
         (content / "Characters/Dialogue").mkdir(parents=True)
@@ -42,7 +42,7 @@ class GameFirstTemplateTests(QtTestCase):
 
     def test_dialogue_template_reads_the_game_without_a_saved_project(self):
         game_connection().set_folder(self.game)
-        from pixelheart.dialogue_templates import DialogueTemplateDialog
+        from meetcute.dialogue_templates import DialogueTemplateDialog
         dialog = DialogueTemplateDialog([], project_file=None)
         self.addCleanup(dialog.deleteLater)
         self.assertEqual(dialog.source_choice.currentData(), "game")
@@ -57,7 +57,7 @@ class GameFirstTemplateTests(QtTestCase):
 
     def test_switching_to_export_mode_restores_the_console_flow(self):
         game_connection().set_folder(self.game)
-        from pixelheart.dialogue_templates import DialogueTemplateDialog
+        from meetcute.dialogue_templates import DialogueTemplateDialog
         dialog = DialogueTemplateDialog([], project_file=None)
         self.addCleanup(dialog.deleteLater)
         dialog.source_choice.setCurrentIndex(dialog.source_choice.findData("export"))
@@ -66,7 +66,7 @@ class GameFirstTemplateTests(QtTestCase):
         self.assertFalse(dialog.load_button.isEnabled())
 
     def test_without_a_game_the_export_flow_is_unchanged(self):
-        from pixelheart.dialogue_templates import DialogueTemplateDialog
+        from meetcute.dialogue_templates import DialogueTemplateDialog
         dialog = DialogueTemplateDialog([], project_file=None)
         self.addCleanup(dialog.deleteLater)
         self.assertEqual(dialog.source_choice.currentData(), "export")
@@ -75,8 +75,8 @@ class GameFirstTemplateTests(QtTestCase):
 
     def test_artwork_template_reads_the_game_and_imports_into_a_project(self):
         game_connection().set_folder(self.game)
-        from pixelheart.app import MainWindow
-        from pixelheart.artwork_templates import ArtworkTemplateDialog
+        from meetcute.app import MainWindow
+        from meetcute.artwork_templates import ArtworkTemplateDialog
         window = MainWindow()
         self.addCleanup(window.deleteLater)
         self.assertTrue(window.save_to(self.folder / "Haley fan" / "character.json"))
@@ -96,11 +96,11 @@ class GameFirstTemplateTests(QtTestCase):
 
     def test_dialogue_page_opens_game_templates_without_forcing_a_save(self):
         game_connection().set_folder(self.game)
-        from pixelheart.app import MainWindow
+        from meetcute.app import MainWindow
         window = MainWindow()
         self.addCleanup(window.deleteLater)
         with patch.object(window, "save_as", side_effect=AssertionError("no save needed")), \
-             patch("pixelheart.editors.DialogueTemplateDialog.exec", return_value=0):
+             patch("meetcute.editors.DialogueTemplateDialog.exec", return_value=0):
             window.dialogue.open_examples()
         self.assertTrue(window.dialogue.project_location.isHidden())
         window.dirty = False

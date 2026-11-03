@@ -7,10 +7,10 @@ import unittest
 
 from PIL import Image
 
-from pixelheart_core.interior_furniture import (
+from meetcute_core.interior_furniture import (
     FurnitureValidationError, attach_texture, held_item_preview_offset, validate_definition,
 )
-from pixelheart_core.interiors import (
+from meetcute_core.interiors import (
     InteriorDraft, InteriorError, compile_interior, import_atlas,
     map_layers, new_interior, normalize_interior, reachable_tiles, render_interior,
 )

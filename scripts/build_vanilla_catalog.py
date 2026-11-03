@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the offline 1.6.15 object catalog from checksum-pinned metadata.
 
-Download the two input files listed in pixelheart_core/data/README.md first.
+Download the two input files listed in meetcute_core/data/README.md first.
 This script never downloads files or copies sprites, descriptions, or game code.
 """
 
@@ -150,7 +150,7 @@ def build_catalog(objects: dict[str, Any], names: list[dict[str, Any]]) -> dict[
 
     items.sort(key=lambda item: (item["name"].casefold(), item["id"]))
     return {
-        "format": "pixelheart-item-catalog",
+        "format": "meetcute-item-catalog",
         "version": 1,
         "label": "Vanilla 1.6.15 · object gifts",
         "source": "vanilla",
@@ -171,7 +171,7 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path(__file__).resolve().parents[1] / "pixelheart_core/data/vanilla_items.json",
+        default=Path(__file__).resolve().parents[1] / "meetcute_core/data/vanilla_items.json",
     )
     args = parser.parse_args()
     try:

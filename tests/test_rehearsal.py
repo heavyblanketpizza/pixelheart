@@ -1,7 +1,7 @@
 """Farmer preview changes must not rewrite dialogue or promise a game interpreter."""
 import unittest
 
-from pixelheart_core.rehearsal import preview_dialogue, portrait_expression
+from meetcute_core.rehearsal import preview_dialogue, portrait_expression
 
 
 class DialogueRehearsalTests(unittest.TestCase):

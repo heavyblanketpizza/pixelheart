@@ -12,10 +12,10 @@ from PySide6.QtCore import QEvent, QPoint, QSettings, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.interior_editor import InteriorEditor
-from pixelheart_core.interiors import new_interior
-from pixelheart_core.interior_furniture import validate_definition
-from pixelheart_core.interior_layout import partition_candidate
+from meetcute.interior_editor import InteriorEditor
+from meetcute_core.interiors import new_interior
+from meetcute_core.interior_furniture import validate_definition
+from meetcute_core.interior_layout import partition_candidate
 from tests.qt_support import QtTestCase
 
 
@@ -27,7 +27,7 @@ class NativeWallEditorTests(QtTestCase):
     def setUp(self):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
         self.editor = None
 
     def tearDown(self):

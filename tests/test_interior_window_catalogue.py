@@ -13,7 +13,7 @@ from PySide6.QtCore import QEvent, QSettings, Qt
 from PySide6.QtGui import QDragEnterEvent, QDragMoveEvent, QDropEvent
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.interior_editor import InteriorEditor
+from meetcute.interior_editor import InteriorEditor
 from tests.test_interior_decorating_flow import make_library
 from tests import test_interior_furniture_drag as furniture_drag
 from tests.qt_support import QtTestCase
@@ -39,7 +39,7 @@ class InteriorWindowCatalogueTests(QtTestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def setUp(self):
-        self.root = Path(self.enterContext(tempfile.TemporaryDirectory(prefix="pixelheart-window-catalogue-")))
+        self.root = Path(self.enterContext(tempfile.TemporaryDirectory(prefix="meetcute-window-catalogue-")))
         self.library = make_library(self.root / "library")
         bundle = json.loads(self.library.read_text(encoding="utf-8"))
         prototype = deepcopy(bundle["definitions"][0])
@@ -56,7 +56,7 @@ class InteriorWindowCatalogueTests(QtTestCase):
         ]
         self.library.write_text(json.dumps(bundle), encoding="utf-8")
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
         self.dialogs = []
 
     def tearDown(self):

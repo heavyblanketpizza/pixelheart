@@ -14,12 +14,12 @@ from unittest.mock import patch
 from PIL import Image
 from PySide6.QtWidgets import QApplication, QDialog
 
-from pixelheart.app import MainWindow
-from pixelheart.pixel_painter import PixelPainterDialog
-from pixelheart.theme import apply_theme
-from pixelheart_core.pixel_layers import load_layers
-from pixelheart_core.pixel_raster import brush_mask
-from pixelheart_core.projects import resolve_artwork
+from meetcute.app import MainWindow
+from meetcute.pixel_painter import PixelPainterDialog
+from meetcute.theme import apply_theme
+from meetcute_core.pixel_layers import load_layers
+from meetcute_core.pixel_raster import brush_mask
+from meetcute_core.projects import resolve_artwork
 from tests.qt_support import QtTestCase
 
 RED = (220, 40, 40, 255)
@@ -39,7 +39,7 @@ class ArtworkPaintingTests(QtTestCase):
         apply_theme(cls.application)
 
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-artwork-paint-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="meetcute-artwork-paint-")
         self.root = Path(self.temporary.name)
         self.file = self.root / "project" / "character.json"
         self.errors = self.enterContext(patch.object(MainWindow, "show_error"))
@@ -58,7 +58,7 @@ class ArtworkPaintingTests(QtTestCase):
     def upload(self, kind, size):
         source = self.root / f"{kind}.png"
         Image.new("RGBA", size, UPLOAD).save(source)
-        with patch("pixelheart.artwork_page.QFileDialog.getOpenFileName", return_value=(str(source), "")):
+        with patch("meetcute.artwork_page.QFileDialog.getOpenFileName", return_value=(str(source), "")):
             self.page.upload(kind)
         self.errors.assert_not_called()
 
@@ -163,7 +163,7 @@ class ArtworkPaintingTests(QtTestCase):
         self.upload("portrait", (128, 192))
         self.paint("portrait", lambda dialog: dot(dialog.document, 3, 4))
         painted = self.file.parent / self.record("portrait")["painted"]
-        with patch("pixelheart.artwork_page.QFileDialog.getSaveFileName", return_value=(str(painted), "")):
+        with patch("meetcute.artwork_page.QFileDialog.getSaveFileName", return_value=(str(painted), "")):
             self.page.save_png_copy("portrait")
         self.errors.assert_called_once()
         self.assertIn("separate file", self.errors.call_args.args[1])
@@ -180,8 +180,8 @@ class ArtworkPaintingTests(QtTestCase):
         self.window.identity.fields["name"].setText("Mira")
         self.window.identity.fields["internal_name"].setText("Mira")
         destination = self.root / "Mira pack"
-        with patch("pixelheart.app.QFileDialog.getSaveFileName", return_value=(str(destination), "")), \
-                patch("pixelheart.app.QMessageBox.information"):
+        with patch("meetcute.app.QFileDialog.getSaveFileName", return_value=(str(destination), "")), \
+                patch("meetcute.app.QMessageBox.information"):
             self.assertTrue(self.window.export_project(), self.errors.call_args)
         with zipfile.ZipFile(destination.with_suffix(".zip")) as archive:
             prefix = "[CP] Mira/"

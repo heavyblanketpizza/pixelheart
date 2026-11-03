@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from PIL import Image, ImageColor
 
-from pixelheart_core.game_ui import (
+from meetcute_core.game_ui import (
     INK, PANEL_RULE, REQUIRED_ROLES, build_game_ui, build_paper_ui, missing_game_pieces, ui_pieces,
 )
 from tests.test_game_templates import texture_from
@@ -54,7 +54,7 @@ class GameUiTests(unittest.TestCase):
 
     def test_cache_is_reused_and_refreshed_when_the_game_changes(self):
         first = build_game_ui(self.content, self.cache)
-        with patch("pixelheart_core.game_ui.load_texture", side_effect=AssertionError("must reuse cache")):
+        with patch("meetcute_core.game_ui.load_texture", side_effect=AssertionError("must reuse cache")):
             self.assertEqual(build_game_ui(self.content, self.cache), first)
         self.write("LooseSprites/Cursors", marked((448, 481), {(211, 428): (50, 50, 50, 255)}))
         changed = build_game_ui(self.content, self.cache)

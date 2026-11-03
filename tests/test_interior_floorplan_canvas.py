@@ -12,10 +12,10 @@ from PySide6.QtGui import QMouseEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.interior_canvas import InteriorCanvas
-from pixelheart_core.interiors import InteriorDraft, new_interior, normalize_interior, place_doorway
-from pixelheart_core.interior_furniture import validate_definition
-from pixelheart_core.interior_layout import corridor_candidate, partition_candidate, opening_candidate
+from meetcute.interior_canvas import InteriorCanvas
+from meetcute_core.interiors import InteriorDraft, new_interior, normalize_interior, place_doorway
+from meetcute_core.interior_furniture import validate_definition
+from meetcute_core.interior_layout import corridor_candidate, partition_candidate, opening_candidate
 from tests.qt_support import QtTestCase
 
 

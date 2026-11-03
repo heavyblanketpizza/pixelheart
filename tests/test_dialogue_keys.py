@@ -1,7 +1,7 @@
 """Plain-language occasions for dialogue, and the game keys they stand for."""
 import unittest
 
-from pixelheart_core.dialogue_keys import (
+from meetcute_core.dialogue_keys import (
     DAYS, HEARTS, SEASONS, build_trigger, describe_trigger, parse_trigger,
 )
 

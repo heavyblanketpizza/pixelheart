@@ -19,12 +19,12 @@ from PIL import Image
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
-from pixelheart.app import MainWindow, SECTION_INDEX
-from pixelheart.artwork_page import PreparationDialog
-from pixelheart.theme import apply_theme
-from pixelheart_core.artwork import inspect_artwork
-from pixelheart_core.projects import ProjectError, load_project, resolve_artwork
-from pixelheart_core.story import new_relationship
+from meetcute.app import MainWindow, SECTION_INDEX
+from meetcute.artwork_page import PreparationDialog
+from meetcute.theme import apply_theme
+from meetcute_core.artwork import inspect_artwork
+from meetcute_core.projects import ProjectError, load_project, resolve_artwork
+from meetcute_core.story import new_relationship
 from tests.qt_support import QtTestCase
 
 
@@ -35,7 +35,7 @@ class DesktopTests(QtTestCase):
         apply_theme(cls.application)
 
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-desktop-test-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="meetcute-desktop-test-")
         self.root = Path(self.temporary.name)
         self.file = self.root / "first project" / "character.json"
         self.windows = []
@@ -64,7 +64,7 @@ class DesktopTests(QtTestCase):
         return source
 
     def upload(self, kind, source):
-        with patch("pixelheart.artwork_page.QFileDialog.getOpenFileName", return_value=(str(source), "PNG artwork (*.png)")):
+        with patch("meetcute.artwork_page.QFileDialog.getOpenFileName", return_value=(str(source), "PNG artwork (*.png)")):
             self.window.artwork.upload(kind)
         self.errors.assert_not_called()
 
@@ -112,8 +112,8 @@ class DesktopTests(QtTestCase):
         }
         self.assertTrue(window.save_to(self.file))
         self.assertTrue(window.save())
-        with patch("pixelheart.app.QFileDialog.getSaveFileName", return_value=(str(self.file), "")), \
-                patch("pixelheart.app.copy_project") as copy_project:
+        with patch("meetcute.app.QFileDialog.getSaveFileName", return_value=(str(self.file), "")), \
+                patch("meetcute.app.copy_project") as copy_project:
             self.assertTrue(window.save_as())
         copy_project.assert_not_called()
         character = load_project(self.file)["character"]
@@ -156,8 +156,8 @@ class DesktopTests(QtTestCase):
         blockers = [issue for issue in window.export_page.refresh() if issue["level"] == "error"]
         self.assertEqual(blockers, [])
         destination = self.root / "extension-test.zip"
-        with patch("pixelheart.app.QFileDialog.getSaveFileName", return_value=(str(destination), "")), \
-                patch("pixelheart.app.QMessageBox.information"):
+        with patch("meetcute.app.QFileDialog.getSaveFileName", return_value=(str(destination), "")), \
+                patch("meetcute.app.QMessageBox.information"):
             self.assertTrue(window.export_project())
         with zipfile.ZipFile(destination) as archive:
             exported = json.loads(archive.read("[CP] NewCharacter/project.json"))["character"]
@@ -229,7 +229,7 @@ class DesktopTests(QtTestCase):
         previous_json = self.file.read_bytes()
         identity = window.document["character"]["id"]
         destination = self.root / "copied project" / "mira"
-        with patch("pixelheart.app.QFileDialog.getSaveFileName", return_value=(str(destination), "")):
+        with patch("meetcute.app.QFileDialog.getSaveFileName", return_value=(str(destination), "")):
             self.assertTrue(window.save_as())
         copy_file = destination.with_suffix(".json")
         self.assertEqual(window.project_file, copy_file)
@@ -273,8 +273,8 @@ class DesktopTests(QtTestCase):
         window.identity.fields["internal_name"].setText("Mira")
         window.dialogue.fields["text"].setPlainText("안녕, @.$h")
         destination = self.root / "Mira pack"
-        with patch("pixelheart.app.QFileDialog.getSaveFileName", return_value=(str(destination), "")), \
-                patch("pixelheart.app.QMessageBox.information") as information:
+        with patch("meetcute.app.QFileDialog.getSaveFileName", return_value=(str(destination), "")), \
+                patch("meetcute.app.QMessageBox.information") as information:
             self.assertTrue(window.export_project())
         information.assert_called_once()
         with zipfile.ZipFile(destination.with_suffix(".zip")) as archive:
@@ -291,15 +291,15 @@ class DesktopTests(QtTestCase):
         self.errors.assert_not_called()
 
     def test_blocked_export_does_not_open_save_dialog(self):
-        with patch("pixelheart.app.QFileDialog.getSaveFileName") as choose:
+        with patch("meetcute.app.QFileDialog.getSaveFileName") as choose:
             self.assertFalse(self.window.export_project())
         choose.assert_not_called()
         self.assertEqual(self.window.navigation.currentRow(), SECTION_INDEX["export"])
 
     def test_canceling_export_creates_no_archive(self):
         self.valid_artwork()
-        with patch("pixelheart.app.QFileDialog.getSaveFileName", return_value=("", "")), \
-                patch("pixelheart.app.QMessageBox.information") as information:
+        with patch("meetcute.app.QFileDialog.getSaveFileName", return_value=("", "")), \
+                patch("meetcute.app.QMessageBox.information") as information:
             self.assertFalse(self.window.export_project())
         information.assert_not_called()
         self.assertEqual(list(self.root.glob("*.zip")), [])
@@ -308,7 +308,7 @@ class DesktopTests(QtTestCase):
         window = self.window
         identity = window.document["character"]["id"]
         window.identity.fields["name"].setText("Keep this draft")
-        with patch("pixelheart.app.QMessageBox.warning", return_value=QMessageBox.StandardButton.Cancel):
+        with patch("meetcute.app.QMessageBox.warning", return_value=QMessageBox.StandardButton.Cancel):
             window.new_character()
         self.assertEqual(window.document["character"]["id"], identity)
         self.assertEqual(window.identity.fields["name"].text(), "Keep this draft")
@@ -318,8 +318,8 @@ class DesktopTests(QtTestCase):
         window = self.window
         identity = window.document["character"]["id"]
         window.identity.fields["name"].setText("Discard this draft")
-        with patch("pixelheart.app.QMessageBox.warning", return_value=QMessageBox.StandardButton.Discard), \
-                patch("pixelheart.app.QFileDialog.getSaveFileName") as choose:
+        with patch("meetcute.app.QMessageBox.warning", return_value=QMessageBox.StandardButton.Discard), \
+                patch("meetcute.app.QFileDialog.getSaveFileName") as choose:
             window.new_character()
         self.assertNotEqual(window.document["character"]["id"], identity)
         self.assertFalse(window.dirty)
@@ -330,8 +330,8 @@ class DesktopTests(QtTestCase):
         window = self.window
         identity = window.document["character"]["id"]
         window.identity.fields["name"].setText("Save this one 먼저")
-        with patch("pixelheart.app.QMessageBox.warning", return_value=QMessageBox.StandardButton.Save), \
-                patch("pixelheart.app.QFileDialog.getSaveFileName", return_value=(str(self.file), "")):
+        with patch("meetcute.app.QMessageBox.warning", return_value=QMessageBox.StandardButton.Save), \
+                patch("meetcute.app.QFileDialog.getSaveFileName", return_value=(str(self.file), "")):
             window.new_character()
         previous = load_project(self.file)["character"]
         self.assertEqual(previous["id"], identity)
@@ -344,8 +344,8 @@ class DesktopTests(QtTestCase):
         window = self.window
         identity = window.document["character"]["id"]
         window.identity.fields["name"].setText("Still here")
-        with patch("pixelheart.app.QMessageBox.warning", return_value=QMessageBox.StandardButton.Save), \
-                patch("pixelheart.app.QFileDialog.getSaveFileName", return_value=("", "")):
+        with patch("meetcute.app.QMessageBox.warning", return_value=QMessageBox.StandardButton.Save), \
+                patch("meetcute.app.QFileDialog.getSaveFileName", return_value=("", "")):
             window.new_character()
         self.assertEqual(window.document["character"]["id"], identity)
         self.assertTrue(window.dirty)
@@ -357,8 +357,8 @@ class DesktopTests(QtTestCase):
         previous_bytes = self.file.read_bytes()
         identity = window.document["character"]["id"]
         window.identity.fields["name"].setText("A change worth keeping")
-        with patch("pixelheart.app.QMessageBox.warning", return_value=QMessageBox.StandardButton.Save), \
-                patch("pixelheart.app.save_project", side_effect=ProjectError("Disk is full")):
+        with patch("meetcute.app.QMessageBox.warning", return_value=QMessageBox.StandardButton.Save), \
+                patch("meetcute.app.save_project", side_effect=ProjectError("Disk is full")):
             window.new_character()
         self.assertEqual(window.document["character"]["id"], identity)
         self.assertEqual(window.identity.fields["name"].text(), "A change worth keeping")
@@ -424,16 +424,16 @@ class DesktopTests(QtTestCase):
         window = self.window
         source = self.root / "broken.png"
         source.write_bytes(b"broken PNG")
-        with patch("pixelheart.artwork_page.QFileDialog.getOpenFileName", return_value=(str(source), "")), \
-                patch("pixelheart.app.QFileDialog.getSaveFileName") as save_dialog:
+        with patch("meetcute.artwork_page.QFileDialog.getOpenFileName", return_value=(str(source), "")), \
+                patch("meetcute.app.QFileDialog.getSaveFileName") as save_dialog:
             window.artwork.upload("portrait")
         save_dialog.assert_not_called()
         self.assertIsNone(window.document["artwork"]["portrait"])
         self.errors.assert_called_once()
         self.errors.reset_mock()
         source = self.make_png("valid portrait.png", (128, 192))
-        with patch("pixelheart.artwork_page.QFileDialog.getOpenFileName", return_value=(str(source), "")), \
-                patch("pixelheart.app.QFileDialog.getSaveFileName", return_value=("", "")):
+        with patch("meetcute.artwork_page.QFileDialog.getOpenFileName", return_value=(str(source), "")), \
+                patch("meetcute.app.QFileDialog.getSaveFileName", return_value=("", "")):
             window.artwork.upload("portrait")
         self.assertIsNone(window.project_file)
         self.assertIsNone(window.document["artwork"]["portrait"])
@@ -468,8 +468,8 @@ class DesktopTests(QtTestCase):
         self.assertEqual(resolve_artwork(reopened.document, destination, "portrait", variant="winter").read_bytes(), prepared_bytes)
         self.assertFalse([issue for issue in reopened.validate_project() if issue["level"] == "error"])
         archive_file = self.root / "seasonal.zip"
-        with patch("pixelheart.app.QFileDialog.getSaveFileName", return_value=(str(archive_file), "")), \
-                patch("pixelheart.app.QMessageBox.information"):
+        with patch("meetcute.app.QFileDialog.getSaveFileName", return_value=(str(archive_file), "")), \
+                patch("meetcute.app.QMessageBox.information"):
             self.assertTrue(reopened.export_project())
         with zipfile.ZipFile(archive_file) as archive:
             prefix = "[CP] NewCharacter/"

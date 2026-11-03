@@ -12,10 +12,10 @@ from PIL import Image, ImageDraw
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.app import MainWindow
-from pixelheart.theme import apply_theme
-from pixelheart_core.projects import new_project
-from pixelheart_core.story import new_event, new_beat
+from meetcute.app import MainWindow
+from meetcute.theme import apply_theme
+from meetcute_core.projects import new_project
+from meetcute_core.story import new_event, new_beat
 from tests.qt_support import QtTestCase
 
 
@@ -33,7 +33,7 @@ class StoryVisualPreviewTests(QtTestCase):
         self.event = new_event(self.document["character"], "first_meeting")
         self.event["story"]["beats"][0]["text"] = "Welcome, ${sir^ma'am}$ @!$h"
         self.document["character"]["events"] = [self.event]
-        self.settings = patch("pixelheart.game_import.game_import_settings", return_value=SimpleNamespace(value=lambda *_: str(self.root)))
+        self.settings = patch("meetcute.game_import.game_import_settings", return_value=SimpleNamespace(value=lambda *_: str(self.root)))
         self.settings.start()
 
     def tearDown(self):
@@ -156,7 +156,7 @@ class StoryVisualPreviewTests(QtTestCase):
         self.assertTrue(self.window.title_label.isHidden())
 
     def test_preloaded_scenes_can_be_removed_and_restored_without_legacy_editors(self):
-        from pixelheart_core.romance import new_romance_events
+        from meetcute_core.romance import new_romance_events
         document = new_project()
         document["character"]["events"] = new_romance_events(document["character"])
         self.window.load_document(document)

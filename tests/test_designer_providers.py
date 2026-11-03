@@ -7,10 +7,10 @@ import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 
-from pixelheart_designer.anthropic_provider import AnthropicProvider, anthropic_error, anthropic_reply, anthropic_request
-from pixelheart_designer.providers import (LocalServerProvider, ProviderError, StreamCancelled, Text, ToolCall, ToolResult,
+from meetcute_designer.anthropic_provider import AnthropicProvider, anthropic_error, anthropic_reply, anthropic_request
+from meetcute_designer.providers import (LocalServerProvider, ProviderError, StreamCancelled, Text, ToolCall, ToolResult,
                                            Turn, local_error, local_reply, local_request_body)
-from pixelheart_designer.tools import tool_specs
+from meetcute_designer.tools import tool_specs
 
 
 class FakeStream:
@@ -92,7 +92,7 @@ class LocalProviderTests(unittest.TestCase):
 
     def test_complete_posts_and_replays_raw_assistant_message(self):
         payload = {"choices": [{"finish_reason": "stop", "message": {"content": "Hi there"}}]}
-        with patch("pixelheart_designer.providers.urlopen", return_value=FakeResponse(payload)) as opened:
+        with patch("meetcute_designer.providers.urlopen", return_value=FakeResponse(payload)) as opened:
             reply = self.provider.complete(system="S", tools=[], turns=self.turns[:1])
         self.assertEqual(reply.content, [Text("Hi there")])
         self.assertEqual(reply.raw["provider"], "local")
@@ -113,7 +113,7 @@ class LocalProviderTests(unittest.TestCase):
                              chunk({}, finish_reason="tool_calls", usage={"total_tokens": 9}), "\n",
                              "data: [DONE]\n", "\n"])
         heard = []
-        with patch("pixelheart_designer.providers.urlopen", return_value=stream) as opened:
+        with patch("meetcute_designer.providers.urlopen", return_value=stream) as opened:
             reply = self.provider.complete(system="S", tools=tool_specs(), turns=self.turns[:1], on_text=heard.append)
         body = json.loads(opened.call_args.args[0].data)
         self.assertIs(body["stream"], True)
@@ -128,11 +128,11 @@ class LocalProviderTests(unittest.TestCase):
         stream = FakeStream([chunk({"tool_calls": [{"id": "a", "type": "function", "function": {"name": "read_character", "arguments": "{}"}}]}),
                              chunk({"tool_calls": [{"id": "b", "type": "function", "function": {"name": "list_places", "arguments": {}}}]}),
                              chunk({}, finish_reason="tool_calls"), "data: [DONE]\n"])
-        with patch("pixelheart_designer.providers.urlopen", return_value=stream):
+        with patch("meetcute_designer.providers.urlopen", return_value=stream):
             reply = self.provider.complete(system="S", tools=tool_specs(), turns=self.turns[:1], on_text=lambda piece: None)
         self.assertEqual(reply.content, [ToolCall("a", "read_character", {}), ToolCall("b", "list_places", {})])
         payload = {"choices": [{"finish_reason": "stop", "message": {"content": "Hi there"}}]}
-        with patch("pixelheart_designer.providers.urlopen", return_value=FakeStream([json.dumps(payload)], "application/json")):
+        with patch("meetcute_designer.providers.urlopen", return_value=FakeStream([json.dumps(payload)], "application/json")):
             reply = self.provider.complete(system="S", tools=[], turns=self.turns[:1], on_text=lambda piece: None)
         self.assertEqual((reply.content, reply.stop), ([Text("Hi there")], "done"))
 
@@ -147,7 +147,7 @@ class LocalProviderTests(unittest.TestCase):
         stream = FakeStream([chunk({"role": "assistant", "content": ""}), chunk({"content": "The user wants"}),
                              chunk({"content": " a greeting.\n</thi"}), chunk({"content": "nk>\n\nHi"}), chunk({"content": " there"}),
                              chunk({}, finish_reason="stop"), "data: [DONE]\n"])
-        with patch("pixelheart_designer.providers.urlopen", return_value=stream):
+        with patch("meetcute_designer.providers.urlopen", return_value=stream):
             reply = self.provider.complete(system="S", tools=[], turns=self.turns[:1], on_text=lambda piece: None)
         self.assertEqual((reply.content, reply.stop), ([Text("Hi there")], "done"))
         turns = self.turns[:1] + [Turn("assistant", reply.content, raw=reply.raw)]
@@ -166,7 +166,7 @@ class LocalProviderTests(unittest.TestCase):
     def test_a_server_that_refuses_streaming_is_asked_plainly_from_then_on(self):
         payload = {"choices": [{"finish_reason": "stop", "message": {"content": "Plain"}}]}
         refused = http_error(400, b'{"error": {"message": "Cannot use tools with stream"}}')
-        with patch("pixelheart_designer.providers.urlopen", side_effect=[refused, FakeResponse(payload), FakeResponse(payload)]) as opened:
+        with patch("meetcute_designer.providers.urlopen", side_effect=[refused, FakeResponse(payload), FakeResponse(payload)]) as opened:
             first = self.provider.complete(system="S", tools=tool_specs(), turns=self.turns[:1], on_text=lambda piece: None)
             second = self.provider.complete(system="S", tools=tool_specs(), turns=self.turns[:1], on_text=lambda piece: None)
         refused.close()
@@ -179,7 +179,7 @@ class LocalProviderTests(unittest.TestCase):
         def stop(piece):
             raise StreamCancelled()
 
-        with patch("pixelheart_designer.providers.urlopen", return_value=stream):
+        with patch("meetcute_designer.providers.urlopen", return_value=stream):
             with self.assertRaises(StreamCancelled):
                 self.provider.complete(system="S", tools=[], turns=self.turns[:1], on_text=stop)
         self.assertTrue(stream.closed)
@@ -187,7 +187,7 @@ class LocalProviderTests(unittest.TestCase):
     def test_error_mapping(self):
         cases = [(URLError("refused"), "not_running",
                   "Nothing is answering at http://localhost:8080/v1. Start your model server, then try again."),
-                 (http_error(401), "auth", "Pixelheart couldn't sign in to the model server. Check the key in Set up AI designer."),
+                 (http_error(401), "auth", "MEETC#TE couldn't sign in to the model server. Check the key in Set up AI designer."),
                  (http_error(404, b'{"error": {"message": "model not found"}}'), "model",
                   "qwen2.5:7b isn't available. Check the model name in Set up AI designer."),
                  (http_error(400, b'{"error": {"message": "does not support tools"}}'), "no_tools",
@@ -208,10 +208,10 @@ class LocalProviderTests(unittest.TestCase):
                          ("not_running", "Nothing answered at http://localhost:8080 for that request. Check the address; it usually ends in /v1."))
 
     def test_check_lists_models(self):
-        with patch("pixelheart_designer.providers.urlopen", return_value=FakeResponse({"data": [{"id": "qwen2.5:7b"}, {"id": "llama3"}]})) as opened:
+        with patch("meetcute_designer.providers.urlopen", return_value=FakeResponse({"data": [{"id": "qwen2.5:7b"}, {"id": "llama3"}]})) as opened:
             self.assertEqual(self.provider.check(), "Connected · 2 models available")
         self.assertEqual(opened.call_args.kwargs["timeout"], 10.0)   # a check must not hang for five minutes
-        with patch("pixelheart_designer.providers.urlopen", return_value=FakeResponse({"data": [{"id": "/models/Qwen2.5-7B-Instruct-Q4_K_M.gguf"}]})):
+        with patch("meetcute_designer.providers.urlopen", return_value=FakeResponse({"data": [{"id": "/models/Qwen2.5-7B-Instruct-Q4_K_M.gguf"}]})):
             self.assertEqual(self.provider.check(),
                              "Connected · serving /models/Qwen2.5-7B-Instruct-Q4_K_M.gguf · the model field doesn't match it, "
                              "which llama-server ignores but mlx_lm.server needs.")
@@ -357,7 +357,7 @@ class AnthropicProviderTests(unittest.TestCase):
         def status(cls, code):
             return cls("msg", response=httpx2.Response(code, request=request), body={"error": {"message": "detail"}})
 
-        cases = [(status(anthropic.AuthenticationError, 401), "auth", "Pixelheart couldn't sign in to Anthropic. Check the API key in Set up AI designer."),
+        cases = [(status(anthropic.AuthenticationError, 401), "auth", "MEETC#TE couldn't sign in to Anthropic. Check the API key in Set up AI designer."),
                  (status(anthropic.NotFoundError, 404), "model", "claude-opus-5-5 isn't available. Check the model name in Set up AI designer."),
                  (status(anthropic.RateLimitError, 429), "rate_limit", "Anthropic asked us to slow down. Try again in a minute."),
                  (status(anthropic.InternalServerError, 500), "server", "The provider returned an error: msg"),
@@ -369,7 +369,7 @@ class AnthropicProviderTests(unittest.TestCase):
     def test_unresolved_credentials_map_to_auth(self):
         exc = TypeError("Could not resolve authentication method. Expected one of api_key, auth_token, or credentials to be set.")
         error = anthropic_error(exc, "claude-opus-5-5")
-        self.assertEqual((error.kind, error.message), ("auth", "Pixelheart couldn't sign in to Anthropic. Check the API key in Set up AI designer."))
+        self.assertEqual((error.kind, error.message), ("auth", "MEETC#TE couldn't sign in to Anthropic. Check the API key in Set up AI designer."))
 
     def test_missing_sdk_is_not_configured_at_first_use_not_at_startup(self):
         with patch.dict(sys.modules, {"anthropic": None}):

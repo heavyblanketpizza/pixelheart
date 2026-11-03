@@ -27,13 +27,13 @@ def game_fixture(root, assets):
         (root / 'Data/Events' / (location + '.xnb')).write_bytes(dictionary_xnb(rows))
     return root
 
-from pixelheart_core.vanilla_story import (
+from meetcute_core.vanilla_story import (
     VANILLA_NPCS, VanillaStoryError, load_vanilla_story, apply_vanilla_story, clear_vanilla_cache,
     preview_vanilla_initialization, initialize_vanilla_story,
 )
-from pixelheart_core.xnb_preview import string_dictionary, decode_xnb, XnbError
-from pixelheart_core.projects import new_project, untouched_story_starter
-from pixelheart_core.story import event_issues, compile_story
+from meetcute_core.xnb_preview import string_dictionary, decode_xnb, XnbError
+from meetcute_core.projects import new_project, untouched_story_starter
+from meetcute_core.story import event_issues, compile_story
 
 
 def scene(name='Abigail', commands='speak Abigail "Good morning."/end', *, x=5):
@@ -252,7 +252,7 @@ class VanillaStoryTests(unittest.TestCase):
             self.assertEqual(character, before)
 
     def test_initialization_reports_replacement_and_preserves_nonstory_data(self):
-        from pixelheart_core.story import new_relationship
+        from meetcute_core.story import new_relationship
         bundle = self.load({'Town': {'a/f Abigail 500': scene(), 'b/f Abigail 1000/e a': scene()}})
         keys = [entry['key'] for entry in bundle['events']]
         character = new_project(story_starter='romance')['character']
@@ -285,7 +285,7 @@ class VanillaStoryTests(unittest.TestCase):
         self.assertEqual(initialize_vanilla_story(result, bundle, keys), result)
 
     def test_initialization_blocks_all_missing_life_links_including_disabled(self):
-        from pixelheart_core.life import new_life_record
+        from meetcute_core.life import new_life_record
         bundle = self.load({'Town': {'a/f Abigail 500': scene()}})
         keys = [bundle['events'][0]['key']]
         character = new_project(story_starter='friendship')['character']
@@ -310,7 +310,7 @@ class VanillaStoryTests(unittest.TestCase):
         self.assertEqual(character, before)
 
     def test_initialization_preserves_exact_surviving_life_ids_and_warns_readiness(self):
-        from pixelheart_core.life import new_life_record, life_issues
+        from meetcute_core.life import new_life_record, life_issues
         bundle = self.load({'Town': {'a/f Abigail 500': scene(), 'b/f Abigail 1000/e a': scene()}})
         keys = [entry['key'] for entry in bundle['events']]
         character = initialize_vanilla_story(new_project()['character'], bundle, keys)
@@ -334,7 +334,7 @@ class VanillaStoryTests(unittest.TestCase):
         self.assertTrue(any(issue['field'] == 'life.dialogues.0.conditions.after_event_id' for issue in life_issues(result)))
 
     def test_initialization_rechecks_dependencies_and_rejects_invalid_selections_atomically(self):
-        from pixelheart_core.life import new_life_record
+        from meetcute_core.life import new_life_record
         bundle = self.load({'Town': {'a/f Abigail 500': scene()}})
         keys = [bundle['events'][0]['key']]
         character = new_project(story_starter='friendship')['character']

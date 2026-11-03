@@ -3,7 +3,7 @@
 from copy import deepcopy
 import unittest
 
-from pixelheart_core.project_history import ProjectHistory
+from meetcute_core.project_history import ProjectHistory
 
 
 def project(name="Mira", room_name="Kitchen"):

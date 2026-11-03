@@ -13,8 +13,8 @@ from PySide6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDragMoveEvent, QDro
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.interior_canvas import FURNITURE_MIME
-from pixelheart.interior_editor import InteriorEditor
+from meetcute.interior_canvas import FURNITURE_MIME
+from meetcute.interior_editor import InteriorEditor
 from tests.test_interior_decorating_flow import make_library
 from tests.qt_support import QtTestCase
 
@@ -29,11 +29,11 @@ class InteriorFurnitureDragTests(QtTestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def setUp(self):
-        self.directory = self.enterContext(tempfile.TemporaryDirectory(prefix="pixelheart-furniture-drag-"))
+        self.directory = self.enterContext(tempfile.TemporaryDirectory(prefix="meetcute-furniture-drag-"))
         self.root = Path(self.directory)
         self.library = make_library(self.root / "library")
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
         self.dialogs = []
 
     def tearDown(self):
@@ -58,8 +58,8 @@ class InteriorFurnitureDragTests(QtTestCase):
         dialog.show()
         self.app.processEvents()
         if not dialog.catalog_list.count():
-            with patch("pixelheart_core.interior_furniture.discover_furniture_libraries", return_value=[self.library]), \
-                    patch("pixelheart.interior_editor.QDialog.exec", return_value=0):
+            with patch("meetcute_core.interior_furniture.discover_furniture_libraries", return_value=[self.library]), \
+                    patch("meetcute.interior_editor.QDialog.exec", return_value=0):
                 QTest.mouseClick(dialog.library_welcome_button, Qt.MouseButton.LeftButton)
             self.app.processEvents()
         self.assertEqual(dialog.catalog_list.count(), 1)
@@ -126,7 +126,7 @@ class InteriorFurnitureDragTests(QtTestCase):
         library = dialog.catalog_list
         start = library.visualItemRect(library.item(0)).center()
         destination = start + QPoint(QApplication.startDragDistance() + 12, 0)
-        with patch("pixelheart.interior_editor.QDrag", Drag):
+        with patch("meetcute.interior_editor.QDrag", Drag):
             QTest.mousePress(library.viewport(), Qt.MouseButton.LeftButton, pos=start)
             QTest.mouseMove(library.viewport(), start + QPoint(1, 0))
             self.assertNotIn("started", captured)
@@ -373,7 +373,7 @@ class InteriorFurnitureDragTests(QtTestCase):
             move = self.dispatch(QDragMoveEvent, dialog, source, mime, 6, 7)
             self.assertTrue(move.isAccepted())
             self.assertTrue(dialog.canvas.ghost["valid"])
-            with patch("pixelheart.interior_editor.InteriorDraft.place_furniture", side_effect=ValueError("Placement changed while dragging")):
+            with patch("meetcute.interior_editor.InteriorDraft.place_furniture", side_effect=ValueError("Placement changed while dragging")):
                 drop = self.dispatch(QDropEvent, dialog, source, mime, 6, 7)
             self.assertFalse(drop.isAccepted())
             self.assertEqual(self.state(dialog), before)

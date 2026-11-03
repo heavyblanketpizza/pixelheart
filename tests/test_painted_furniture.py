@@ -7,9 +7,9 @@ import unittest
 
 from PIL import Image
 
-from pixelheart_core.interior_furniture import FurnitureValidationError, definition_assets, validate_definition
-from pixelheart_core.interiors import interior_asset_references, new_interior
-from pixelheart_core.painted_furniture import (
+from meetcute_core.interior_furniture import FurnitureValidationError, definition_assets, validate_definition
+from meetcute_core.interiors import interior_asset_references, new_interior
+from meetcute_core.painted_furniture import (
     LOCAL_PREFIX, PaintedFurnitureError, build_painted, game_extras, painted_front_png, painted_texture_png,
     paintable, painting_box, painting_canvas,
 )

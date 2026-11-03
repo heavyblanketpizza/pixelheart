@@ -7,7 +7,7 @@ import unittest
 
 from PIL import Image
 
-from pixelheart_core.local_templates import (
+from meetcute_core.local_templates import (
     GAME_SOURCE, LocalTemplateError, game_villagers, load_game_artwork, load_game_dialogue,
 )
 from tests.test_game_scene_assets import container

@@ -9,13 +9,13 @@ import zipfile
 
 from PIL import Image
 
-from pixelheart_core.pixel_document import PixelDocument
-from pixelheart_core.pixel_layers import (
+from meetcute_core.pixel_document import PixelDocument
+from meetcute_core.pixel_layers import (
     LayerFileError, blank_painting, copy_layer_files, layer_reference, load_layers, open_painting, read_ora,
     save_layers, write_ora,
 )
-from pixelheart_core.pixel_raster import brush_mask
-from pixelheart_core.pixel_sheets import encode_png
+from meetcute_core.pixel_raster import brush_mask
+from meetcute_core.pixel_sheets import encode_png
 
 RED = (220, 40, 40, 255)
 GHOST = (10, 200, 90, 128)
@@ -121,7 +121,7 @@ class OpenRasterTests(unittest.TestCase):
 
 class LayerStoreTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-layers-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="meetcute-layers-")
         self.root = Path(self.temporary.name) / "project"
         self.root.mkdir()
         self.document = sample_document()
@@ -178,7 +178,7 @@ class LayerStoreTests(unittest.TestCase):
 
 class OpenPaintingTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-open-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="meetcute-open-")
         self.root = Path(self.temporary.name)
 
     def tearDown(self):

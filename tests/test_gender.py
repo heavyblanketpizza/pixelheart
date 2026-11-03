@@ -10,9 +10,9 @@ import zipfile
 
 from PIL import Image
 
-from pixelheart_core.exporting import ExportValidationError, build_mod_archive, validate_character
-from pixelheart_core.projects import ProjectError, load_project, new_project, save_project
-from pixelheart_core.validation import DraftValidationError, GENDERS, validate_draft
+from meetcute_core.exporting import ExportValidationError, build_mod_archive, validate_character
+from meetcute_core.projects import ProjectError, load_project, new_project, save_project
+from meetcute_core.validation import DraftValidationError, GENDERS, validate_draft
 
 
 class GenderTests(unittest.TestCase):
@@ -60,7 +60,7 @@ class GenderTests(unittest.TestCase):
                     elif envelope == "unversioned":
                         legacy = {"character": character}
                     else:
-                        legacy = {"format": "pixelheart-project", "version": 0 if envelope == "zero" else 1,
+                        legacy = {"format": "meetcute-project", "version": 0 if envelope == "zero" else 1,
                                   "character": character}
                     self.file.write_text(json.dumps(legacy), encoding="utf-8")
                     loaded = load_project(self.file)["character"]

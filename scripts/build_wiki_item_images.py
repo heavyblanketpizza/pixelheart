@@ -29,7 +29,7 @@ API_URL = f"{HOST}/mediawiki/api.php"
 PINNED_TABLE_URL = f"{API_URL}?" + urlencode({
     "action": "parse", "format": "json", "oldid": str(TABLE_REVISION), "prop": "text",
 })
-USER_AGENT = "Pixelheart/0.1 (item image metadata generator; no artwork redistribution)"
+USER_AGENT = "MeetCute/0.1 (item image metadata generator; no artwork redistribution)"
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 
 # Naming aliases verified against each item's wiki page and the imageinfo API.
@@ -187,7 +187,7 @@ def build(catalog, cache_dir=None):
         filenames[item_id] = filename
     verified = verified_images(filenames.values(), cache_dir)
     return {
-        "format": "pixelheart-wiki-item-images", "version": 1,
+        "format": "meetcute-wiki-item-images", "version": 1,
         "source_url": TABLE_URL, "source_revision": TABLE_REVISION,
         "attribution": "Item artwork by ConcernedApe; image links from Stardew Valley Wiki. No image bytes are bundled.",
         "items": {item_id: verified[filename] for item_id, filename in filenames.items()},
@@ -197,8 +197,8 @@ def build(catalog, cache_dir=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--catalog", type=Path, default=ROOT / "pixelheart_core/data/vanilla_items.json")
-    parser.add_argument("--output", type=Path, default=ROOT / "pixelheart_core/data/wiki_item_images.json")
+    parser.add_argument("--catalog", type=Path, default=ROOT / "meetcute_core/data/vanilla_items.json")
+    parser.add_argument("--output", type=Path, default=ROOT / "meetcute_core/data/wiki_item_images.json")
     parser.add_argument("--metadata-cache", type=Path, help="Optional directory for HTML/API metadata responses; artwork is never fetched.")
     args = parser.parse_args()
     catalog = json.loads(args.catalog.read_text(encoding="utf-8"))

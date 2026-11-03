@@ -15,8 +15,8 @@ from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QApplication, QWidget
 from shiboken6 import isValid
 
-from pixelheart.artwork_browser import DIRECTIONS, SheetBrowser
-from pixelheart_core.artwork import ArtworkValidationError
+from meetcute.artwork_browser import DIRECTIONS, SheetBrowser
+from meetcute_core.artwork import ArtworkValidationError
 from tests.qt_support import QtTestCase
 
 
@@ -26,7 +26,7 @@ class SheetBrowserTests(QtTestCase):
         cls.application = QApplication.instance() or QApplication([])
 
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-frames-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="meetcute-frames-")
         self.root = Path(self.temporary.name)
         self.widgets = []
 
@@ -194,7 +194,7 @@ class SheetBrowserTests(QtTestCase):
         self.assertTrue(browser.pixmap.isNull())
         self.assertEqual(browser.frame_count, 0)
         self.assertIn("cannot be read", browser.hint.text())
-        with patch("pixelheart.artwork_browser.inspect_artwork", side_effect=ArtworkValidationError("Rejected before display")), patch("pixelheart.artwork_browser.QPixmap", wraps=QPixmap) as pixmap:
+        with patch("meetcute.artwork_browser.inspect_artwork", side_effect=ArtworkValidationError("Rejected before display")), patch("meetcute.artwork_browser.QPixmap", wraps=QPixmap) as pixmap:
             browser.set_image(path)
             self.assertTrue(all(not call.args for call in pixmap.call_args_list))
         self.assertIn("Rejected before display", browser.hint.text())

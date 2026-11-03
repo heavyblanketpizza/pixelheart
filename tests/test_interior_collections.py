@@ -12,11 +12,11 @@ from unittest.mock import patch
 from PySide6.QtCore import QEvent, QSettings, Qt
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.interior_editor import InteriorEditor
-from pixelheart_core.interior_furniture import (
+from meetcute.interior_editor import InteriorEditor
+from meetcute_core.interior_furniture import (
     FurnitureValidationError, import_furniture_library, interaction_layouts, validate_definition,
 )
-from pixelheart_core.interiors import new_interior, normalize_interior
+from meetcute_core.interiors import new_interior, normalize_interior
 from tests.qt_support import QtTestCase
 
 
@@ -83,7 +83,7 @@ class FurnitureCollectionValidationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             library = root / "library.json"
-            library.write_text(json.dumps({"format": "pixelheart-interior-library", "version": 1,
+            library.write_text(json.dumps({"format": "meetcute-interior-library", "version": 1,
                                           "definitions": [activity_piece()]}))
             imported = import_furniture_library(library, root / "project")
             design = new_interior()
@@ -100,7 +100,7 @@ class FurnitureCollectionEditorTests(QtTestCase):
     def setUp(self):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
         design = new_interior()
         design["catalog"] = [activity_piece(), {"id": "Example.Chair", "name": "Chair", "kind": "chair",
                                              "footprint": [1, 1], "rotations": 2}]
@@ -146,7 +146,7 @@ class FurnitureCollectionEditorTests(QtTestCase):
             if blanks:
                 observation.update(dependency="", collection={}, interaction_profiles=[])
             source = self.root / "observed.json"
-            source.write_text(json.dumps({"format": "pixelheart-interior-library", "version": 1,
+            source.write_text(json.dumps({"format": "meetcute-interior-library", "version": 1,
                                           "definitions": [observation]}))
             self.assertTrue(dialog.load_catalog(source), dialog.status.text())
             for snapshot in [dialog.draft.data, *dialog.draft._undo, *dialog.draft._redo]:

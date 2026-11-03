@@ -13,9 +13,9 @@ from PIL import Image
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.interior_editor import InteriorEditor, FurnitureDetails
-from pixelheart_core.interior_furniture import preview_frame, validate_definition
-from pixelheart_core.interiors import InteriorDraft, render_interior
+from meetcute.interior_editor import InteriorEditor, FurnitureDetails
+from meetcute_core.interior_furniture import preview_frame, validate_definition
+from meetcute_core.interiors import InteriorDraft, render_interior
 from tests.qt_support import QtTestCase
 
 
@@ -30,7 +30,7 @@ class InteriorPreviewControlsTests(QtTestCase):
         self.project = self.root / "project" / "character.json"
         self.project.parent.mkdir()
         self.settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=self.settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=self.settings))
         self.dialogs = []
         with Image.new("RGBA", (64, 16), "#b02030") as image:
             image.paste("#20b030", (16, 0, 32, 16))
@@ -123,7 +123,7 @@ class InteriorPreviewControlsTests(QtTestCase):
     def test_paused_playback_keeps_frame_time_across_preview_changes(self):
         dialog = self.editor()
         self.choose(dialog.preview_lights, "on")
-        with patch("pixelheart.interior_editor.time.monotonic", side_effect=[10., 10.125]):
+        with patch("meetcute.interior_editor.time.monotonic", side_effect=[10., 10.125]):
             dialog.play.setChecked(True)
             dialog.advance_animation()
         dialog.play.setChecked(False)
@@ -137,7 +137,7 @@ class InteriorPreviewControlsTests(QtTestCase):
         self.assertEqual(dialog.canvas.elapsed_ms, 125)
         self.assertEqual(dialog.canvas.image.toImage(), paused)
         self.assertFalse(dialog.timer.isActive())
-        with patch("pixelheart.interior_editor.time.monotonic", side_effect=[20., 20.25]):
+        with patch("meetcute.interior_editor.time.monotonic", side_effect=[20., 20.25]):
             dialog.play.setChecked(True)
             dialog.advance_animation()
         dialog.play.setChecked(False)
@@ -151,9 +151,9 @@ class InteriorPreviewControlsTests(QtTestCase):
         identity = dialog.draft.data["furniture"][0]["id"]
         dialog.canvas.drag = (identity, 6, 7, 6, 7)
         dialog.canvas.cursor_tile = (7, 7)
-        with patch("pixelheart.interior_editor.render_interior", wraps=render_interior) as scene, \
-                patch("pixelheart.interior_canvas.render_interior", wraps=render_interior) as background, \
-                patch("pixelheart.interior_canvas.preview_frame", wraps=preview_frame) as ghost:
+        with patch("meetcute.interior_editor.render_interior", wraps=render_interior) as scene, \
+                patch("meetcute.interior_canvas.render_interior", wraps=render_interior) as background, \
+                patch("meetcute.interior_canvas.preview_frame", wraps=preview_frame) as ghost:
             dialog.render()
             dialog.canvas.grab()
         self.assertEqual(scene.call_args.kwargs["elapsed_ms"], 175)
@@ -170,7 +170,7 @@ class InteriorPreviewControlsTests(QtTestCase):
         dialog.canvas.catalogue_drag = (dialog.draft.data["catalog"][0], 0)
         dialog.canvas.cursor_tile = (8, 8)
         dialog.canvas._update_ghost()
-        with patch("pixelheart.interior_canvas.preview_frame", wraps=preview_frame) as ghost:
+        with patch("meetcute.interior_canvas.preview_frame", wraps=preview_frame) as ghost:
             dialog.canvas.grab()
         self.assertEqual(ghost.call_args.kwargs, {"time_of_day": "night", "lights_on": False})
 
@@ -193,7 +193,7 @@ class InteriorPreviewControlsTests(QtTestCase):
                       "footprint": [1, 1], "rotations": 1, "preview_asset": "replacement.png",
                       "frames": [{"rotation": 0, "rect": [0, 0, 16, 16], "duration_ms": 100}]}
         library = self.root / "library.json"
-        library.write_text(json.dumps({"format": "pixelheart-interior-library", "version": 1,
+        library.write_text(json.dumps({"format": "meetcute-interior-library", "version": 1,
                                        "definitions": [definition]}))
         self.assertTrue(dialog.load_catalog(library))
         refreshed = dialog.draft.data["catalog"][0]
@@ -208,7 +208,7 @@ class InteriorPreviewControlsTests(QtTestCase):
                       "footprint": [1, 1], "rotations": 1,
                       "preview_variants": {}, "preview_lights": []}
         library = self.root / "library.json"
-        library.write_text(json.dumps({"format": "pixelheart-interior-library", "version": 1,
+        library.write_text(json.dumps({"format": "meetcute-interior-library", "version": 1,
                                        "definitions": [definition]}))
         self.assertTrue(dialog.load_catalog(library))
         refreshed = dialog.draft.data["catalog"][0]
@@ -226,7 +226,7 @@ class InteriorPreviewControlsTests(QtTestCase):
         definition = {"id": "Test.PreviewLamp", "name": "Replacement", "kind": "lamp",
                       "footprint": [1, 1], "rotations": 1, "preview_asset": "smaller.png", "frames": []}
         library = self.root / "library.json"
-        library.write_text(json.dumps({"format": "pixelheart-interior-library", "version": 1,
+        library.write_text(json.dumps({"format": "meetcute-interior-library", "version": 1,
                                        "definitions": [definition]}))
         self.assertTrue(dialog.load_catalog(library))
         self.assertEqual(dialog.draft.data["catalog"][0]["frames"], [])

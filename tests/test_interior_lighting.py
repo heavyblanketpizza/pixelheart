@@ -8,9 +8,9 @@ from unittest.mock import patch
 
 from PIL import Image
 
-from pixelheart_core.interior_furniture import clear_preview_cache
-from pixelheart_core.interior_lighting import apply_preview_lighting
-from pixelheart_core.interiors import (
+from meetcute_core.interior_furniture import clear_preview_cache
+from meetcute_core.interior_lighting import apply_preview_lighting
+from meetcute_core.interiors import (
     InteriorDraft, floor_cells, new_interior, normalize_interior, render_interior, wall_cells,
 )
 
@@ -124,7 +124,7 @@ class InteriorLightingTests(unittest.TestCase):
             data = self.design(lights=[light(offset=offset)])
             with self.subTest(offset=offset), self.input_image(data) as image:
                 with apply_preview_lighting(image, data, self.root, lights_on=False) as off:
-                    with patch("pixelheart_core.interior_lighting._preview_atlas", side_effect=AssertionError("Off-canvas mask loaded")):
+                    with patch("meetcute_core.interior_lighting._preview_atlas", side_effect=AssertionError("Off-canvas mask loaded")):
                         with apply_preview_lighting(image, data, self.root) as on:
                             self.assert_same(on, off)
 

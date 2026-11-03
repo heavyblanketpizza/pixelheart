@@ -9,7 +9,9 @@ world_assets/
 [Ee][Xx][Pp][Oo][Rr][Tt][Ss]/
 [Mm][Oo][Dd][Ss]/
 [[]CP[]] */
+MEETC#TE backups/
 Pixelheart backups/
+.meetcute-stage-*/
 .pixelheart-stage-*/
 
 # User-selected save/export paths are private too; allow only bundled catalogs.
@@ -22,9 +24,9 @@ Pixelheart backups/
 *.tiled-project
 *.tiled-session
 *.tmp
-!/pixelheart_core/data/vanilla_items.json
-!/pixelheart_core/data/wiki_item_images.json
-!/runtime/Pixelheart.Interiors/ArchitectureRecipes.json
+!/meetcute_core/data/vanilla_items.json
+!/meetcute_core/data/wiki_item_images.json
+!/runtime/MeetCute.Interiors/ArchitectureRecipes.json
 
 # Custom portraits, sprites, tilesheets and editable artwork are user data.
 *.[pP][nN][gG]
@@ -43,10 +45,10 @@ Pixelheart backups/
 *.[oO][rR][aA]
 *.[xX][cC][fF]
 # Approved public artwork: the README banner and application UI icons only.
-!/docs/assets/pixelheart-banner.png
-!/pixelheart/resources/checkmark.svg
-!/pixelheart/resources/chevron.svg
-!/pixelheart/resources/chevron-up.svg
+!/docs/assets/meetcute-banner.png
+!/meetcute/resources/checkmark.svg
+!/meetcute/resources/chevron.svg
+!/meetcute/resources/chevron-up.svg
 
 .wiki-artwork/
 # Runtime item image caches belong outside the checkout.
@@ -77,7 +79,7 @@ secrets/
 *.[mM][dD]
 *.[mM][aA][rR][kK][dD][oO][wW][nN]
 !/README.md
-!/pixelheart_core/data/README.md
+!/meetcute_core/data/README.md
 
 # Internal agent workspaces and prompt material stay local, in any file format.
 .codex/

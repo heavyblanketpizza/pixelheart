@@ -5,13 +5,13 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from pixelheart_core.projects import load_project, new_project, save_project
-from pixelheart_core.story import (
+from meetcute_core.projects import load_project, new_project, save_project
+from meetcute_core.story import (
     StoryValidationError, compile_story, event_game_id, event_issues, exported_npc_id,
     new_actor, new_beat, new_event, new_relationship, normalize_event,
     normalize_relationship, relationship_events, story_issues,
 )
-from pixelheart_core.validation import DraftValidationError, validate_draft
+from meetcute_core.validation import DraftValidationError, validate_draft
 
 
 class StoryTests(unittest.TestCase):

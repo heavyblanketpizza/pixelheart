@@ -14,9 +14,9 @@ from PySide6.QtCore import QPoint, QSettings, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QTableWidgetItem
 
-from pixelheart.interior_editor import InteriorEditor, FurnitureDetails
-from pixelheart_core.interiors import new_interior
-from pixelheart_core.interior_furniture import validate_definition, attach_texture
+from meetcute.interior_editor import InteriorEditor, FurnitureDetails
+from meetcute_core.interiors import new_interior
+from meetcute_core.interior_furniture import validate_definition, attach_texture
 from tests.qt_support import QtTestCase
 
 
@@ -29,7 +29,7 @@ class InteriorEditorTests(QtTestCase):
         self.directory = self.enterContext(tempfile.TemporaryDirectory())
         self.root = Path(self.directory)
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
         self.project = self.root / "project" / "character.json"
         self.sheet = self.root / "sheet.png"
         image = Image.new("RGBA", (64, 16), "#556677")
@@ -188,7 +188,7 @@ class InteriorEditorTests(QtTestCase):
         dialog.animation_duration.setValue(100)
         dialog.apply_animation()
         self.assertEqual(len(dialog.draft.data["animations"]), 1)
-        with patch("pixelheart.interior_editor.time.monotonic", side_effect=[10.0, 10.125]):
+        with patch("meetcute.interior_editor.time.monotonic", side_effect=[10.0, 10.125]):
             dialog.play.setChecked(True)
             dialog.advance_animation()
         self.assertEqual(dialog.elapsed_ms, 125)

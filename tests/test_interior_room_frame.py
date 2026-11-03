@@ -14,15 +14,15 @@ from PIL import Image
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.interior_editor import InteriorEditor
-from pixelheart_core.interior_surface_design import (
+from meetcute.interior_editor import InteriorEditor
+from meetcute_core.interior_surface_design import (
     apply_surface, stage_room_frame, stage_surface_library,
 )
-from pixelheart_core.interiors import (
+from meetcute_core.interiors import (
     InteriorError, floor_cells, interior_tmx, map_layers, new_interior,
     normalize_interior, render_interior,
 )
-from pixelheart_core.world import asset_path
+from meetcute_core.world import asset_path
 from tests.qt_support import QtTestCase
 
 
@@ -39,7 +39,7 @@ class InteriorRoomFrameTests(QtTestCase):
     def setUp(self):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=self.settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=self.settings))
         self.dialogs = []
         self.frame_colors = {role: (20 + index * 20, 220 - index * 15, 55 + index * 11, 255)
                              for index, role in enumerate(ROLES)}
@@ -202,7 +202,7 @@ class InteriorRoomFrameTests(QtTestCase):
         library = self.root / "library"
         frame = self.frame(library)
         (library / "library.json").write_text(json.dumps({
-            "format": "pixelheart-interior-library", "version": 1,
+            "format": "meetcute-interior-library", "version": 1,
             "definitions": [{"id": "(F)Replacement.Chair", "name": "Replacement chair", "kind": "chair",
                              "footprint": [1, 1], "rotations": 1}],
             "surfaces": [], "room_frame": frame,

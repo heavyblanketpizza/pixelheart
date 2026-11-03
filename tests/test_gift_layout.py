@@ -14,9 +14,9 @@ from PySide6.QtCore import QEvent
 from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.app import MainWindow, SECTION_INDEX
-from pixelheart.item_icons import ItemIconStore
-from pixelheart.theme import apply_theme
+from meetcute.app import MainWindow, SECTION_INDEX
+from meetcute.item_icons import ItemIconStore
+from meetcute.theme import apply_theme
 from tests.qt_support import QtTestCase
 
 
@@ -27,10 +27,10 @@ class GiftLayoutTests(QtTestCase):
         apply_theme(cls.app)
 
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-gift-layout-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="meetcute-gift-layout-")
         root = Path(self.temporary.name)
         store = ItemIconStore(root / "textures", root / "wiki-icons")
-        with patch("pixelheart.gifts_page.ItemIconStore", return_value=store):
+        with patch("meetcute.gifts_page.ItemIconStore", return_value=store):
             self.window = MainWindow()
         self.page = self.window.gifts
         self.window.navigation.setCurrentRow(SECTION_INDEX["gifts"])

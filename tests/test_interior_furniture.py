@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from PIL import Image
 
-from pixelheart_core.interior_furniture import (
+from meetcute_core.interior_furniture import (
     ROOM_FRAME_DOORWAY, ROOM_FRAME_JOINS, ROOM_FRAME_TILES, FurnitureValidationError, _read_texture,
     attach_texture, clear_preview_cache,
     definition_assets, frame_at,
@@ -106,7 +106,7 @@ class InteriorFurnitureTests(unittest.TestCase):
             with self.subTest(text=text), self.assertRaises(FurnitureValidationError):
                 read_native_catalog(path)
         path.write_bytes(b" " * 21)
-        with patch("pixelheart_core.interior_furniture.MAX_CATALOG_BYTES", 20):
+        with patch("meetcute_core.interior_furniture.MAX_CATALOG_BYTES", 20):
             with self.assertRaises(FurnitureValidationError):
                 read_native_catalog(path)
 
@@ -238,14 +238,14 @@ class InteriorFurnitureTests(unittest.TestCase):
         with self.assertRaisesRegex(FurnitureValidationError, "static PNG"):
             import_texture(path, self.project)
         self.texture(path)
-        with patch("pixelheart_core.interior_furniture.MAX_TEXTURE_PIXELS", 100):
+        with patch("meetcute_core.interior_furniture.MAX_TEXTURE_PIXELS", 100):
             with self.assertRaisesRegex(FurnitureValidationError, "pixel limit"):
                 import_texture(path, self.project)
 
     def test_total_texture_import_budget_is_enforced(self):
         folder = self.root / "textures"
         source = self.texture(folder / "Mods/Example/Lamp.png")
-        with patch("pixelheart_core.interior_furniture.MAX_IMPORT_BYTES", len(source.read_bytes()) - 1):
+        with patch("meetcute_core.interior_furniture.MAX_IMPORT_BYTES", len(source.read_bytes()) - 1):
             result = import_catalog_textures([self.definition()], folder, self.project)
         self.assertEqual(result["definitions"][0]["preview_asset"], "")
         self.assertIn("combined", result["warnings"][0])
@@ -260,7 +260,7 @@ class InteriorFurnitureTests(unittest.TestCase):
         self.assertEqual((self.project / reference).read_bytes(), b"unexpected")
 
     def library(self, definitions, **changes):
-        data = {"format": "pixelheart-interior-library", "version": 1,
+        data = {"format": "meetcute-interior-library", "version": 1,
                 "definitions": definitions}
         data.update(changes)
         return self.catalog(data)
@@ -358,7 +358,7 @@ class InteriorFurnitureTests(unittest.TestCase):
         (folder / "frame.png").symlink_to(outside)
         path = folder / "library.json"
         path.write_text(json.dumps({
-            "format": "pixelheart-interior-library", "version": 1,
+            "format": "meetcute-interior-library", "version": 1,
             "definitions": [self.definition(preview_asset="good.png")],
             "room_frame": self.room_frame(preview_asset="frame.png"),
         }))
@@ -375,7 +375,7 @@ class InteriorFurnitureTests(unittest.TestCase):
             ("MAX_IMPORT_TEXTURES", 1, "unique PNG"),
             ("MAX_IMPORT_BYTES", len(source.read_bytes()) + len(frame.read_bytes()) - 1, "combined"),
         ):
-            with self.subTest(setting=setting), patch("pixelheart_core.interior_furniture." + setting, limit):
+            with self.subTest(setting=setting), patch("meetcute_core.interior_furniture." + setting, limit):
                 with self.assertRaisesRegex(FurnitureValidationError, message):
                     import_furniture_library(path, self.project)
             self.assertEqual(list(self.project.iterdir()), [])
@@ -456,7 +456,7 @@ class InteriorFurnitureTests(unittest.TestCase):
         (folder / "linked.png").symlink_to(source)
         for reference in ("../outside.png", "linked.png", str(source)):
             path = folder / "furniture.json"
-            path.write_text(json.dumps({"format": "pixelheart-interior-library", "version": 1,
+            path.write_text(json.dumps({"format": "meetcute-interior-library", "version": 1,
                                         "definitions": [self.definition(preview_asset=reference)]}))
             with self.subTest(reference=reference), self.assertRaises(FurnitureValidationError):
                 import_furniture_library(path, self.project)
@@ -476,13 +476,13 @@ class InteriorFurnitureTests(unittest.TestCase):
     def test_library_aggregate_limits_and_missing_preview_metadata_are_explicit(self):
         source = self.texture(self.root / "textures/atlas.png")
         path = self.library([self.definition(preview_asset="textures/atlas.png")])
-        with patch("pixelheart_core.interior_furniture.MAX_IMPORT_BYTES", len(source.read_bytes()) - 1):
+        with patch("meetcute_core.interior_furniture.MAX_IMPORT_BYTES", len(source.read_bytes()) - 1):
             with self.assertRaisesRegex(FurnitureValidationError, "combined"):
                 import_furniture_library(path, self.project)
-        with patch("pixelheart_core.interior_furniture.MAX_IMPORT_TEXTURES", 0):
+        with patch("meetcute_core.interior_furniture.MAX_IMPORT_TEXTURES", 0):
             with self.assertRaisesRegex(FurnitureValidationError, "unique PNG"):
                 import_furniture_library(path, self.project)
-        with patch("pixelheart_core.interior_furniture.MAX_CATALOG_ITEMS", 0):
+        with patch("meetcute_core.interior_furniture.MAX_CATALOG_ITEMS", 0):
             with self.assertRaisesRegex(FurnitureValidationError, "definitions"):
                 import_furniture_library(path, self.project)
         self.assertEqual(list(self.project.iterdir()), [])
@@ -505,7 +505,7 @@ class InteriorFurnitureTests(unittest.TestCase):
 
     def test_preview_cache_decodes_shared_atlas_once_across_animation_frames(self):
         definition = attach_texture(self.definition(), self.texture(), self.project)
-        with patch("pixelheart_core.interior_furniture._read_texture", wraps=_read_texture) as decode:
+        with patch("meetcute_core.interior_furniture._read_texture", wraps=_read_texture) as decode:
             for elapsed in (0, 100, 200, 300):
                 with preview_frame(definition, self.project, elapsed_ms=elapsed) as image:
                     self.assertEqual(image.size, (16, 16))
@@ -514,7 +514,7 @@ class InteriorFurnitureTests(unittest.TestCase):
     def test_preview_cache_invalidates_changed_files_and_does_not_keep_bad_pixels(self):
         definition = attach_texture(self.definition(), self.texture(), self.project)
         path = self.project / definition["preview_asset"]
-        with patch("pixelheart_core.interior_furniture._read_texture", wraps=_read_texture) as decode:
+        with patch("meetcute_core.interior_furniture._read_texture", wraps=_read_texture) as decode:
             with preview_frame(definition, self.project) as image:
                 self.assertEqual(image.getpixel((0, 0)), (255, 0, 0, 255))
             with Image.new("RGBA", (32, 32), "purple") as changed:
@@ -534,8 +534,8 @@ class InteriorFurnitureTests(unittest.TestCase):
         second = attach_texture(self.definition(), path, self.project)
         for setting, limit in (("MAX_PREVIEW_CACHE_BYTES", 4096), ("MAX_PREVIEW_CACHE_ENTRIES", 1)):
             clear_preview_cache()
-            with patch("pixelheart_core.interior_furniture." + setting, limit):
-                with patch("pixelheart_core.interior_furniture._read_texture", wraps=_read_texture) as decode:
+            with patch("meetcute_core.interior_furniture." + setting, limit):
+                with patch("meetcute_core.interior_furniture._read_texture", wraps=_read_texture) as decode:
                     for definition in (first, second, first):
                         with preview_frame(definition, self.project) as image:
                             self.assertEqual(image.size, (16, 16))
@@ -543,8 +543,8 @@ class InteriorFurnitureTests(unittest.TestCase):
 
     def test_texture_larger_than_preview_budget_is_not_retained(self):
         definition = attach_texture(self.definition(), self.texture(), self.project)
-        with patch("pixelheart_core.interior_furniture.MAX_PREVIEW_CACHE_BYTES", 32):
-            with patch("pixelheart_core.interior_furniture._read_texture", wraps=_read_texture) as decode:
+        with patch("meetcute_core.interior_furniture.MAX_PREVIEW_CACHE_BYTES", 32):
+            with patch("meetcute_core.interior_furniture._read_texture", wraps=_read_texture) as decode:
                 for _ in range(2):
                     with preview_frame(definition, self.project) as image:
                         self.assertEqual(image.size, (16, 16))

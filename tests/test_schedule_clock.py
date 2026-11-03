@@ -6,7 +6,7 @@ import unittest
 
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.schedule_time import ScheduleTime, clock_label
+from meetcute.schedule_time import ScheduleTime, clock_label
 
 
 class ClockLabelTests(unittest.TestCase):
@@ -49,7 +49,7 @@ class SpinBoxValidationTests(unittest.TestCase):
 
     def test_partial_text_is_intermediate_not_an_error(self):
         from PySide6.QtGui import QValidator
-        from pixelheart.schedule_time import EventTime
+        from meetcute.schedule_time import EventTime
         box = EventTime()
         state, _, _ = box.validate("9:0", 3)
         self.assertEqual(state, QValidator.State.Intermediate)

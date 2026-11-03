@@ -1,20 +1,20 @@
-Pixelheart Source-Available License 1.1
+MEETC#TE Source-Available License 1.1
 September 19, 2026
 
-Copyright (c) 2026 the Pixelheart copyright holder. All rights reserved except as expressly
+Copyright (c) 2026 the MEETC#TE copyright holder. All rights reserved except as expressly
 granted below.
 
 1. Scope and unofficial status
 
-This license applies to the Pixelheart source code, executables, documentation,
+This license applies to the MEETC#TE source code, executables, documentation,
 and project-owned template material made available under these terms (the
-"Software"), to the extent owned by the Pixelheart copyright holder (the "Licensor").
+"Software"), to the extent owned by the MEETC#TE copyright holder (the "Licensor").
 Separately licensed third-party components and user-provided content are
 excluded.
 
-Pixelheart is a free, unofficial community tool for Stardew Valley, a game
+MEETC#TE is a free, unofficial community tool for Stardew Valley, a game
 developed by ConcernedApe (Eric Barone). The Licensor is a devoted fan, not a
-representative of ConcernedApe. Pixelheart is not affiliated with, sponsored by,
+representative of ConcernedApe. MEETC#TE is not affiliated with, sponsored by,
 or endorsed by ConcernedApe or ConcernedApe LLC. Stardew Valley, its original
 content, and its trademarks remain the property of their respective rights
 holders. This license grants no rights in those third-party works or marks.
@@ -38,28 +38,28 @@ crediting the author. You may freely share the official project or download link
 Commercial exploitation of the Software is prohibited under this license.
 You may not sell it, charge for access to it, paywall its source code or binaries,
 license it for a fee, incorporate its code in a monetized product, or run a paid
-or advertising-supported service based on it. You may not use Pixelheart to
+or advertising-supported service based on it. You may not use MEETC#TE to
 provide paid NPC-generation services or earn Donation Points from its code or
 project-owned material. Permission for noncommercial redistribution or reuse
 does not waive these commercial restrictions.
 
-This license does not permit converting Pixelheart or its project-owned
+This license does not permit converting MEETC#TE or its project-owned
 templates or assets for use in other games. It does not restrict using your
-independently owned artwork or characters elsewhere without Pixelheart material.
+independently owned artwork or characters elsewhere without MEETC#TE material.
 
 Permission requests for noncommercial redistribution or reuse should be directed
-to the Licensor through the official Pixelheart repository.
+to the Licensor through the official MEETC#TE repository.
 
 4. Free NPC packs and user content
 
 The Licensor claims no ownership of uploaded artwork, authored dialogue,
-character data, or other original user content merely because Pixelheart is
+character data, or other original user content merely because MEETC#TE is
 used. You may create, edit, and freely publish or share NPC packs for Stardew
-Valley without separate permission from the Licensor. Credit to Pixelheart for
+Valley without separate permission from the Licensor. Credit to MEETC#TE for
 creating an NPC pack is appreciated but optional; third-party credit requirements
 still apply.
 
-For Pixelheart-owned template material intentionally included in normal NPC
+For MEETC#TE-owned template material intentionally included in normal NPC
 exports, including JSON structures, starter dialogue, and pack documentation,
 you may use, copy, modify, and distribute that material as part of free Stardew
 Valley NPC packs and modified versions of those packs. Recipients receive the
@@ -67,23 +67,23 @@ same permission subject to these terms. Retain any supplied output-permission
 notice with the pack.
 
 You may not sell, paywall, require payment or a subscription for access to, or
-earn Donation Points from packs containing this Pixelheart-owned material.
+earn Donation Points from packs containing this MEETC#TE-owned material.
 These restrictions cover the tool and its material, not the independent rights
-you hold in original artwork or dialogue used outside Pixelheart. The output
+you hold in original artwork or dialogue used outside MEETC#TE. The output
 permission does not authorize distributing the editor, its source code, its
 executable, or a separate template library.
 
 5. Gameplay-video and livestream exception
 
-You may show NPC packs created with Pixelheart in Stardew Valley gameplay
+You may show NPC packs created with MEETC#TE in Stardew Valley gameplay
 videos, recordings, and livestreams, including monetized content. Advertising
 revenue, channel subscriptions, viewer tips, and sponsorship of that gameplay
-content are permitted under this exception. No separate Pixelheart permission
+content are permitted under this exception. No separate MEETC#TE permission
 is required.
 
-This exception permits the gameplay content and use of Pixelheart to prepare
+This exception permits the gameplay content and use of MEETC#TE to prepare
 NPCs for it. It does not permit selling or paywalling the tool, code, downloads,
-or Pixelheart-owned template material, and it does not grant Donation Points
+or MEETC#TE-owned template material, and it does not grant Donation Points
 permission for mod files. You must still have the necessary rights in uploaded
 artwork, music, other mods, and any other third-party material.
 
@@ -95,7 +95,7 @@ https://www.stardewvalley.net/stardew-monetization-policy-for-twitch-streamers-y
 Use and distribute only material you own or have permission to use. This
 license does not authorize piracy, infringement, unauthorized asset copying,
 misleading attribution, or false claims of official affiliation or endorsement.
-Pixelheart and its author do not support or endorse those uses.
+MEETC#TE and its author do not support or endorse those uses.
 
 Third-party components retain their own licenses. Nothing here replaces or
 restricts rights granted under those licenses. Authorized distributors must
@@ -117,7 +117,7 @@ or code reuse beyond what those terms or this license permit.
 
 All rights not expressly granted are reserved. No trademark rights or rights
 to imply endorsement by the Licensor or ConcernedApe are granted. These are
-Pixelheart's own terms; they do not purport to state a general policy on all
+MEETC#TE's own terms; they do not purport to state a general policy on all
 Stardew Valley mods or to grant rights on behalf of other creators.
 
 9. Disclaimer

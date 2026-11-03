@@ -7,16 +7,16 @@ import unittest
 
 from PIL import Image
 
-from pixelheart_core.interior_architecture import (
+from meetcute_core.interior_architecture import (
     architecture_candidate, architecture_cells, stage_architecture_library,
 )
-from pixelheart_core.interior_architecture_rules import architecture_rule_issues
-from pixelheart_core.interiors import InteriorError, new_interior
+from meetcute_core.interior_architecture_rules import architecture_rule_issues
+from meetcute_core.interiors import InteriorError, new_interior
 
 
 class NativeKitchenRecipeTests(unittest.TestCase):
     def test_sink_and_fridge_include_the_complete_native_top(self):
-        path = Path(__file__).resolve().parents[1] / "runtime/Pixelheart.Interiors/ArchitectureRecipes.json"
+        path = Path(__file__).resolve().parents[1] / "runtime/MeetCute.Interiors/ArchitectureRecipes.json"
         recipes = {piece["id"]: piece for piece in json.loads(path.read_text())["recipes"]}
         for identity, source_x, tiles in (
             ("stardew.sink", 38, (569, 601, 633)),
@@ -37,7 +37,7 @@ class NativeKitchenRecipeTests(unittest.TestCase):
                 )
 
     def test_incomplete_standalone_cabinet_is_not_exported(self):
-        path = Path(__file__).resolve().parents[1] / "runtime/Pixelheart.Interiors/ArchitectureRecipes.json"
+        path = Path(__file__).resolve().parents[1] / "runtime/MeetCute.Interiors/ArchitectureRecipes.json"
         recipes = json.loads(path.read_text())["recipes"]
         self.assertNotIn("stardew.wall-cabinet", {piece["id"] for piece in recipes})
 

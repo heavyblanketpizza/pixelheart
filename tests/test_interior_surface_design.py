@@ -6,9 +6,9 @@ import unittest
 
 from PIL import Image
 
-from pixelheart_core.interior_surface_design import apply_surface, stage_surface_library
-from pixelheart_core.interiors import InteriorError, import_atlas, new_interior
-from pixelheart_core.world import asset_path
+from meetcute_core.interior_surface_design import apply_surface, stage_surface_library
+from meetcute_core.interiors import InteriorError, import_atlas, new_interior
+from meetcute_core.world import asset_path
 
 
 class InteriorSurfaceDesignTests(unittest.TestCase):

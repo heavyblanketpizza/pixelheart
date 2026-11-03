@@ -8,8 +8,8 @@ from unittest.mock import patch
 
 from PIL import Image
 
-import pixelheart_core.catalogue_development as catalogue
-from pixelheart_core.catalogue_development import (
+import meetcute_core.catalogue_development as catalogue
+from meetcute_core.catalogue_development import (
     CataloguePackError, delete_development_item, discover_development_packs, load_development_pack,
 )
 
@@ -20,13 +20,13 @@ def make_pack(root):
     Image.new("RGBA", (16, 32), "#aabbcc").save(root / "farmer.png")
     Image.new("RGBA", (176, 160), "#987654").save(root / "room.png")
     directions = ("south", "east", "north", "west")
-    (root / "farmer.json").write_text(json.dumps({"format": "pixelheart-preview-actor",
+    (root / "farmer.json").write_text(json.dumps({"format": "meetcute-preview-actor",
         "frames": {d: ["farmer.png"] * 4 for d in directions},
         "idle": {d: "farmer.png" for d in directions}}))
     side = {"id": "Example.Globe", "name": "Example globe", "kind": "decor", "views": [
         {"label": "Default", "rotation": 0, "image": "piece.png", "width": 16, "height": 32,
          "footprint": [1, 1]}]}
-    data = {"format": "pixelheart-catalogue-development", "version": 1, "title": "A private collection",
+    data = {"format": "meetcute-catalogue-development", "version": 1, "title": "A private collection",
         "actor": "farmer.json", "backgrounds": [{"id": "room", "name": "Wood floor & wallpaper", "image": "room.png"}],
         "items": [{"id": "Example.Globe", "slug": "globe", "name": "Example globe", "group": "Study",
                    "description": "A decorative globe.", "match": "Direct counterpart", "note": "Same form.",
@@ -79,7 +79,7 @@ class DevelopmentPackTests(unittest.TestCase):
         self.assertEqual(load_development_pack(self.path).data, self.data)
 
     def test_deletions_survive_regeneration_and_preserve_unknown_ids(self):
-        self.deletions.write_text(json.dumps({"format": "pixelheart-catalogue-deletions", "version": 1,
+        self.deletions.write_text(json.dumps({"format": "meetcute-catalogue-deletions", "version": 1,
             "deleted_item_ids": ["Example.Previous"], "notes": "Retain local metadata"}))
         self.deletions.chmod(0o640)
         delete_development_item(self.path, "Example.Globe")
@@ -97,19 +97,19 @@ class DevelopmentPackTests(unittest.TestCase):
 
     def test_delete_unknown_id_does_not_write_any_files(self):
         before = {p.name: p.read_bytes() for p in self.path.parent.iterdir()}
-        with patch("pixelheart_core.catalogue_development.os.replace") as replace:
+        with patch("meetcute_core.catalogue_development.os.replace") as replace:
             with self.assertRaisesRegex(CataloguePackError, "no longer"):
                 delete_development_item(self.path, "Example.Missing")
         replace.assert_not_called()
         self.assertEqual({p.name: p.read_bytes() for p in self.path.parent.iterdir()}, before)
 
     def test_delete_write_or_replace_failure_preserves_original_and_cleans_temp(self):
-        self.deletions.write_text(json.dumps({"format": "pixelheart-catalogue-deletions", "version": 1,
+        self.deletions.write_text(json.dumps({"format": "meetcute-catalogue-deletions", "version": 1,
             "deleted_item_ids": ["Example.Previous"]}))
         before = {p.name: p.read_bytes() for p in self.path.parent.iterdir()}
         for operation in ("fsync", "replace"):
             with self.subTest(operation=operation):
-                with patch("pixelheart_core.catalogue_development.os." + operation, side_effect=OSError("disk unavailable")):
+                with patch("meetcute_core.catalogue_development.os." + operation, side_effect=OSError("disk unavailable")):
                     with self.assertRaisesRegex(CataloguePackError, "Cannot save"):
                         delete_development_item(self.path, "Example.Globe")
                 self.assertEqual({p.name: p.read_bytes() for p in self.path.parent.iterdir()}, before)
@@ -141,7 +141,7 @@ class DevelopmentPackTests(unittest.TestCase):
                 self.path.write_text(json.dumps(latest))
             return validator(path)
 
-        with patch("pixelheart_core.catalogue_development._deletion_state", side_effect=concurrent_edit):
+        with patch("meetcute_core.catalogue_development._deletion_state", side_effect=concurrent_edit):
             result = delete_development_item(self.path, "Example.Globe")
         self.assertTrue(edited)
         self.assertEqual(result.data, {**latest, "items": [latest["items"][1]]})
@@ -160,11 +160,11 @@ class DevelopmentPackTests(unittest.TestCase):
             nonlocal edited
             if Path(path).suffix == ".tmp" and not edited:
                 edited = True
-                self.deletions.write_text(json.dumps({"format": "pixelheart-catalogue-deletions", "version": 1,
+                self.deletions.write_text(json.dumps({"format": "meetcute-catalogue-deletions", "version": 1,
                     "deleted_item_ids": ["Example.Second"]}))
             return validator(path)
 
-        with patch("pixelheart_core.catalogue_development._deletion_state", side_effect=concurrent_delete):
+        with patch("meetcute_core.catalogue_development._deletion_state", side_effect=concurrent_delete):
             result = delete_development_item(self.path, "Example.Globe")
         self.assertTrue(edited)
         self.assertEqual(result.data["items"], [])
@@ -174,7 +174,7 @@ class DevelopmentPackTests(unittest.TestCase):
         self.assertFalse(list(self.path.parent.glob(".*.tmp")))
 
     def test_invalid_deletion_state_is_rejected_without_overwriting_it(self):
-        valid = {"format": "pixelheart-catalogue-deletions", "version": 1, "deleted_item_ids": []}
+        valid = {"format": "meetcute-catalogue-deletions", "version": 1, "deleted_item_ids": []}
         for invalid in ({**valid, "format": "other"}, {**valid, "deleted_item_ids": "Example.Globe"},
                         {**valid, "deleted_item_ids": ["Example.Globe"] * 2},
                         {**valid, "deleted_item_ids": ["x" * 257]},

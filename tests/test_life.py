@@ -2,12 +2,12 @@
 from copy import deepcopy
 import unittest
 
-from pixelheart_core.projects import new_project
-from pixelheart_core.life import (
+from meetcute_core.projects import new_project
+from meetcute_core.life import (
     LifeValidationError, compile_life, life_issues, life_structure_issues,
     new_life_record, normalize_life,
 )
-from pixelheart_core.story import new_event, new_beat, event_game_id
+from meetcute_core.story import new_event, new_beat, event_game_id
 
 
 class LifeTests(unittest.TestCase):

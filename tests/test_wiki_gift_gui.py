@@ -18,10 +18,10 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.app import MainWindow, SECTION_INDEX
-from pixelheart.gifts_page import GiftsPage, vanilla_catalog
-from pixelheart.item_icons import ItemIconStore, export_filename
-from pixelheart_core.wiki_items import WikiItemError, download_item_icons, wiki_image_sources
+from meetcute.app import MainWindow, SECTION_INDEX
+from meetcute.gifts_page import GiftsPage, vanilla_catalog
+from meetcute.item_icons import ItemIconStore, export_filename
+from meetcute_core.wiki_items import WikiItemError, download_item_icons, wiki_image_sources
 from tests.qt_support import QtTestCase
 
 
@@ -31,7 +31,7 @@ class WikiGiftGuiTests(QtTestCase):
         cls.application = QApplication.instance() or QApplication([])
 
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-wiki-gui-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="meetcute-wiki-gui-")
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.widgets = []
@@ -42,14 +42,14 @@ class WikiGiftGuiTests(QtTestCase):
         self.local_cache = self.root / "local-textures"
         self.wiki_cache = self.root / "wiki-icons"
         self.store_patch = patch(
-            "pixelheart.gifts_page.ItemIconStore",
+            "meetcute.gifts_page.ItemIconStore",
             side_effect=lambda: ItemIconStore(self.local_cache, self.wiki_cache),
         )
         self.store_patch.start()
         self.addCleanup(self.store_patch.stop)
         # Any request not explicitly replaced by a test is an immediate error.
         self.network_patch = patch(
-            "pixelheart_core.wiki_items._download_png", side_effect=AssertionError("Unexpected network request"),
+            "meetcute_core.wiki_items._download_png", side_effect=AssertionError("Unexpected network request"),
         )
         self.network_guard = self.network_patch.start()
         self.addCleanup(self.network_patch.stop)
@@ -79,7 +79,7 @@ class WikiGiftGuiTests(QtTestCase):
     def make_widget(self, *, auto=False, identifiers=("66",), window=False):
         snapshot = deepcopy(self.snapshot)
         snapshot["items"] = [deepcopy(self.records[item_id]) for item_id in identifiers]
-        with patch("pixelheart.gifts_page.vanilla_catalog", return_value=snapshot):
+        with patch("meetcute.gifts_page.vanilla_catalog", return_value=snapshot):
             widget = MainWindow(auto_download_icons=auto) if window else GiftsPage(auto_download=auto)
         self.widgets.append(widget)
         widget.resize(1200, 850)
@@ -95,8 +95,8 @@ class WikiGiftGuiTests(QtTestCase):
         self.assertFalse(self.wiki_cache.exists())
 
     def test_teardown_timeout_does_not_leak_network_guard_or_temporary_cache(self):
-        from pixelheart import gifts_page
-        from pixelheart_core import wiki_items
+        from meetcute import gifts_page
+        from meetcute_core import wiki_items
         previous_download = wiki_items._download_png
         previous_store = gifts_page.ItemIconStore
 
@@ -118,7 +118,7 @@ class WikiGiftGuiTests(QtTestCase):
 
     def test_automatic_download_fetches_only_missing_eligible_icons(self):
         page = self.make_widget(auto=True, identifiers=("66", "395", "Book_Horse"))
-        with patch("pixelheart_core.wiki_items._download_png", return_value=self.png):
+        with patch("meetcute_core.wiki_items._download_png", return_value=self.png):
             download_item_icons(["395"], self.wiki_cache)
         page.icon_store.invalidate_wiki_icons()
         exports = self.root / "exports"
@@ -134,7 +134,7 @@ class WikiGiftGuiTests(QtTestCase):
         unknown = {**override, "id": "Example.Mod_Ruby", "name": "Mod Ruby"}
         page.catalog["items"].extend([override, unknown])
         page._index_catalog()
-        with patch("pixelheart_core.wiki_items._download_png", return_value=self.png) as download:
+        with patch("meetcute_core.wiki_items._download_png", return_value=self.png) as download:
             page.show()
             self.wait_until(lambda: page.icon_store.has_icon(self.records["66"]) and page.wiki_worker is None)
             self.assertEqual(download.call_count, 1)
@@ -163,7 +163,7 @@ class WikiGiftGuiTests(QtTestCase):
                 raise WikiItemError("Test download timed out")
             return self.png
 
-        with patch("pixelheart_core.wiki_items._download_png", side_effect=synthetic_download):
+        with patch("meetcute_core.wiki_items._download_png", side_effect=synthetic_download):
             window.show()
             window.navigation.setCurrentRow(SECTION_INDEX["gifts"])
             self.wait_until(started.is_set)
@@ -190,7 +190,7 @@ class WikiGiftGuiTests(QtTestCase):
 
     def test_failed_download_does_not_automatically_retry_but_button_can_retry(self):
         page = self.make_widget(auto=True)
-        with patch("pixelheart_core.wiki_items._download_png", side_effect=WikiItemError("Offline")) as download:
+        with patch("meetcute_core.wiki_items._download_png", side_effect=WikiItemError("Offline")) as download:
             page.show()
             self.wait_until(lambda: "66" in page._wiki_attempted and page.wiki_worker is None)
             page.hide()
@@ -200,7 +200,7 @@ class WikiGiftGuiTests(QtTestCase):
             self.assertEqual(download.call_count, 1)
             self.assertEqual(page.wiki_button.text(), "Retry icons")
             self.assertTrue(page.wiki_button.isEnabled())
-        with patch("pixelheart_core.wiki_items._download_png", return_value=self.png) as download:
+        with patch("meetcute_core.wiki_items._download_png", return_value=self.png) as download:
             QTest.mouseClick(page.wiki_button, Qt.MouseButton.LeftButton)
             self.wait_until(lambda: page.icon_store.has_icon(self.records["66"]) and page.wiki_worker is None)
             self.assertEqual(download.call_count, 1)
@@ -222,7 +222,7 @@ class WikiGiftGuiTests(QtTestCase):
                 raise WikiItemError("Test cancellation timed out")
             return self.png
 
-        with patch("pixelheart_core.wiki_items._download_png", side_effect=synthetic_download), \
+        with patch("meetcute_core.wiki_items._download_png", side_effect=synthetic_download), \
                 patch.object(window, "confirm_discard", return_value=True) as confirm:
             window.show()
             window.navigation.setCurrentRow(SECTION_INDEX["gifts"])

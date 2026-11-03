@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
-from pixelheart_core.catalog import CatalogValidationError, load_catalog, validate_catalog
+from meetcute_core.catalog import CatalogValidationError, load_catalog, validate_catalog
 
 
 class CatalogTests(unittest.TestCase):
@@ -26,7 +26,7 @@ class CatalogTests(unittest.TestCase):
 
     def snapshot(self):
         return {
-            "format": "pixelheart-item-catalog", "version": 1,
+            "format": "meetcute-item-catalog", "version": 1,
             "source": "vanilla", "label": "Stardew Valley 1.6.15",
             "game_version": "1.6.15",
             "items": [{"id": "395", "name": "Coffee", "category": -7, "category_name": "Cooking"}],
@@ -198,10 +198,10 @@ class CatalogTests(unittest.TestCase):
         with self.assertRaisesRegex(CatalogValidationError, "nested"):
             load_catalog(self.write({"395": self.object(CustomFields=nested)}))
         self.write({"395": self.object()})
-        with patch("pixelheart_core.catalog.MAX_CATALOG_BYTES", 10):
+        with patch("meetcute_core.catalog.MAX_CATALOG_BYTES", 10):
             with self.assertRaisesRegex(CatalogValidationError, "32 MiB"):
                 load_catalog(self.file)
-        with patch("pixelheart_core.catalog.MAX_CATALOG_ITEMS", 1):
+        with patch("meetcute_core.catalog.MAX_CATALOG_ITEMS", 1):
             with self.assertRaises(CatalogValidationError):
                 load_catalog(self.write({"A": self.object(), "B": self.object()}))
 

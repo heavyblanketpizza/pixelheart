@@ -7,17 +7,17 @@ import unittest
 
 from PIL import Image
 
-from pixelheart_core.pixel_document import PixelDocument
-from pixelheart_core.pixel_layers import load_layers, save_layers
-from pixelheart_core.pixel_sheets import encode_png
-from pixelheart_core.projects import (
+from meetcute_core.pixel_document import PixelDocument
+from meetcute_core.pixel_layers import load_layers, save_layers
+from meetcute_core.pixel_sheets import encode_png
+from meetcute_core.projects import (
     ProjectError, copy_project, import_painted_artwork, load_project, new_project, resolve_artwork, save_project,
 )
 
 
 class PaintedArtworkTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="pixelheart-painted-")
+        self.temporary = tempfile.TemporaryDirectory(prefix="meetcute-painted-")
         self.root = Path(self.temporary.name)
         self.file = self.root / "project" / "character.json"
         self.document = new_project()

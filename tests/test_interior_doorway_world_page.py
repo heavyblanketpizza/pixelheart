@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from PySide6.QtWidgets import QApplication, QDialog
 
-from pixelheart_core.interiors import ensure_doorway, new_interior, place_doorway
+from meetcute_core.interiors import ensure_doorway, new_interior, place_doorway
 from tests import test_interior_world_page as world_fixture
 from tests.qt_support import QtTestCase
 
@@ -32,7 +32,7 @@ class DoorwayWorldPageTests(QtTestCase):
         self.window.document["character"].update(home_x=6, home_y=9)
         self.window.identity.load(self.window.document["character"])
         design = place_doorway(new_interior(), 7, 12)
-        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+        with patch("meetcute.interior_editor.InteriorEditor") as constructor:
             constructor.return_value.exec.return_value = QDialog.DialogCode.Accepted
             constructor.return_value.result_design = design
             self.assertTrue(self.page.design_interior())
@@ -46,7 +46,7 @@ class DoorwayWorldPageTests(QtTestCase):
     def test_cancel_keeps_legacy_interior_and_exit_metadata_unchanged(self):
         self.residence()
         before = deepcopy(self.page.dump())
-        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+        with patch("meetcute.interior_editor.InteriorEditor") as constructor:
             constructor.return_value.exec.return_value = QDialog.DialogCode.Rejected
             constructor.return_value.result_design = ensure_doorway(new_interior())
             self.assertFalse(self.page.design_interior())

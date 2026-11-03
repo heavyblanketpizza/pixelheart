@@ -4,18 +4,18 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from pixelheart_core.life import new_life_record
-from pixelheart_core.projects import ProjectError, load_project, new_project, save_project
-from pixelheart_core.story import (
+from meetcute_core.life import new_life_record
+from meetcute_core.projects import ProjectError, load_project, new_project, save_project
+from meetcute_core.story import (
     StoryValidationError, compile_story, event_game_id, event_issues, new_beat,
     new_event, new_planned_effect, new_relationship, story_issues,
 )
-from pixelheart_core.story_planning import (
+from meetcute_core.story_planning import (
     STORY_STARTERS, StoryPlanningError, apply_story_starter, event_references,
     new_chapter, normalize_storyline, preview_story_starter, related_events,
     relationship_event_ids, relationship_references, storyline_issues,
 )
-from pixelheart_core.validation import DraftValidationError, validate_draft
+from meetcute_core.validation import DraftValidationError, validate_draft
 
 
 class StoryPlanningTests(unittest.TestCase):

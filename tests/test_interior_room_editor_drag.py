@@ -13,7 +13,7 @@ from PySide6.QtGui import QDragEnterEvent, QDropEvent, QMouseEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QPushButton
 
-from pixelheart.interior_editor import InteriorEditor
+from meetcute.interior_editor import InteriorEditor
 from tests.test_interior_decorating_flow import make_library
 from tests.qt_support import QtTestCase
 
@@ -27,7 +27,7 @@ class RoomEditorDragTests(QtTestCase):
         self.directory = self.enterContext(tempfile.TemporaryDirectory())
         self.root = Path(self.directory)
         settings = QSettings(str(self.root / 'settings.ini'), QSettings.Format.IniFormat)
-        self.enterContext(patch('pixelheart.interior_editor.game_import_settings', return_value=settings))
+        self.enterContext(patch('meetcute.interior_editor.game_import_settings', return_value=settings))
         self.dialog = InteriorEditor(self.root / 'project' / 'character.json', allow_rebase=True)
         self.dialog.show()
         self.app.processEvents()
@@ -78,7 +78,7 @@ class RoomEditorDragTests(QtTestCase):
         self.before = self.dialog.draft.snapshot()
         self.history = deepcopy(self.dialog.draft._undo)
         preset = self.dialog.room_preset
-        with patch('pixelheart.interior_editor.QDrag', Drag):
+        with patch('meetcute.interior_editor.QDrag', Drag):
             start = preset.rect().center()
             QTest.mousePress(preset, Qt.MouseButton.LeftButton, pos=start)
             self.mouse_move(preset, start + QPoint(QApplication.startDragDistance() + 5, 0))

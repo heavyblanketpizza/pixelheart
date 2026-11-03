@@ -2,8 +2,8 @@
 from copy import deepcopy
 import unittest
 
-from pixelheart_core.interior_furniture import validate_definition
-from pixelheart_core.interiors import (
+from meetcute_core.interior_furniture import validate_definition
+from meetcute_core.interiors import (
     InteriorDraft, InteriorError, new_interior, normalize_interior, room_edit_candidate,
 )
 

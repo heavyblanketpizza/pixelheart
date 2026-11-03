@@ -4,19 +4,33 @@ import tempfile
 from pathlib import Path
 import unittest
 
-from pixelheart_core.playtesting import (
+from meetcute_core.playtesting import (
     PlaytestError, content_fingerprint, export_is_current, playtest_cases,
     record_export, record_install, record_playtest,
 )
-from pixelheart_core.projects import load_project, new_project, save_project
-from pixelheart_core.story import new_beat, new_event
-from pixelheart_core.world import exported_location_id, new_location, new_world
+from meetcute_core.projects import load_project, new_project, save_project
+from meetcute_core.story import new_beat, new_event
+from meetcute_core.world import exported_location_id, new_location, new_world
 
 
 class PlaytestingTests(unittest.TestCase):
     def setUp(self):
         self.document = new_project()
         self.document['character'].update(id='playtest-project', name='Rowan', internal_name='Rowan')
+
+    def test_existing_export_evidence_survives_format_label_migration(self):
+        document = self.document
+        document["format"] = "pixelheart-project"
+        del document["character"]["game_namespace"]
+        document["item_catalog"] = {"format": "pixelheart-item-catalog", "version": 1,
+                                    "label": "Original", "source": "vanilla", "warnings": [],
+                                    "items": [{"id": "395", "name": "Coffee", "category": -7, "category_name": "Cooking"}]}
+        original = record_export(document, "Mira.zip", b"old archive")
+        with tempfile.TemporaryDirectory() as root:
+            path = save_project(original, root)
+            migrated = load_project(path)
+        self.assertEqual(migrated["item_catalog"]["format"], "meetcute-item-catalog")
+        self.assertTrue(export_is_current(migrated, b"old archive"))
 
     def create(self):
         document = copy.deepcopy(self.document)

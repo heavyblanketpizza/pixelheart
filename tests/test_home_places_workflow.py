@@ -12,14 +12,14 @@ from PIL import Image
 from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication, QDialog
 
-from pixelheart.app import MainWindow
-from pixelheart_core.interiors import doorway_exit, ensure_doorway, new_interior
-from pixelheart_core.life import new_life_record
-from pixelheart_core.projects import load_project, new_project
-from pixelheart_core.story import new_event
-from pixelheart_core.world import exported_location_id, new_companion, new_location, new_world, world_issues
+from meetcute.app import MainWindow
+from meetcute_core.interiors import doorway_exit, ensure_doorway, new_interior
+from meetcute_core.life import new_life_record
+from meetcute_core.projects import load_project, new_project
+from meetcute_core.story import new_event
+from meetcute_core.world import exported_location_id, new_companion, new_location, new_world, world_issues
 from tests.qt_support import QtTestCase
-from pixelheart.autosave import set_autosave_enabled
+from meetcute.autosave import set_autosave_enabled
 
 
 class HomePlacesWorkflowTests(QtTestCase):
@@ -230,7 +230,7 @@ class HomePlacesWorkflowTests(QtTestCase):
         self.assertEqual(self.page.dump()["locations"][0]["interior"], home["interior"])
 
     def test_new_residence_remains_pending_until_entrance_is_explicitly_confirmed(self):
-        with patch("pixelheart.interior_editor.InteriorEditor") as constructor:
+        with patch("meetcute.interior_editor.InteriorEditor") as constructor:
             constructor.return_value.exec.return_value = QDialog.DialogCode.Accepted
             constructor.return_value.result_design = self.design()
             self.page.build_home_button.click()

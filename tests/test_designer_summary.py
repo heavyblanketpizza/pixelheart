@@ -1,8 +1,8 @@
 """The character summary the designer reads at the start of every turn."""
 import unittest
 
-from pixelheart_core.projects import new_project
-from pixelheart_designer.summary import summarize
+from meetcute_core.projects import new_project
+from meetcute_designer.summary import summarize
 
 
 class SummaryTests(unittest.TestCase):

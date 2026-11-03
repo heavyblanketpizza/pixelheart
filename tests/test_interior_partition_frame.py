@@ -8,12 +8,12 @@ import xml.etree.ElementTree as ET
 
 from PIL import Image
 
-from pixelheart_core.interior_furniture import ROOM_FRAME_TILES
-from pixelheart_core.interior_layout import partition_candidate
-from pixelheart_core.interior_surface_design import stage_partition_frame
-from pixelheart_core.interiors import import_atlas, interior_tmx, map_layers, new_interior, render_interior
-from pixelheart_core.projects import copy_project, load_project, new_project, save_project
-from pixelheart_core.world import asset_path, new_location, new_world
+from meetcute_core.interior_furniture import ROOM_FRAME_TILES
+from meetcute_core.interior_layout import partition_candidate
+from meetcute_core.interior_surface_design import stage_partition_frame
+from meetcute_core.interiors import import_atlas, interior_tmx, map_layers, new_interior, render_interior
+from meetcute_core.projects import copy_project, load_project, new_project, save_project
+from meetcute_core.world import asset_path, new_location, new_world
 
 
 class InteriorPartitionFrameTests(unittest.TestCase):

@@ -9,7 +9,7 @@ from PySide6.QtGui import QColor, QImage, QMouseEvent, QPainter, QWheelEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.stage_canvas import StageCanvas
+from meetcute.stage_canvas import StageCanvas
 from tests.qt_support import QtTestCase
 
 

@@ -1,17 +1,17 @@
 """The designer's married life, conditional lines and conditional routines: daily-life rules written through the core validators."""
 import unittest
 
-from pixelheart_core.life import life_issues
-from pixelheart_core.projects import new_project
-from pixelheart_designer.prompts import SYSTEM_PROMPT
-from pixelheart_designer.summary import summarize
-from pixelheart_designer.tools import ToolContext, ToolError, run_tool, tool_specs
+from meetcute_core.life import life_issues
+from meetcute_core.projects import new_project
+from meetcute_designer.prompts import SYSTEM_PROMPT
+from meetcute_designer.summary import summarize
+from meetcute_designer.tools import ToolContext, ToolError, run_tool, tool_specs
 
 
 NULL_WHEN = {"season": None, "weather": None, "weekday": None, "min_hearts": None, "relationship": None,
              "after_event_hearts": None, "min_house_upgrade": None}
 NULL_HOME_WHEN = {"season": None, "weekday": None, "min_hearts": None, "after_event_hearts": None, "min_house_upgrade": None}
-ATTRIBUTION = "Written by an AI model from the creator's own description in Pixelheart. Review before sharing."
+ATTRIBUTION = "Written by an AI model from the creator's own description in MEETC#TE. Review before sharing."
 
 
 def married_lines(*pairs, when=None):
@@ -248,7 +248,7 @@ class EdgeCaseTests(unittest.TestCase):
         self.assertIn("married life · Morning at home · in mod · morning at home · Hi love.$l", summarize(outcome.document))
 
     def test_written_lines_compile_for_export(self):
-        from pixelheart_core.life import compile_life
+        from meetcute_core.life import compile_life
         married = run_tool("write_married_life", new_project(), {"lines": married_lines(("morning", "Hi."), ("rainy_evening", "Rain."))})
         compiled = compile_life(married.document["character"])
         self.assertIn("assets/marriage-dialogue.json", compiled["files"])
@@ -385,7 +385,7 @@ class ConditionalRoutineTests(unittest.TestCase):
         self.assertIn("  routine · Routine · rainy · in mod · rainy · 2 stops", summarize(outcome.document))
 
     def test_the_routine_compiles_for_export(self):
-        from pixelheart_core.life import compile_life
+        from meetcute_core.life import compile_life
         rainy = run_tool("plan_conditional_routine", new_project(), routine(stop("900", "ArchaeologyHouse"), stop("1700", "Saloon"), weather="rainy"))
         patch = compile_life(rainy.document["character"])["patches"][-1]
         self.assertTrue(patch["Target"].startswith("Characters/schedules/"))

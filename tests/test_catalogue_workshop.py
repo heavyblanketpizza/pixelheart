@@ -14,10 +14,10 @@ from PySide6.QtCore import QSettings, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton
 
-from pixelheart.app import MainWindow
-from pixelheart.catalogue_workshop import CatalogueWorkshop
-from pixelheart_core.catalogue_development import CataloguePackError, load_development_pack
-from pixelheart_core.projects import new_project
+from meetcute.app import MainWindow
+from meetcute.catalogue_workshop import CatalogueWorkshop
+from meetcute_core.catalogue_development import CataloguePackError, load_development_pack
+from meetcute_core.projects import new_project
 from tests.test_catalogue_development import make_pack
 from tests.qt_support import QtTestCase
 
@@ -36,7 +36,7 @@ class CatalogueWorkshopTests(QtTestCase):
         self.data["items"].append(desk)
         self.path.write_text(json.dumps(self.data))
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
         self.page = CatalogueWorkshop()
         self.page._workspace_root = self.root
         self.page.resize(1100, 720)
@@ -76,7 +76,7 @@ class CatalogueWorkshopTests(QtTestCase):
         self.assertEqual(self.page.current_item["id"], "Example.Desk")
         assets = {path.name: path.read_bytes() for path in self.path.parent.iterdir()
                   if path.is_file() and path != self.path}
-        with patch("pixelheart.catalogue_workshop.QMessageBox.question",
+        with patch("meetcute.catalogue_workshop.QMessageBox.question",
                    return_value=QMessageBox.StandardButton.Yes) as question:
             QTest.mouseClick(self._delete_button("Example.Globe"), Qt.MouseButton.LeftButton)
         self.app.processEvents()
@@ -103,7 +103,7 @@ class CatalogueWorkshopTests(QtTestCase):
         labels = content.findChildren(QLabel)
         name = next(child for child in labels if child.text() == "Writing desk")
         thumbnail = next(child for child in labels if child.pixmap() and not child.pixmap().isNull())
-        with patch("pixelheart.catalogue_workshop.QMessageBox.question") as question:
+        with patch("meetcute.catalogue_workshop.QMessageBox.question") as question:
             for target in (name, thumbnail):
                 with self.subTest(target="name" if target is name else "thumbnail"):
                     self.page.pieces.setCurrentRow(0)
@@ -122,9 +122,9 @@ class CatalogueWorkshopTests(QtTestCase):
         previous_pack = self.page.pack
         previous_id = self.page.current_item["id"]
         previous_names = [name.text() for name in self.page.names]
-        with patch("pixelheart.catalogue_workshop.QMessageBox.question",
+        with patch("meetcute.catalogue_workshop.QMessageBox.question",
                    return_value=QMessageBox.StandardButton.No), \
-                patch("pixelheart.catalogue_workshop.delete_development_item") as delete:
+                patch("meetcute.catalogue_workshop.delete_development_item") as delete:
             QTest.mouseClick(self._delete_button("Example.Desk"), Qt.MouseButton.LeftButton)
         self.app.processEvents()
 
@@ -145,7 +145,7 @@ class CatalogueWorkshopTests(QtTestCase):
         self.page.group.setCurrentIndex(self.page.group.findData("Study"))
         self.page.search.setText("Writing")
         self.assertEqual(self._visible_item_ids(), ["Example.Desk"])
-        with patch("pixelheart.catalogue_workshop.QMessageBox.question",
+        with patch("meetcute.catalogue_workshop.QMessageBox.question",
                    return_value=QMessageBox.StandardButton.Yes):
             QTest.mouseClick(self._delete_button("Example.Desk"), Qt.MouseButton.LeftButton)
         self.app.processEvents()
@@ -169,7 +169,7 @@ class CatalogueWorkshopTests(QtTestCase):
         self.page.reload()
         self.page.play()
         self.assertTrue(all(canvas.is_playing for canvas in self.page.canvases))
-        with patch("pixelheart.catalogue_workshop.QMessageBox.question",
+        with patch("meetcute.catalogue_workshop.QMessageBox.question",
                    return_value=QMessageBox.StandardButton.Yes):
             QTest.mouseClick(self._delete_button("Example.Globe"), Qt.MouseButton.LeftButton)
         self.app.processEvents()
@@ -205,9 +205,9 @@ class CatalogueWorkshopTests(QtTestCase):
         previous_pack = self.page.pack
         previous_names = [name.text() for name in self.page.names]
         previous_dimensions = [label.text() for label in self.page.dimensions]
-        with patch("pixelheart.catalogue_workshop.QMessageBox.question",
+        with patch("meetcute.catalogue_workshop.QMessageBox.question",
                    return_value=QMessageBox.StandardButton.Yes), \
-                patch("pixelheart.catalogue_workshop.delete_development_item",
+                patch("meetcute.catalogue_workshop.delete_development_item",
                       side_effect=CataloguePackError("Cannot save catalogue: read-only destination")) as delete:
             QTest.mouseClick(self._delete_button("Example.Globe"), Qt.MouseButton.LeftButton)
         self.app.processEvents()

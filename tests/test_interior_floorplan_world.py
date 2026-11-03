@@ -6,8 +6,8 @@ from unittest.mock import Mock, patch
 from PySide6.QtTest import QSignalSpy
 from PySide6.QtWidgets import QApplication, QDialog
 
-from pixelheart_core.interior_layout import partition_candidate, resize_room_candidate
-from pixelheart_core.world import WorldError, exported_location_id, new_companion
+from meetcute_core.interior_layout import partition_candidate, resize_room_candidate
+from meetcute_core.world import WorldError, exported_location_id, new_companion
 from tests import test_interior_world_page as world_tests
 from tests.qt_support import QtTestCase
 
@@ -22,7 +22,7 @@ class InteriorFloorplanWorldTests(QtTestCase):
     moving_home = world_tests.InteriorWorldPageTests.moving_home
 
     def design_result(self, design, offsets=None):
-        constructor = self.enterContext(patch("pixelheart.interior_editor.InteriorEditor"))
+        constructor = self.enterContext(patch("meetcute.interior_editor.InteriorEditor"))
         dialog = constructor.return_value
         dialog.exec.return_value = QDialog.DialogCode.Accepted
         dialog.result_design = design

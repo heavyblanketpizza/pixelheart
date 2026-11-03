@@ -2,9 +2,9 @@
 import unittest
 import uuid
 
-from pixelheart_core.playtesting import record_export, record_install
-from pixelheart_core.progress import STEP_KEYS, hearts_earned, next_step, project_progress
-from pixelheart_core.projects import new_project
+from meetcute_core.playtesting import record_export, record_install
+from meetcute_core.progress import STEP_KEYS, hearts_earned, next_step, project_progress
+from meetcute_core.projects import new_project
 
 
 def by_key(document, **options):

@@ -14,8 +14,8 @@ from PySide6.QtGui import QMouseEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.interior_editor import InteriorEditor
-from pixelheart_core.interiors import new_interior, reachable_tiles
+from meetcute.interior_editor import InteriorEditor
+from meetcute_core.interiors import new_interior, reachable_tiles
 from tests.qt_support import QtTestCase
 
 try:
@@ -34,13 +34,13 @@ class ArchitectureEditorTests(QtTestCase):
         self.library_root = self.root / "library"
         self.library_root.mkdir()
         definitions = architecture_design(self.library_root)["architecture_catalog"]
-        bundle = {"format": "pixelheart-interior-library", "version": 1, "definitions": [],
+        bundle = {"format": "meetcute-interior-library", "version": 1, "definitions": [],
                   "architecture": [{**piece, "preview_asset": "fixture.png", "columns": 2,
                                     "tile_count": 2} for piece in definitions]}
         self.library = self.library_root / "library.json"
         self.library.write_text(json.dumps(bundle), encoding="utf-8")
         settings = QSettings(str(self.root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
         self.source = new_interior()
         self.source_before = deepcopy(self.source)
         self.project = self.root / "project" / "character.json"

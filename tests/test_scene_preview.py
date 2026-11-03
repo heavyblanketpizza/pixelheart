@@ -7,13 +7,13 @@ from unittest.mock import patch
 
 from PIL import Image
 
-from pixelheart_core.projects import new_project
-from pixelheart_core.scene_preview import (
+from meetcute_core.projects import new_project
+from meetcute_core.scene_preview import (
     clear_preview_cache, crop_portrait_frame, crop_sprite_frame,
     load_actor_artwork, load_scene_assets, load_scene_map, resolve_scene_preview,
 )
-from pixelheart_core.story import new_event, exported_npc_id
-from pixelheart_core.world import cast_actor_id, exported_location_id
+from meetcute_core.story import new_event, exported_npc_id
+from meetcute_core.world import cast_actor_id, exported_location_id
 
 
 class ScenePreviewTests(unittest.TestCase):
@@ -131,8 +131,8 @@ class ScenePreviewTests(unittest.TestCase):
         path = self.tmx()
         place = {"id": "place", "name": "Mira's refuge", "internal_name": "Refuge", "map": "maps/room.tmx"}
         self.document["world"] = {"locations": [place]}
-        from pixelheart_core.scene_preview import render_map_preview
-        with patch("pixelheart_core.scene_preview.render_map_preview", wraps=render_map_preview) as renderer:
+        from meetcute_core.scene_preview import render_map_preview
+        with patch("meetcute_core.scene_preview.render_map_preview", wraps=render_map_preview) as renderer:
             first = load_scene_map(self.document, self.file, "Refuge")
             again = load_scene_map(self.document, self.file, exported_location_id(place, self.document["character"]))
             self.assertEqual(first["map_size"], (2, 2))
@@ -163,8 +163,8 @@ class ScenePreviewTests(unittest.TestCase):
         self.tmx("exports/Maps_Town.tmx")
         texture = self.root / "exports/tiles.png"
         texture.unlink()
-        from pixelheart_core.scene_preview import _bounded_map_dependencies
-        with patch("pixelheart_core.scene_preview._bounded_map_dependencies", wraps=_bounded_map_dependencies) as reader:
+        from meetcute_core.scene_preview import _bounded_map_dependencies
+        with patch("meetcute_core.scene_preview._bounded_map_dependencies", wraps=_bounded_map_dependencies) as reader:
             first = load_scene_map(self.document, self.file, "Town", export_root=self.root / "exports")
             second = load_scene_map(self.document, self.file, "Town", export_root=self.root / "exports")
             self.assertIsNone(first["image"])
@@ -227,7 +227,7 @@ class ScenePreviewTests(unittest.TestCase):
 
     def test_limits_and_unsafe_tmx_return_clear_fallback(self):
         self.png("exports/Characters_Abigail.png")
-        with patch("pixelheart_core.scene_preview.MAX_ARTWORK_BYTES", 10):
+        with patch("meetcute_core.scene_preview.MAX_ARTWORK_BYTES", 10):
             result = load_actor_artwork(self.document, self.file, "Abigail", export_root=self.root / "exports")
         self.assertIsNone(result["sprite"])
         self.assertIn("size limit", result["warning"])

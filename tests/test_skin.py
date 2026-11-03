@@ -10,8 +10,8 @@ from unittest.mock import patch
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication, QPushButton
 
-from pixelheart import skin
-from pixelheart.theme import apply_theme
+from meetcute import skin
+from meetcute.theme import apply_theme
 from tests.qt_support import QtTestCase
 from tests import test_game_ui
 
@@ -26,8 +26,8 @@ class SkinTests(QtTestCase):
     def setUp(self):
         self.folder = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.settings = QSettings(str(self.folder / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=self.settings))
-        self.enterContext(patch.dict(os.environ, {"PIXELHEART_CACHE_DIR": str(self.folder / "cache")}))
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=self.settings))
+        self.enterContext(patch.dict(os.environ, {"MEETCUTE_CACHE_DIR": str(self.folder / "cache")}))
         self.addCleanup(apply_theme, self.app, content_root=None)
 
     def test_pixel_font_is_bundled_and_registered(self):
@@ -67,14 +67,14 @@ class SkinTests(QtTestCase):
             self.assertEqual(font.featureValue(QFont.Tag(tag)), 0, tag)
 
     def test_unwritable_cache_falls_back_to_a_temporary_folder(self):
-        from pixelheart_core.game_ui import ui_pieces as real
+        from meetcute_core.game_ui import ui_pieces as real
         calls = []
         def flaky(content, cache_root):
             calls.append(cache_root)
             if len(calls) == 1:
                 raise PermissionError("read-only home")
             return real(content, cache_root)
-        with patch("pixelheart.skin.ui_pieces", side_effect=flaky):
+        with patch("meetcute.skin.ui_pieces", side_effect=flaky):
             apply_theme(self.app, content_root=None)
         self.assertEqual(len(calls), 2)
         self.assertNotEqual(calls[0], calls[1])
@@ -82,7 +82,7 @@ class SkinTests(QtTestCase):
         self.assertIn("temporary folder", skin.current_notice())
 
     def test_no_writable_folder_at_all_still_starts_with_a_plain_look(self):
-        with patch("pixelheart.skin.ui_pieces", side_effect=PermissionError("no disk")):
+        with patch("meetcute.skin.ui_pieces", side_effect=PermissionError("no disk")):
             apply_theme(self.app, content_root=None)
         sheet = self.app.styleSheet()
         self.assertIn("font-family", sheet)
@@ -91,7 +91,7 @@ class SkinTests(QtTestCase):
         self.assertIn("plain look", skin.current_notice())
 
     def test_a_healthy_cache_has_nothing_to_report(self):
-        with patch("pixelheart.skin.ui_pieces", side_effect=PermissionError("no disk")):
+        with patch("meetcute.skin.ui_pieces", side_effect=PermissionError("no disk")):
             skin.refresh_pieces(None)
         skin.refresh_pieces(None)
         self.assertEqual(skin.current_notice(), "")
@@ -169,12 +169,12 @@ class ThemeNoticeTests(QtTestCase):
     def setUp(self):
         self.folder = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.settings = QSettings(str(self.folder / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=self.settings))
-        self.enterContext(patch.dict(os.environ, {"PIXELHEART_CACHE_DIR": str(self.folder / "cache")}))
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=self.settings))
+        self.enterContext(patch.dict(os.environ, {"MEETCUTE_CACHE_DIR": str(self.folder / "cache")}))
         self.addCleanup(apply_theme, self.app, content_root=None)
 
     def window(self):
-        from pixelheart.app import MainWindow
+        from meetcute.app import MainWindow
         window = MainWindow()
 
         def close():
@@ -186,8 +186,8 @@ class ThemeNoticeTests(QtTestCase):
         return window
 
     def test_each_fallback_is_noted_once_in_the_status_bar(self):
-        from pixelheart_core.game_ui import ui_pieces as real
-        with patch("pixelheart.skin.ui_pieces", side_effect=PermissionError("no disk")):
+        from meetcute_core.game_ui import ui_pieces as real
+        with patch("meetcute.skin.ui_pieces", side_effect=PermissionError("no disk")):
             apply_theme(self.app, content_root=None)
             window = self.window()
             self.assertIn("plain look", window.statusBar().currentMessage())
@@ -199,7 +199,7 @@ class ThemeNoticeTests(QtTestCase):
             if cache_root == skin.ui_cache_dir():
                 raise PermissionError("read-only home")
             return real(content, cache_root)
-        with patch("pixelheart.skin.ui_pieces", side_effect=flaky):
+        with patch("meetcute.skin.ui_pieces", side_effect=flaky):
             window._game_changed()
         self.assertIn("temporary folder", window.statusBar().currentMessage())
 

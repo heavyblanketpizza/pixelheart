@@ -1,4 +1,4 @@
-"""Tests must never read or write the player's real Pixelheart settings."""
+"""Tests must never read or write the player's real MEETC#TE settings."""
 import os
 from pathlib import Path
 import tempfile
@@ -6,14 +6,14 @@ import unittest
 from unittest.mock import patch
 
 import tests  # noqa: F401  (sets the isolation environment)
-from pixelheart.game_import import game_import_settings
+from meetcute.game_import import game_import_settings
 
 
 class AppSettingsTests(unittest.TestCase):
     def test_settings_file_override_is_used(self):
         with tempfile.TemporaryDirectory() as folder:
             target = str(Path(folder) / "settings.ini")
-            with patch.dict(os.environ, {"PIXELHEART_SETTINGS_FILE": target}):
+            with patch.dict(os.environ, {"MEETCUTE_SETTINGS_FILE": target}):
                 settings = game_import_settings()
                 settings.setValue("probe/value", "ok")
                 settings.sync()
@@ -21,10 +21,10 @@ class AppSettingsTests(unittest.TestCase):
                 self.assertTrue(Path(target).is_file())
 
     def test_suite_isolates_settings_library_projects_and_cache(self):
-        for variable in ("PIXELHEART_SETTINGS_FILE", "PIXELHEART_LIBRARY", "PIXELHEART_PROJECTS", "PIXELHEART_CACHE_DIR"):
+        for variable in ("MEETCUTE_SETTINGS_FILE", "MEETCUTE_LIBRARY", "MEETCUTE_PROJECTS", "MEETCUTE_CACHE_DIR"):
             with self.subTest(variable=variable):
                 value = Path(os.environ[variable])
-                self.assertTrue(any(part.startswith("pixelheart-tests-") for part in value.parts))
+                self.assertTrue(any(part.startswith("meetcute-tests-") for part in value.parts))
 
 
 if __name__ == "__main__":

@@ -10,9 +10,9 @@ from unittest.mock import patch
 from PIL import Image
 from PySide6.QtWidgets import QApplication
 
-from pixelheart import skin
-from pixelheart.pixel_widgets import HeartMeter, PixelTitle, PortraitFrame
-from pixelheart_core.game_ui import UiPiece
+from meetcute import skin
+from meetcute.pixel_widgets import HeartMeter, PixelTitle, PortraitFrame
+from meetcute_core.game_ui import UiPiece
 from tests.qt_support import QtTestCase
 
 

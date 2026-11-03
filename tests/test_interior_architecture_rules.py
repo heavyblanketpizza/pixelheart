@@ -5,15 +5,15 @@ import unittest
 
 from PIL import Image
 
-from pixelheart_core.interior_architecture import architecture_candidate, remove_architecture_candidate, validate_architecture_definition
-from pixelheart_core.interior_architecture_rules import (
+from meetcute_core.interior_architecture import architecture_candidate, remove_architecture_candidate, validate_architecture_definition
+from meetcute_core.interior_architecture_rules import (
     architecture_clearance_cells, architecture_rule, architecture_rule_hint,
     architecture_rule_issues, validate_architecture_rules,
 )
-from pixelheart_core.interior_furniture import validate_definition
-from pixelheart_core.interior_layout import partition_candidate, remove_partition_candidate
-from pixelheart_core.interior_levels import raised_room_candidate
-from pixelheart_core.interiors import InteriorDraft, InteriorError, compile_interior, interior_export_issues, interior_tmx, new_interior, normalize_interior
+from meetcute_core.interior_furniture import validate_definition
+from meetcute_core.interior_layout import partition_candidate, remove_partition_candidate
+from meetcute_core.interior_levels import raised_room_candidate
+from meetcute_core.interiors import InteriorDraft, InteriorError, compile_interior, interior_export_issues, interior_tmx, new_interior, normalize_interior
 
 
 def piece(identity, width=1, height=2, *, wall=False, rules=None, blocking=True):

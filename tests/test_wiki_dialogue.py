@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 from urllib.error import URLError
 from urllib.request import Request
 
-from pixelheart_core import wiki_dialogue as wiki
+from meetcute_core import wiki_dialogue as wiki
 
 
 class Response(io.BytesIO):
@@ -281,7 +281,7 @@ class WikiDialogueTests(unittest.TestCase):
                 self.assertFalse(list(self.cache.rglob("*.json")))
 
     def test_large_archive_preserves_all_entries_commands_text_and_order(self):
-        from pixelheart_core.dialogue_templates import apply_dialogue_examples
+        from meetcute_core.dialogue_templates import apply_dialogue_examples
 
         data = {f"event_{index}": f" Synthetic entry {index}.#$q 1/2 event_reply#Test choice?#$r 1 0 event_yes#Yes.$h  " for index in range(118)}
         data["-winter_Wed"] = "Unusual source key preserved exactly."

@@ -10,8 +10,8 @@ import zipfile
 
 from PIL import Image
 
-from pixelheart_core.projects import new_project, load_project, save_project, copy_project, ProjectError
-from pixelheart_core.world import (
+from meetcute_core.projects import new_project, load_project, save_project, copy_project, ProjectError
+from meetcute_core.world import (
     WorldError, new_world, new_companion, new_location, import_map, map_bundle,
     asset_path, exported_location_id, exported_mod_id, world_character,
     world_issues, install_archive, render_map_preview, cast_actor_id,
@@ -123,7 +123,7 @@ class WorldAssetTests(unittest.TestCase):
         original = copy.deepcopy(self.character)
         result = world_character(self.character, world)
         self.assertEqual(result["home_map"], exported_location_id(location, self.character))
-        self.assertTrue(result["events"][0]["story"]["actors"][0]["name"].startswith("Pixelheart.Grogu_"))
+        self.assertTrue(result["events"][0]["story"]["actors"][0]["name"].startswith("MeetCute.Grogu_"))
         self.assertEqual(self.character, original)
 
     def test_stable_companion_actor_survives_rename_and_missing_actor_is_reported(self):
@@ -159,8 +159,8 @@ class WorldAssetTests(unittest.TestCase):
         self.assertTrue(any("immediate return" in issue["message"] for issue in world_issues(world, self.character, self.root)))
 
     def test_known_map_bounds_cover_home_route_scene_moves_and_enabled_life(self):
-        from pixelheart_core.story import new_event, new_beat
-        from pixelheart_core.life import new_life_record
+        from meetcute_core.story import new_event, new_beat
+        from meetcute_core.life import new_life_record
         location = new_location()
         location["map"] = import_map(make_map(self.root / "source"), self.root / "project.json")
         self.character["home_map"] = location["internal_name"]
@@ -185,7 +185,7 @@ class WorldPageTests(QtTestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def setUp(self):
-        from pixelheart.world_page import WorldPage
+        from meetcute.world_page import WorldPage
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
@@ -224,14 +224,14 @@ class WorldPageTests(QtTestCase):
         self.assertFalse(self.page.legacy_characters_button.isHidden())
 
     def test_legacy_artwork_repair_keeps_character_selected_after_first_save(self):
-        from pixelheart.legacy_characters import LegacyCharactersDialog
+        from meetcute.legacy_characters import LegacyCharactersDialog
         records = [new_companion("First"), new_companion("Second")]
         self.page.load({**new_world(), "characters": records})
         dialog = LegacyCharactersDialog(self.page, index=1)
         self.addCleanup(dialog.deleteLater)
         portrait = self.root / "portrait.png"
         Image.new("RGBA", (128, 192)).save(portrait)
-        with patch("pixelheart.legacy_characters.QFileDialog.getOpenFileName", return_value=(str(portrait), "")):
+        with patch("meetcute.legacy_characters.QFileDialog.getOpenFileName", return_value=(str(portrait), "")):
             dialog.import_artwork("portrait")
         self.assertFalse(self.window.errors)
         self.assertIsNone(self.page.world["characters"][0]["artwork"]["portrait"])
@@ -240,23 +240,23 @@ class WorldPageTests(QtTestCase):
 
     def test_legacy_removal_requires_confirmation_and_keeps_saved_project_until_save(self):
         from PySide6.QtWidgets import QMessageBox
-        from pixelheart.legacy_characters import LegacyCharactersDialog
+        from meetcute.legacy_characters import LegacyCharactersDialog
         records = [new_companion("First"), new_companion("Second")]
         self.page.load({**new_world(), "characters": records})
         self.window.ensure_saved()
         dialog = LegacyCharactersDialog(self.page, index=1)
         self.addCleanup(dialog.deleteLater)
-        with patch("pixelheart.legacy_characters.QMessageBox.question", return_value=QMessageBox.StandardButton.No):
+        with patch("meetcute.legacy_characters.QMessageBox.question", return_value=QMessageBox.StandardButton.No):
             dialog.remove_character()
         self.assertEqual(self.page.world["characters"], records)
-        with patch("pixelheart.legacy_characters.QMessageBox.question", return_value=QMessageBox.StandardButton.Yes):
+        with patch("meetcute.legacy_characters.QMessageBox.question", return_value=QMessageBox.StandardButton.Yes):
             dialog.remove_character()
         self.assertEqual(self.page.world["characters"], records[:1])
         self.assertEqual(load_project(self.window.project_file)["world"]["characters"], records)
 
     def test_legacy_validation_issue_opens_repair_dialog_for_affected_record(self):
         self.page.load({**new_world(), "characters": [new_companion("First"), new_companion("Second")]})
-        with patch("pixelheart.legacy_characters.LegacyCharactersDialog") as constructor:
+        with patch("meetcute.legacy_characters.LegacyCharactersDialog") as constructor:
             self.page.open_issue("world.characters.1.artwork.sprite")
             constructor.assert_called_once_with(self.page, index=1)
             constructor.return_value.exec.assert_called_once()
@@ -266,7 +266,7 @@ class WorldPageTests(QtTestCase):
         self.page.add_location()
         second = self.page.world["locations"][1]["id"]
         source = make_map(self.root / "source")
-        with patch("pixelheart.world_page.QFileDialog.getOpenFileName", return_value=(str(source), "")):
+        with patch("meetcute.world_page.QFileDialog.getOpenFileName", return_value=(str(source), "")):
             self.page.import_location()
         self.assertFalse(self.window.errors)
         self.assertEqual(self.page.world["locations"][self.page.location_index]["id"], second)
@@ -282,7 +282,7 @@ class WorldPageTests(QtTestCase):
         self.page.world["locations"][1]["map"] = reference
         self.page.refresh_location()
         self.assertTrue(self.page.edit_map_button.isEnabled())
-        with patch("pixelheart.map_workshop.MapWorkshop") as constructor:
+        with patch("meetcute.map_workshop.MapWorkshop") as constructor:
             dialog = constructor.return_value
             dialog.exec.return_value = QDialog.DialogCode.Accepted
             dialog.result_reference = reference
@@ -292,7 +292,7 @@ class WorldPageTests(QtTestCase):
         self.assertIsNone(self.page.world["locations"][0]["map"])
         self.assertTrue(self.page.world["locations"][1]["spouse_room"])
         before = self.page.dump()
-        with patch("pixelheart.map_workshop.MapWorkshop") as constructor:
+        with patch("meetcute.map_workshop.MapWorkshop") as constructor:
             constructor.return_value.load_map.side_effect = WorldError("Use Tiled to preserve custom map data")
             self.page.edit_map()
             constructor.return_value.exec.assert_not_called()
@@ -307,7 +307,7 @@ class InstallationTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.mods = self.root / "Mods"
         self.mods.mkdir()
-        self.identity = "Pixelheart.Mira_abc123"
+        self.identity = "MeetCute.Mira_abc123"
 
     def archive(self, text="first", extra=None):
         output = io.BytesIO()
@@ -327,16 +327,25 @@ class InstallationTests(unittest.TestCase):
         self.assertEqual(json.loads((second["backup_path"] / "content.json").read_text())["test"], "first")
         self.assertEqual(json.loads((second["installed_path"] / "content.json").read_text())["test"], "second")
 
+    def test_update_of_a_pre_rename_install_keeps_game_identity_and_backup(self):
+        self.identity = "Pixelheart.Mira_abc123"
+        installed = install_archive(self.archive(), self.mods, self.identity)["installed_path"]
+        (installed / ".meetcute-install.json").rename(installed / ".pixelheart-install.json")
+        result = install_archive(self.archive("second"), self.mods, self.identity)
+        self.assertEqual(result["installed_path"], installed)
+        self.assertTrue((result["backup_path"] / ".pixelheart-install.json").is_file())
+        self.assertEqual(json.loads((installed / ".meetcute-install.json").read_text())["mod_id"], self.identity)
+
     def test_foreign_folder_and_mismatched_identity_are_preserved(self):
         destination = self.mods / "[CP] Mira"
         destination.mkdir()
         sentinel = destination / "unrelated.txt"
         sentinel.write_text("preserve")
-        with self.assertRaisesRegex(WorldError, "not installed by Pixelheart"):
+        with self.assertRaisesRegex(WorldError, "not installed by MEETC#TE"):
             install_archive(self.archive(), self.mods, self.identity)
         self.assertEqual(sentinel.read_text(), "preserve")
         with self.assertRaisesRegex(WorldError, "identity"):
-            install_archive(self.archive(), self.mods, "Pixelheart.Other_123")
+            install_archive(self.archive(), self.mods, "MeetCute.Other_123")
 
     def test_traversal_symlink_and_duplicate_archive_entries_are_rejected(self):
         symlink = zipfile.ZipInfo("[CP] Mira/linked")
@@ -353,14 +362,14 @@ class InstallationTests(unittest.TestCase):
         import os
         original_replace = os.replace
         def fail_final(source, destination):
-            if Path(source).name.startswith(".pixelheart-stage-"):
+            if Path(source).name.startswith(".meetcute-stage-"):
                 raise OSError("simulated final rename failure")
             return original_replace(source, destination)
-        with patch("pixelheart_core.world.os.replace", side_effect=fail_final):
+        with patch("meetcute_core.world.os.replace", side_effect=fail_final):
             with self.assertRaisesRegex(WorldError, "simulated"):
                 install_archive(self.archive("second"), self.mods, self.identity)
         self.assertEqual(json.loads((installed / "content.json").read_text())["test"], "first")
-        self.assertFalse(any(path.name.startswith(".pixelheart-stage-") for path in self.mods.iterdir()))
+        self.assertFalse(any(path.name.startswith(".meetcute-stage-") for path in self.mods.iterdir()))
 
 
 if __name__ == "__main__":

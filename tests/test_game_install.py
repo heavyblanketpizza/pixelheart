@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from pixelheart_core.game_install import (
+from meetcute_core.game_install import (
     GameInstallError, candidate_folders, find_games, inspect_game,
 )
 
@@ -80,7 +80,7 @@ class FindGamesTests(unittest.TestCase):
         self.home = self.folder / "home"
         self.steam = self.home / "Library/Application Support/Steam"
         (self.steam / "steamapps").mkdir(parents=True)
-        self.enterContext(patch("pixelheart_core.game_install.SYSTEM_CANDIDATES", ()))
+        self.enterContext(patch("meetcute_core.game_install.SYSTEM_CANDIDATES", ()))
         environment = {key: value for key, value in os.environ.items()
                        if key not in ("PROGRAMFILES", "PROGRAMFILES(X86)")}
         self.enterContext(patch.dict(os.environ, environment, clear=True))
@@ -109,9 +109,9 @@ class FindGamesTests(unittest.TestCase):
         self.assertIn(self.home / "GOG Games/Stardew Valley", candidate_folders(self.home))
 
     def test_legacy_discover_game_root_uses_find_games(self):
-        from pixelheart_core.game_scene_assets import discover_game_root
+        from meetcute_core.game_scene_assets import discover_game_root
         game = fake_game(self.steam / "steamapps/common/Stardew Valley")
-        with patch("pixelheart_core.game_install.Path.home", return_value=self.home):
+        with patch("meetcute_core.game_install.Path.home", return_value=self.home):
             self.assertEqual(discover_game_root(), game.resolve())
 
 

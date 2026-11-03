@@ -11,8 +11,8 @@ from unittest.mock import patch
 
 from PIL import Image, PngImagePlugin
 
-from pixelheart_core.artwork import ArtworkValidationError
-from pixelheart_core.artwork_review import (
+from meetcute_core.artwork import ArtworkValidationError
+from meetcute_core.artwork_review import (
     MAX_REVIEW_FRAMES,
     ReviewSheet,
     frame_title,
@@ -137,8 +137,8 @@ class ArtworkReviewTests(unittest.TestCase):
         metadata.add_text("Source", str(self.directory / "private-file.png"))
         path = self.png(pnginfo=metadata)
         before = path.read_bytes()
-        from pixelheart_core.artwork_review import _read_png
-        with patch("pixelheart_core.artwork_review._read_png", wraps=_read_png) as read:
+        from meetcute_core.artwork_review import _read_png
+        with patch("meetcute_core.artwork_review._read_png", wraps=_read_png) as read:
             sheet = load_review_sheet(path, "sprite", "Current artwork")
         read.assert_called_once()
         self.assertEqual(path.read_bytes(), before)
@@ -185,7 +185,7 @@ class ArtworkReviewTests(unittest.TestCase):
             load_review_sheet(path, "sprite")
 
     def test_unknown_kind_is_rejected_before_reading(self):
-        with patch("pixelheart_core.artwork_review._read_png") as read:
+        with patch("meetcute_core.artwork_review._read_png") as read:
             with self.assertRaisesRegex(ArtworkValidationError, "portrait or sprite"):
                 load_review_sheet("anything", "map")
             read.assert_not_called()

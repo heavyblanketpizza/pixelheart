@@ -11,10 +11,10 @@ import unittest
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
-from pixelheart.app import MainWindow
-from pixelheart_core.projects import load_project
-from pixelheart_core.story import new_event, new_beat, new_actor, new_relationship
-from pixelheart_core.world import new_companion, new_location, cast_actor_id
+from meetcute.app import MainWindow
+from meetcute_core.projects import load_project
+from meetcute_core.story import new_event, new_beat, new_actor, new_relationship
+from meetcute_core.world import new_companion, new_location, cast_actor_id
 from tests.qt_support import QtTestCase
 
 

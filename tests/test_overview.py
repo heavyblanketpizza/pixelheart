@@ -6,7 +6,7 @@ import unittest
 
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.app import MainWindow, PROGRESS_ROLE, SECTION_INDEX, SECTIONS
+from meetcute.app import MainWindow, PROGRESS_ROLE, SECTION_INDEX, SECTIONS
 from tests.qt_support import QtTestCase
 
 

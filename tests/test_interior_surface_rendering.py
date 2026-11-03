@@ -7,8 +7,8 @@ import xml.etree.ElementTree as ET
 
 from PIL import Image
 
-from pixelheart_core.interior_surface_design import apply_surface
-from pixelheart_core.interiors import (
+from meetcute_core.interior_surface_design import apply_surface
+from meetcute_core.interiors import (
     InteriorDraft, InteriorError, compile_interior, import_atlas, interior_tmx,
     map_layers, new_interior, normalize_interior, render_interior,
 )
@@ -93,7 +93,7 @@ class InteriorSurfaceRenderingTests(unittest.TestCase):
         data["animations"] = [{"tile_id": 1, "frames": [
             {"tile_id": 2, "duration_ms": 100}, {"tile_id": 3, "duration_ms": 100}]}]
         exported = ET.fromstring(interior_tmx(data, design_id="Example.SpouseRoom"))
-        marker = exported.find("tileset[@name='pixelheart_spouse_marker']")
+        marker = exported.find("tileset[@name='meetcute_spouse_marker']")
         tile = marker.find("tile[@id='1']")
         self.assertIsNotNone(tile)
         self.assertEqual(tile.find("properties/property").attrib["value"], "Example.SpouseRoom")

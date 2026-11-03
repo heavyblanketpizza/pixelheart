@@ -12,11 +12,11 @@ from unittest.mock import patch
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.app import MainWindow
-from pixelheart_core.projects import new_project
-from pixelheart_core.romance import new_romance_event
-from pixelheart_core.story import new_relationship
-from pixelheart_core.story_planning import new_chapter
+from meetcute.app import MainWindow
+from meetcute_core.projects import new_project
+from meetcute_core.romance import new_romance_event
+from meetcute_core.story import new_relationship
+from meetcute_core.story_planning import new_chapter
 from tests.qt_support import QtTestCase
 
 
@@ -26,11 +26,11 @@ class ProjectHistoryContextTests(QtTestCase):
         cls.application = QApplication.instance() or QApplication([])
 
     def setUp(self):
-        root = Path(self.enterContext(tempfile.TemporaryDirectory(prefix="pixelheart-history-context-")))
+        root = Path(self.enterContext(tempfile.TemporaryDirectory(prefix="meetcute-history-context-")))
         settings = QSettings(str(root / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.interior_editor.game_import_settings", return_value=settings))
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=settings))
-        self.enterContext(patch("pixelheart.story_page.EventsPage.update_scene_preview"))
+        self.enterContext(patch("meetcute.interior_editor.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=settings))
+        self.enterContext(patch("meetcute.story_page.EventsPage.update_scene_preview"))
         self.window = MainWindow(auto_download_icons=False, preload_story=False)
         self.errors = self.enterContext(patch.object(self.window, "show_error"))
 

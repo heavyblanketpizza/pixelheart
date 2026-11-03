@@ -1,35 +1,35 @@
-# Pixelheart
+# MEETC#TE
 
-Make a new friend for Stardew Valley. Pixelheart is a free, fan-made character studio: give your villager a name, a voice, a daily routine, favorite gifts, heart events, portraits and a home, then put them in your game and go say hello. No coding needed.
+Make a new friend for Stardew Valley. MEETC#TE is a free, fan-made character studio: give your villager a name, a voice, a daily routine, favorite gifts, heart events, portraits and a home, then put them in your game and go say hello. No coding needed.
 
-![Pixelheart — Stardew Valley's Farm Computer and a cup of coffee](docs/assets/pixelheart-banner.png)
+![MEETC#TE in gold pixel lettering beside Stardew Valley's Farm Computer and a cup of coffee](docs/assets/meetcute-banner.png)
 
 > [!NOTE]
-> Pixelheart is an early fan project. Characters you make play through SMAPI and Content Patcher, and every character still deserves a test run in your own game before you share it.
+> MEETC#TE is an early fan project. Characters you make play through SMAPI and Content Patcher, and every character still deserves a test run in your own game before you share it.
 
 ## What you need
 
-- **Stardew Valley 1.6** on your computer (Steam or GOG, on Windows, macOS or Linux). Pixelheart reads your copy of the game to show real maps, portraits and menus. Nothing from the game is copied into Pixelheart or your character projects.
-- **SMAPI** and **Content Patcher** to *play* your character. You can create without them; Pixelheart tells you when they're missing. Get them at [smapi.io](https://smapi.io/) and [Nexus Mods](https://www.nexusmods.com/stardewvalley/mods/1915).
+- **Stardew Valley 1.6** on your computer (Steam or GOG, on Windows, macOS or Linux). MEETC#TE reads your copy of the game to show real maps, portraits and menus. Nothing from the game is copied into MEETC#TE or your character projects.
+- **SMAPI** and **Content Patcher** to *play* your character. You can create without them; MEETC#TE tells you when they're missing. Get them at [smapi.io](https://smapi.io/) and [Nexus Mods](https://www.nexusmods.com/stardewvalley/mods/1915).
 
-## Start Pixelheart
+## Start MEETC#TE
 
-There's no installer yet, so Pixelheart runs from this folder with [uv](https://docs.astral.sh/uv/getting-started/installation/) (version 0.12.16 or newer). Install uv once, then open a terminal in this folder and run:
+There's no installer yet, so MEETC#TE runs from this folder with [uv](https://docs.astral.sh/uv/getting-started/installation/) (version 0.12.16 or newer). Install uv once, then open a terminal in this folder and run:
 
 ```sh
 uv sync --locked
-uv run --locked python -m pixelheart
+uv run --locked python -m meetcute
 ```
 
-uv downloads the right Python and everything else Pixelheart needs.
+uv downloads the right Python and everything else MEETC#TE needs.
 
 ## Your first visit
 
-1. **Pixelheart finds your game.** It checks the usual Steam and GOG places, including Steam libraries on external drives. The welcome screen says what it found, for example *Stardew Valley 1.6.15 found on Just for Fun*, and whether SMAPI and Content Patcher are installed. If it can't find the game, choose **Find Stardew Valley…** and point it at the game folder. If your game lives on a drive that's unplugged, Pixelheart waits patiently and draws its own hearts and headings until you plug it back in.
-2. **Choose New character** and type a name. That's it: Pixelheart saves them in `Documents/Pixelheart/<their name>/` for you, and keeps saving every change as you work.
+1. **MEETC#TE finds your game.** It checks the usual Steam and GOG places, including Steam libraries on external drives. The welcome screen says what it found, for example *Stardew Valley 1.6.15 found on Just for Fun*, and whether SMAPI and Content Patcher are installed. If it can't find the game, choose **Find Stardew Valley…** and point it at the game folder. If your game lives on a drive that's unplugged, MEETC#TE waits patiently and draws its own hearts and headings until you plug it back in.
+2. **Choose New character** and type a name. That's it: MEETC#TE saves them in `Documents/MEETC#TE/<their name>/` for you, and keeps saving every change as you work.
 3. **Follow the hearts.** The **Overview** page shows your character's journey as eight hearts, one per step, with a *Next up* suggestion and anything that still needs fixing.
 
-Pixelheart keeps to warm white and black pixel lines, so the portraits, sprites and rooms you make carry the color. The hearts and heading lettering come from your installed game. Long writing sessions are easier on the eyes with **View → Easier-to-read text**, which keeps the pixel frames but uses a plain font.
+MEETC#TE keeps to warm white and black pixel lines, so the portraits, sprites and rooms you make carry the color. The hearts and heading lettering come from your installed game. Long writing sessions are easier on the eyes with **View → Easier-to-read text**, which keeps the pixel frames but uses a plain font.
 
 ## The eight steps
 
@@ -67,18 +67,18 @@ These read straight from your installed game. There are no console commands and 
 
 Choose **Paint…** on a portrait or sprite sheet to touch it up, recolor an outfit, or draw a new sheet from scratch. The pixel painter has layers with transparency, undo and redo, selections, mirror drawing, onion skin, a live game-size preview, and a faded reference layer you can trace. Only the finished, flattened PNG goes into the game; your layers stay in the project for next time. Your own map and Home tilesheets can be painted the same way.
 
-Pixelheart has no built-in AI artwork generation. If you want to use AI image tools, use them outside Pixelheart and import the finished PNG like any other artwork. Use art you made or have permission to use.
+MEETC#TE has no built-in AI artwork generation. If you want to use AI image tools, use them outside MEETC#TE and import the finished PNG like any other artwork. Use art you made or have permission to use.
 
 ## Design with AI (optional)
 
-Pixelheart can lend you an AI designer to talk through a character with: who they are, what they say, their routine and the routines that replace it on rainy days, in a season, while dating or once married, gifts, heart events, and what they say after a chapter or a wedding. It is off until you set it up under **View → Set up AI designer…**, either with an Anthropic API key or with a local model server: llama.cpp's llama-server or MLX's mlx_lm.server. While you chat, your character's text is sent to the provider you chose. Everything the designer writes is an ordinary edit you can undo, and the dialogue it writes is marked as AI-written in the project. Its words appear as it writes them: **Stop** interrupts a reply, and **New conversation** clears the chat to start again. Portraits, sprites and homes stay yours to make.
+MEETC#TE can lend you an AI designer to talk through a character with: who they are, what they say, their routine and the routines that replace it on rainy days, in a season, while dating or once married, gifts, heart events, and what they say after a chapter or a wedding. It is off until you set it up under **View → Set up AI designer…**, either with an Anthropic API key or with a local model server: llama.cpp's llama-server or MLX's mlx_lm.server. While you chat, your character's text is sent to the provider you chose. Everything the designer writes is an ordinary edit you can undo, and the dialogue it writes is marked as AI-written in the project. Its words appear as it writes them: **Stop** interrupts a reply, and **New conversation** clears the chat to start again. Portraits, sprites and homes stay yours to make.
 
 ### For other AI agents
 
-The same designer tools can serve an AI agent outside Pixelheart, such as Claude Code or Claude Desktop, through the Model Context Protocol (MCP). Close the character in Pixelheart first: the app saves automatically and would overwrite what the agent writes. Then give the agent this command, run from the Pixelheart folder, with the path to the character's folder or its `character.json`:
+The same designer tools can serve an AI agent outside MEETC#TE, such as Claude Code or Claude Desktop, through the Model Context Protocol (MCP). Close the character in MEETC#TE first: the app saves automatically and would overwrite what the agent writes. Then give the agent this command, run from the MEETC#TE folder, with the path to the character's folder or its `character.json`:
 
 ```bash
-uv run --locked python -m pixelheart_designer.mcp --project ~/Documents/Pixelheart/Mira
+uv run --locked python -m meetcute_designer.mcp --project "$HOME/Documents/MEETC#TE/Mira"
 ```
 
 For Claude Code, the same server as an entry in `.mcp.json` (Claude Desktop's `claude_desktop_config.json` takes the same shape):
@@ -86,36 +86,36 @@ For Claude Code, the same server as an entry in `.mcp.json` (Claude Desktop's `c
 ```json
 {
   "mcpServers": {
-    "pixelheart": {
+    "meetcute": {
       "command": "uv",
-      "args": ["run", "--locked", "--directory", "/path/to/pixelheart",
-               "python", "-m", "pixelheart_designer.mcp",
-               "--project", "/Users/you/Documents/Pixelheart/Mira"]
+      "args": ["run", "--locked", "--directory", "/absolute/path/to/checkout",
+               "python", "-m", "meetcute_designer.mcp",
+               "--project", "/Users/you/Documents/MEETC#TE/Mira"]
     }
   }
 }
 ```
 
-Every change the agent makes is saved to the character at once, and the dialogue it writes is marked as AI-written with the agent's name. Open the character in Pixelheart afterwards to look it over and run **Check & export**.
+Every change the agent makes is saved to the character at once, and the dialogue it writes is marked as AI-written with the agent's name. Open the character in MEETC#TE afterwards to look it over and run **Check & export**.
 
 ## Play in Stardew
 
 1. Open **Play in Stardew → Check & export**, fix anything it lists, and choose **Export for Stardew…**.
-2. Open **Put in game & playtest** and install. Pixelheart suggests your game's Mods folder and only ever replaces its own earlier copy of this character; your other mods are left alone.
+2. Open **Put in game & playtest** and install. MEETC#TE suggests your game's Mods folder and only ever replaces its own earlier copy of this character; your other mods are left alone.
 3. Start Stardew Valley through SMAPI, meet your character, and tick off the playtest checklist.
 
 Only heart events marked ready go into the game. Unfinished drafts stay safely in your project.
 
 ## Keeping your characters safe
 
-- Characters live in `Documents/Pixelheart/`. Back up that folder to keep everything, including imported artwork and homes.
-- Pixelheart saves each change a moment after you make it. The top of the window says **All changes saved**, or explains what couldn't be saved. **File → Save automatically** turns this off if you'd rather save yourself.
+- New libraries live in `Documents/MEETC#TE/`. The welcome screen also lists characters in an existing `Documents/Pixelheart/` library. If that is your only library, new characters are saved there too. Back up your library folder to keep everything, including imported artwork and homes.
+- MEETC#TE saves each change a moment after you make it. The top of the window says **All changes saved**, or explains what couldn't be saved. **File → Save automatically** turns this off if you'd rather save yourself.
 - **File → Save a copy…** saves a character somewhere else.
-- **Edit → Undo / Redo** works across the whole character, including Home, and keeps working after Pixelheart saves.
+- **Edit → Undo / Redo** works across the whole character, including Home, and keeps working after MEETC#TE saves.
 - Keep a character's internal name the same once you've used them in a save file.
 
 ## License
 
-Free for personal, noncommercial modding under the [Pixelheart Source-Available License 1.1](LICENSE). Source available, not open source. The bundled Pixelify Sans font is under the SIL Open Font License (see `pixelheart/resources/fonts/OFL.txt`).
+Free for personal, noncommercial modding under the [MEETC#TE Source-Available License 1.1](LICENSE). Source available, not open source. The bundled Pixelify Sans font is under the SIL Open Font License (see `meetcute/resources/fonts/OFL.txt`).
 
-Stardew Valley is by **ConcernedApe**. Pixelheart is an unofficial fan tool, unaffiliated with and unendorsed by ConcernedApe.
+Stardew Valley is by **ConcernedApe**. MEETC#TE is an unofficial fan tool, unaffiliated with and unendorsed by ConcernedApe.

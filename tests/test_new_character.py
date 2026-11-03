@@ -1,4 +1,4 @@
-"""A new character needs only a name; Pixelheart picks the folder."""
+"""A new character needs only a name; MEETC#TE picks the folder."""
 import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -10,8 +10,8 @@ from unittest.mock import patch
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication, QDialog
 
-from pixelheart.app import MainWindow, SECTION_INDEX
-from pixelheart.new_character import NewCharacterDialog
+from meetcute.app import MainWindow, SECTION_INDEX
+from meetcute.new_character import NewCharacterDialog
 from tests.qt_support import QtTestCase
 
 
@@ -23,8 +23,8 @@ class NewCharacterTests(QtTestCase):
     def setUp(self):
         self.folder = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.settings = QSettings(str(self.folder / "settings.ini"), QSettings.Format.IniFormat)
-        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=self.settings))
-        self.enterContext(patch.dict(os.environ, {"PIXELHEART_LIBRARY": str(self.folder / "Pixelheart")}))
+        self.enterContext(patch("meetcute.game_import.game_import_settings", return_value=self.settings))
+        self.enterContext(patch.dict(os.environ, {"MEETCUTE_LIBRARY": str(self.folder / "MEETC#TE")}))
         self.window = MainWindow()
 
     def tearDown(self):
@@ -37,7 +37,7 @@ class NewCharacterTests(QtTestCase):
             dialog.name_field.setText(name)
             dialog.romance.setChecked(romance)
             return QDialog.DialogCode.Accepted
-        return patch("pixelheart.new_character.NewCharacterDialog.exec", new=run)
+        return patch("meetcute.new_character.NewCharacterDialog.exec", new=run)
 
     def test_dialog_requires_a_name(self):
         dialog = NewCharacterDialog()
@@ -50,10 +50,10 @@ class NewCharacterTests(QtTestCase):
         self.assertEqual(dialog.values(), ("Mira", True))
 
     def test_new_character_is_saved_into_the_library_without_asking_where(self):
-        with self.accept("Mira"), patch("pixelheart.app.QFileDialog.getSaveFileName",
+        with self.accept("Mira"), patch("meetcute.app.QFileDialog.getSaveFileName",
                                         side_effect=AssertionError("no save dialog")):
             self.assertTrue(self.window.start_new_character())
-        expected = self.folder / "Pixelheart" / "Mira" / "character.json"
+        expected = self.folder / "MEETC#TE" / "Mira" / "character.json"
         self.assertEqual(self.window.project_file, expected)
         self.assertTrue(expected.is_file())
         character = self.window.document["character"]
@@ -73,21 +73,21 @@ class NewCharacterTests(QtTestCase):
 
     def test_cancel_keeps_the_current_project(self):
         before = self.window.document["character"]["id"]
-        with patch("pixelheart.new_character.NewCharacterDialog.exec", return_value=QDialog.DialogCode.Rejected):
+        with patch("meetcute.new_character.NewCharacterDialog.exec", return_value=QDialog.DialogCode.Rejected):
             self.assertFalse(self.window.start_new_character())
         self.assertEqual(self.window.document["character"]["id"], before)
 
     def test_unsaved_changes_are_offered_before_starting_over(self):
         self.window.dirty = True
         with patch.object(self.window, "confirm_discard", return_value=False) as confirm, \
-             patch("pixelheart.new_character.NewCharacterDialog.exec", side_effect=AssertionError("no dialog")):
+             patch("meetcute.new_character.NewCharacterDialog.exec", side_effect=AssertionError("no dialog")):
             self.assertFalse(self.window.start_new_character())
         confirm.assert_called_once()
 
     def test_unwritable_library_falls_back_to_choosing_a_folder(self):
         blocked = self.folder / "blocked"
         blocked.write_text("a file, not a folder")
-        with patch.dict(os.environ, {"PIXELHEART_LIBRARY": str(blocked)}), self.accept("Mira"), \
+        with patch.dict(os.environ, {"MEETCUTE_LIBRARY": str(blocked)}), self.accept("Mira"), \
              patch.object(self.window, "show_error"), \
              patch.object(self.window, "save_as", return_value=False) as save_as:
             self.assertTrue(self.window.start_new_character())

@@ -5,10 +5,10 @@ import unittest
 
 from PIL import Image
 
-from pixelheart_core.interior_furniture import import_texture, validate_definition
-from pixelheart_core.interiors import InteriorDraft
-from pixelheart_core.painted_furniture import build_painted, local_hex, painting_canvas
-from pixelheart_core.world import exported_location_id, exported_npc_id
+from meetcute_core.interior_furniture import import_texture, validate_definition
+from meetcute_core.interiors import InteriorDraft
+from meetcute_core.painted_furniture import build_painted, local_hex, painting_canvas
+from meetcute_core.world import exported_location_id, exported_npc_id
 from tests import test_interior_exporting as export_tests
 from tests.test_painted_furniture import chair, game_sheet, mirrored, png
 
@@ -65,7 +65,7 @@ class PaintedFurnitureExportTests(unittest.TestCase):
 
     def test_the_record_reads_back_as_native_furniture(self):
         import json
-        from pixelheart_core.interior_furniture import read_native_catalog
+        from meetcute_core.interior_furniture import read_native_catalog
         self.place_painted(self.residence, 9, 7)
         entries = self.patches(self.compile(), "EditData", "Data/Furniture")[0]["Entries"]
         path = self.root / "Furniture.json"

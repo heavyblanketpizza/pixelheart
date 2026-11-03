@@ -4,7 +4,7 @@ import json
 import unittest
 from pathlib import Path
 
-from pixelheart_core.catalog import validate_catalog
+from meetcute_core.catalog import validate_catalog
 from scripts.build_vanilla_catalog import build_catalog
 
 
@@ -54,7 +54,7 @@ class VanillaCatalogTests(unittest.TestCase):
                 self.assertEqual(items[item_id]["name"], name)
 
     def test_bundled_catalog_excludes_non_gifts_and_retains_unusual_real_gifts(self):
-        path = Path(__file__).resolve().parent.parent / "pixelheart_core/data/vanilla_items.json"
+        path = Path(__file__).resolve().parent.parent / "meetcute_core/data/vanilla_items.json"
         catalog = validate_catalog(json.loads(path.read_text(encoding="utf-8")))
         ids = {item["id"] for item in catalog["items"]}
         excluded = {
@@ -73,7 +73,7 @@ class VanillaCatalogTests(unittest.TestCase):
         } <= ids)
 
     def test_wiki_icon_manifest_covers_only_the_bundled_catalog(self):
-        data = Path(__file__).resolve().parent.parent / "pixelheart_core/data"
+        data = Path(__file__).resolve().parent.parent / "meetcute_core/data"
         catalog = json.loads((data / "vanilla_items.json").read_text(encoding="utf-8"))
         manifest = json.loads((data / "wiki_item_images.json").read_text(encoding="utf-8"))
         catalog_ids = {item["id"] for item in catalog["items"]}

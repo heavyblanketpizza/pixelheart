@@ -5,7 +5,7 @@ import unittest
 import uuid
 from unittest.mock import patch
 
-from pixelheart_core.dialogue_templates import (
+from meetcute_core.dialogue_templates import (
     MAX_DIALOGUES,
     apply_dialogue_examples,
     dialogue_conflicts,
@@ -13,7 +13,7 @@ from pixelheart_core.dialogue_templates import (
     dialogue_preview,
     overwrite_dialogue_examples,
 )
-from pixelheart_core.validation import validate_nested
+from meetcute_core.validation import validate_nested
 
 
 class DialogueTemplateTests(unittest.TestCase):
@@ -235,7 +235,7 @@ class DialogueTemplateTests(unittest.TestCase):
 
     def test_overwrite_appends_new_rows_in_order_with_unique_ids(self):
         examples = [{"trigger": "Tue", "text": "Tuesday."}, {"trigger": "Wed", "text": "Wednesday."}]
-        with patch("pixelheart_core.dialogue_templates.uuid.uuid4",
+        with patch("meetcute_core.dialogue_templates.uuid.uuid4",
                    side_effect=["intro", "new-first", "new-first", "new-second"]):
             replaced = overwrite_dialogue_examples(self.records, examples)
         self.assertEqual(replaced[:2], self.records)

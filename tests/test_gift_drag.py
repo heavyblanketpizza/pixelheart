@@ -14,8 +14,8 @@ from PySide6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDragMoveEvent, QDro
 from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QApplication
 
-from pixelheart.gifts_page import GIFT_MIME, GiftsPage
-from pixelheart.item_icons import ItemIconStore
+from meetcute.gifts_page import GIFT_MIME, GiftsPage
+from meetcute.item_icons import ItemIconStore
 from tests.qt_support import QtTestCase
 
 
@@ -28,10 +28,10 @@ class GiftDragTests(QtTestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="pixelheart-gift-drag-")
+        self.temp = tempfile.TemporaryDirectory(prefix="meetcute-gift-drag-")
         root = Path(self.temp.name)
         store = ItemIconStore(root / "textures", root / "wiki-icons")
-        self.icon_patch = patch("pixelheart.gifts_page.ItemIconStore", return_value=store)
+        self.icon_patch = patch("meetcute.gifts_page.ItemIconStore", return_value=store)
         self.icon_patch.start()
         self.pages = []
         self.page = self.make_page()
@@ -122,7 +122,7 @@ class GiftDragTests(QtTestCase):
 
         point = library.visualItemRect(tulip).center()
         destination = point + QPoint(QApplication.startDragDistance() + 12, 0)
-        with patch("pixelheart.gifts_page.QDrag", Drag):
+        with patch("meetcute.gifts_page.QDrag", Drag):
             QTest.mousePress(library.viewport(), Qt.MouseButton.LeftButton, pos=point)
             QTest.mouseMove(library.viewport(), destination)
             QTest.mouseMove(library.viewport(), destination + QPoint(2, 0))

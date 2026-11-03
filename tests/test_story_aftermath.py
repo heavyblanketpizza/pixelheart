@@ -10,13 +10,13 @@ from unittest.mock import Mock
 
 from PySide6.QtWidgets import QApplication, QLabel, QScrollArea
 
-from pixelheart.app import MainWindow
-from pixelheart.life_page import LifePage
-from pixelheart.story_aftermath import EventAftermath
-from pixelheart.theme import apply_theme
-from pixelheart_core.life import COLLECTIONS, new_life_record
-from pixelheart_core.projects import load_project
-from pixelheart_core.story import new_beat, new_event, new_planned_effect
+from meetcute.app import MainWindow
+from meetcute.life_page import LifePage
+from meetcute.story_aftermath import EventAftermath
+from meetcute.theme import apply_theme
+from meetcute_core.life import COLLECTIONS, new_life_record
+from meetcute_core.projects import load_project
+from meetcute_core.story import new_beat, new_event, new_planned_effect
 from tests.qt_support import QtTestCase
 
 
@@ -297,7 +297,7 @@ class EventAftermathHistoryTests(QtTestCase):
         ready = self.window.project_snapshot()
         for key in ("planned_effects", "aftermath_notes", "extension"):
             self.assertEqual(ready["character"]["events"][0]["story"][key], story[key])
-        with tempfile.TemporaryDirectory(prefix="pixelheart-legacy-aftermath-") as directory:
+        with tempfile.TemporaryDirectory(prefix="meetcute-legacy-aftermath-") as directory:
             path = Path(directory) / "character.json"
             self.assertTrue(self.window.save_to(path))
             saved = load_project(path)
