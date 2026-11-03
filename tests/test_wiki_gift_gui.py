@@ -73,7 +73,8 @@ class WikiGiftGuiTests(QtTestCase):
     def wait_until(self, predicate, timeout=3):
         deadline = time.monotonic() + timeout
         while not predicate() and time.monotonic() < deadline:
-            QTest.qWait(5)
+            self.application.processEvents()
+            time.sleep(0.005)  # Give the Python download worker a turn between GUI events.
         self.assertTrue(predicate(), "Background GUI operation did not finish")
 
     def make_widget(self, *, auto=False, identifiers=("66",), window=False):
