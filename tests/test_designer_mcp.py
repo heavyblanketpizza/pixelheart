@@ -27,7 +27,7 @@ class ServerProcess:
     """Drives the server over its pipes with plain JSON-RPC lines, the way any MCP client does."""
 
     def __init__(self, project):
-        self.process = subprocess.Popen([sys.executable, "-m", "meetcute_designer.mcp", "--project", str(project)],
+        self.process = subprocess.Popen([sys.executable, "-X", "utf8", "-m", "meetcute_designer.mcp", "--project", str(project)],
                                         cwd=ROOT, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                         text=True, encoding="utf-8")
         self.replies = queue.Queue()

@@ -271,7 +271,7 @@ class MainWindow(QMainWindow):
         sidebar.setObjectName("sidebar")
         sidebar.setFixedWidth(272)
         side = QVBoxLayout(sidebar)
-        side.setContentsMargins(18, 24, 18, 16)
+        side.setContentsMargins(10, 24, 10, 16)
         side.setSpacing(8)
         brand = QHBoxLayout()
         brand.setSpacing(9)

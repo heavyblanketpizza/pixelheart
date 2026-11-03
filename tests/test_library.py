@@ -56,8 +56,10 @@ class LibraryTests(unittest.TestCase):
         self.assertEqual(internal_name_for("✿✿"), "NPC")
 
     def test_recent_list_is_deduplicated_and_capped(self):
-        rows = remember_recent(["/a/character.json", "/b/character.json"], "/b/character.json", limit=2)
-        self.assertEqual(rows, ["/b/character.json", "/a/character.json"])
+        a = str(self.root / "a" / "character.json")
+        b = str(self.root / "b" / "character.json")
+        rows = remember_recent([a, b], b, limit=2)
+        self.assertEqual(rows, [b, a])
         self.assertEqual(len(remember_recent([f"/{n}" for n in range(20)], "/new")), 12)
 
     def test_library_projects_and_cards(self):

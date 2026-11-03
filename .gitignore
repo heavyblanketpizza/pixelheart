@@ -92,4 +92,6 @@ secrets/
 /docs/superpowers/
 docs/internal/
 *[Pp][Rr][Oo][Mm][Pp][Tt]*
+# The desktop designer imports this module at runtime.
+!/meetcute_designer/prompts.py
 /claude-notes/

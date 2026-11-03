@@ -362,7 +362,7 @@ class DialogueTemplateDesktopTests(QtTestCase):
             with patch("meetcute.game_import.QDesktopServices.openUrl", return_value=True) as open_url:
                 dialog.game_source.open_button.click()
             open_url.assert_called_once()
-            self.assertEqual(open_url.call_args.args[0].toLocalFile(), str(self.root / "dialogue"))
+            self.assertEqual(Path(open_url.call_args.args[0].toLocalFile()), self.root / "dialogue")
             picker.assert_not_called()
             # Only the shared game connection may read settings; never the export folder.
             read_keys = [call.args[0] for call in read_settings.return_value.value.call_args_list]

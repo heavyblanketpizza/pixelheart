@@ -53,6 +53,7 @@ class DevelopmentPackTests(unittest.TestCase):
         self.data.update(groups=["Study", "Empty group"], private_notes={"related_id": "Example.Globe", "keep": True})
         self.path.write_text(json.dumps(self.data))
         self.path.chmod(0o640)
+        original_mode = self.path.stat().st_mode
         originals = {p: p.read_bytes() for p in self.path.parent.iterdir()}
         result = delete_development_item(self.path, "Example.Globe")
         expected = {**self.data, "items": [survivor]}
@@ -60,7 +61,7 @@ class DevelopmentPackTests(unittest.TestCase):
         self.assertEqual(result.data, expected)
         self.assertEqual(load_development_pack(self.path).data, expected)
         self.assertEqual(result.actor["root"], self.path.parent)
-        self.assertEqual(self.path.stat().st_mode & 0o777, 0o640)
+        self.assertEqual(self.path.stat().st_mode, original_mode)
         self.assertEqual({p: p.read_bytes() for p in originals}, originals)
         self.assertEqual(set(self.path.parent.iterdir()), {*originals, self.deletions})
         self.assertEqual(json.loads(self.deletions.read_text())["deleted_item_ids"], ["Example.Globe"])
@@ -82,11 +83,12 @@ class DevelopmentPackTests(unittest.TestCase):
         self.deletions.write_text(json.dumps({"format": "meetcute-catalogue-deletions", "version": 1,
             "deleted_item_ids": ["Example.Previous"], "notes": "Retain local metadata"}))
         self.deletions.chmod(0o640)
+        original_mode = self.deletions.stat().st_mode
         delete_development_item(self.path, "Example.Globe")
         state = self.deletions.read_bytes()
         self.assertEqual(json.loads(state)["deleted_item_ids"], ["Example.Previous", "Example.Globe"])
         self.assertEqual(json.loads(state)["notes"], "Retain local metadata")
-        self.assertEqual(self.deletions.stat().st_mode & 0o777, 0o640)
+        self.assertEqual(self.deletions.stat().st_mode, original_mode)
         survivor = self.add_piece()
         self.data["title"] = "Regenerated collection"
         self.path.write_text(json.dumps(self.data))

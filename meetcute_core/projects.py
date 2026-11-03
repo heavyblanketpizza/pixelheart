@@ -213,7 +213,7 @@ def _relative_path(reference: str) -> Path:
     # Interpret separators consistently even when a Windows project opens on Unix.
     normalized = reference.replace("\\", "/")
     path = Path(normalized)
-    if (path.is_absolute() or PureWindowsPath(reference).drive or
+    if (PureWindowsPath(reference).anchor or
             ".." in path.parts or ":" in normalized or not path.parts):
         raise ProjectError("Artwork paths must stay inside the project folder.")
     return path

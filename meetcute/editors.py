@@ -534,7 +534,9 @@ class SchedulePage(QWidget):
                 widget.setProperty("field", key)
                 connect_change(widget, lambda *args, w=widget: self.edit(w))
                 self.table.setCellWidget(row, column, widget)
-            self.table.setRowHeight(row, max(56, self.table.cellWidget(row, 1).sizeHint().height() + 6))
+            picker = self.table.cellWidget(row, 1)
+            picker.combo.currentIndexChanged.connect(lambda _, r=row: self._size_map_row(r))
+            self._size_map_row(row)
         last_time = game_minutes(self.records[-1].get("time", "")) if self.records else None
         can_add = len(self.records) < 100 and last_time != 1560
         self.add_button.setEnabled(can_add)
@@ -542,11 +544,16 @@ class SchedulePage(QWidget):
         self.loading = False
         self._sync_map()
 
+    def _size_map_row(self, row):
+        picker = self.table.cellWidget(row, 1)
+        height = max(56, picker.combo.sizeHint().height() + 6)
+        if picker.combo.currentIndex() == picker.custom_index:
+            height += picker.layout().spacing() + picker.custom.sizeHint().height()
+        self.table.setRowHeight(row, height)
+
     def edit(self, widget):
         if not self.loading:
             self.records[widget.property("row")][widget.property("field")] = value(widget)
-            if isinstance(widget, MapSelector):
-                self.table.setRowHeight(widget.property("row"), max(56, widget.sizeHint().height() + 6))
             last_time = game_minutes(self.records[-1].get("time", "")) if self.records else None
             self.add_button.setEnabled(len(self.records) < 100 and last_time != 1560)
             self.add_button.setToolTip("The last stop is at 2:00 AM. Move it earlier to add another stop." if last_time == 1560 else "Add the next stop to the daily routine.")
