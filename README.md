@@ -41,7 +41,7 @@ Pixelheart keeps to warm white and black pixel lines, so the portraits, sprites 
 | **Gifts** | The gifts they love, like, dislike and hate, picked from the game's items |
 | **Heart events** | The scenes at 2, 4, 6, 8, 10 and 14 hearts, staged on real maps from your game |
 | **Portraits & sprites** | Their portrait expressions, walking sprites, and seasonal outfits, uploaded or painted in layers |
-| **Home** *(optional)* | Their home before marriage and their spouse room after |
+| **Home** *(optional)* | Their home before marriage, and their spouse room and patio after |
 | **Play in Stardew** | Check everything, put them in your game, and keep playtest notes |
 
 Each finished step earns a heart in the sidebar and on the Overview.
@@ -65,9 +65,38 @@ These read straight from your installed game. There are no console commands and 
 
 ## Paint your own pixels
 
-Choose **Paint…** on a portrait or sprite sheet to touch it up, recolor an outfit, or draw a new sheet from scratch. The pixel painter has layers with transparency, undo and redo, selections, mirror drawing, onion skin, a live game-size preview, and a faded reference layer you can trace. Only the finished, flattened PNG goes into the game; your layers stay in the project for next time. Your own map and Home tilesheets can be painted the same way. See the [artwork guide](ARTWORK.md#pixel-painter).
+Choose **Paint…** on a portrait or sprite sheet to touch it up, recolor an outfit, or draw a new sheet from scratch. The pixel painter has layers with transparency, undo and redo, selections, mirror drawing, onion skin, a live game-size preview, and a faded reference layer you can trace. Only the finished, flattened PNG goes into the game; your layers stay in the project for next time. Your own map and Home tilesheets can be painted the same way.
 
-Pixelheart has no built-in AI artwork generation. If you want to use AI image tools, use them outside Pixelheart and import the finished PNG like any other artwork. Use art you made or have permission to use; see the [artwork guide](ARTWORK.md) for the sheet layouts.
+Pixelheart has no built-in AI artwork generation. If you want to use AI image tools, use them outside Pixelheart and import the finished PNG like any other artwork. Use art you made or have permission to use.
+
+## Design with AI (optional)
+
+Pixelheart can lend you an AI designer to talk through a character with: who they are, what they say, their routine and the routines that replace it on rainy days, in a season, while dating or once married, gifts, heart events, and what they say after a chapter or a wedding. It is off until you set it up under **View → Set up AI designer…**, either with an Anthropic API key or with a local model server: llama.cpp's llama-server or MLX's mlx_lm.server. While you chat, your character's text is sent to the provider you chose. Everything the designer writes is an ordinary edit you can undo, and the dialogue it writes is marked as AI-written in the project. Its words appear as it writes them: **Stop** interrupts a reply, and **New conversation** clears the chat to start again. Portraits, sprites and homes stay yours to make.
+
+### For other AI agents
+
+The same designer tools can serve an AI agent outside Pixelheart, such as Claude Code or Claude Desktop, through the Model Context Protocol (MCP). Close the character in Pixelheart first: the app saves automatically and would overwrite what the agent writes. Then give the agent this command, run from the Pixelheart folder, with the path to the character's folder or its `character.json`:
+
+```bash
+uv run --locked python -m pixelheart_designer.mcp --project ~/Documents/Pixelheart/Mira
+```
+
+For Claude Code, the same server as an entry in `.mcp.json` (Claude Desktop's `claude_desktop_config.json` takes the same shape):
+
+```json
+{
+  "mcpServers": {
+    "pixelheart": {
+      "command": "uv",
+      "args": ["run", "--locked", "--directory", "/path/to/pixelheart",
+               "python", "-m", "pixelheart_designer.mcp",
+               "--project", "/Users/you/Documents/Pixelheart/Mira"]
+    }
+  }
+}
+```
+
+Every change the agent makes is saved to the character at once, and the dialogue it writes is marked as AI-written with the agent's name. Open the character in Pixelheart afterwards to look it over and run **Check & export**.
 
 ## Play in Stardew
 

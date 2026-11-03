@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from functools import partial
 from datetime import datetime, timezone
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QSize, QSaveFile, QIODevice, QTimer
+from PySide6.QtCore import Qt, QFile, QSize, QSaveFile, QIODevice, QTimer
 from PySide6.QtGui import QAction, QImage, QKeySequence, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QScrollArea,
@@ -37,12 +38,14 @@ from .location_picker import MapSelector
 from pixelheart_core.playtesting import record_export
 from .theme import apply_theme, heart_icon
 from .game_connection import game_connection, open_find_game
-from .skin import easy_read_enabled, set_easy_read
+from .skin import current_notice, easy_read_enabled, set_easy_read
 from .welcome_page import WelcomePage
 from .overview_page import OverviewPage
 from .new_character import NewCharacterDialog
+from .designer_panel import DesignerPanel
+from . import designer_setup
 from . import game_import
-from pixelheart_core.library import default_library_root, internal_name_for, new_project_path, remember_recent
+from pixelheart_core.library import TRASH_NAME, character_folder, default_library_root, internal_name_for, new_project_path, remember_recent
 from pixelheart_core.progress import project_progress
 from pixelheart_core.route_maps import load_route_map
 from .navigation_icons import navigation_icon
@@ -60,7 +63,7 @@ SECTIONS = [
     ("gifts", "Gifts", "It's the thought that counts.", "The gifts they love, like, dislike, and hate."),
     ("story", "Heart events", "Every heart brings you closer.", "Write and stage the scenes at each friendship level."),
     ("artwork", "Portraits & sprites", "Let their personality show.", "Their portraits, walking sprites, and seasonal outfits."),
-    ("home", "Home", "Home", "Decorate their home before marriage and their spouse room after."),
+    ("home", "Home", "Home", "Decorate their home before marriage, and their spouse room and patio after."),
     ("export", "Play in Stardew", "Bring them into Stardew Valley.", "Check your character, put them in your game, and playtest their story."),
 ]
 SECTION_INDEX = {section[0]: index for index, section in enumerate(SECTIONS)}
@@ -93,7 +96,7 @@ def _export_completion_message(filename, manifest):
         message += "\n\nInstall these required mods separately:\n" + "\n".join("• " + name for name in requirements)
     if any(entry["UniqueID"].casefold() == INTERIORS_MOD_ID.casefold() for entry in required):
         message += ("\n\nPixelheart Interiors is the required companion for designed homes and spouse rooms. "
-                    "Its DLL is not included in this ZIP. Follow the companion build and installation steps in WORLD_BUILDING.md. "
+                    "Its DLL is not included in this ZIP; install it separately. "
                     f"Designed interiors need Stardew Valley {INTERIORS_MIN_GAME_VERSION}+ and SMAPI {INTERIORS_MIN_SMAPI_VERSION}+.")
     return message + "\n\nStart Stardew Valley through SMAPI and say hello in a test save before sharing!"
 
@@ -228,12 +231,16 @@ class MainWindow(QMainWindow):
         self.autosave_error = None
         self.room_save_issue = None
         self._last_saved_at = None
+        self._theme_notices = set()
         self.autosave = AutosaveController(self)
         self.project_history = ProjectHistoryController(self)
         self.setWindowIcon(heart_icon())
         self.setMinimumSize(1020, 700)
         self.resize(1360, 900)
         self.build_workspace()
+        self.designer = DesignerPanel(self)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.designer)
+        self.designer.setVisible(self.designer.remembered_visible())
         self.build_menus()
         self._workspace = self.takeCentralWidget()
         self.welcome = WelcomePage(self)
@@ -250,6 +257,8 @@ class MainWindow(QMainWindow):
             self.open_path(path)
         elif show_welcome:
             self.root_stack.setCurrentWidget(self.welcome)
+            self.designer.set_workspace_visible(False)
+        self.show_theme_notice()
 
     def build_workspace(self):
         central = QWidget()
@@ -426,6 +435,14 @@ class MainWindow(QMainWindow):
         find = QAction("&Find Stardew Valley…", self)
         find.triggered.connect(self.find_game)
         view_menu.addAction(find)
+        self.designer_action = self.designer.toggleViewAction()
+        self.designer_action.setText("&AI designer")
+        self.designer_action.triggered.connect(self.designer.remember_visible)
+        view_menu.addAction(self.designer_action)
+        self.designer_setup_action = QAction("Set up AI designer…", self)
+        self.designer_setup_action.triggered.connect(self.designer.open_setup)
+        view_menu.addAction(self.designer_setup_action)
+        view_menu.addSeparator()
         self.easy_read_action = QAction("&Easier-to-read text", self)
         self.easy_read_action.setCheckable(True)
         self.easy_read_action.setChecked(easy_read_enabled())
@@ -445,6 +462,24 @@ class MainWindow(QMainWindow):
 
     def open_section(self, key):
         self.navigation.setCurrentRow(SECTION_INDEX[key])
+
+    def open_designer(self):
+        """Show the AI designer beside the workspace; its own card explains setup when it's off."""
+        self.show_workspace()
+        self.designer.show()
+        self.designer.raise_()
+        self.designer.remember_visible(True)
+
+    def apply_designer_change(self, document, receipt):
+        """Land one AI designer change as exactly one Edit → Undo step."""
+        self.project_history.close_group()
+        self.restore_project_snapshot(document)
+        self.dirty = True
+        self.project_history.record_current(merge_key=None)
+        self.project_history.close_group()
+        self.refresh_progress()
+        self.update_title()
+        self.statusBar().showMessage(receipt.get("title", "Updated"), 6000)
 
     def open_life_editor(self, kind):
         if kind == "routines":
@@ -792,6 +827,9 @@ class MainWindow(QMainWindow):
         return False
 
     def load_document(self, document, path=None):
+        designer = getattr(self, "designer", None)
+        if designer is not None:
+            designer.reset_for_project()
         self.loading = True
         self.autosave.timer.stop()
         self.autosave_error = self.room_save_issue = self._last_saved_at = None
@@ -836,10 +874,13 @@ class MainWindow(QMainWindow):
         return (self.schedule, self.life.editors["routines"].schedule)
 
     def route_map(self, location):
-        """The picture of a routine stop's place, from the project or the connected game."""
+        """A job that draws a routine stop's place, from the project or the connected game.
+
+        The job runs off the UI thread, so it reads its own copy of the project.
+        """
         connection = game_connection()
         game_root = connection.install().root if connection.state() == "connected" else None
-        return load_route_map(self.document, self.project_file, location, game_root=game_root)
+        return partial(load_route_map, deepcopy(self.document), self.project_file, location, game_root=game_root)
 
     def update_portrait(self):
         try:
@@ -892,11 +933,54 @@ class MainWindow(QMainWindow):
         settings = game_import.game_import_settings()
         settings.setValue(self.RECENT_KEY, remember_recent(self.recent_projects(), path))
         settings.sync()
+        hidden = self.hidden_projects()
+        if str(Path(path)) in hidden:
+            self._set_hidden(hidden - {str(Path(path))})
 
     def forget_project(self, path):
         settings = game_import.game_import_settings()
         settings.setValue(self.RECENT_KEY, [row for row in self.recent_projects() if row != str(Path(path))])
         settings.sync()
+
+    HIDDEN_KEY = "projects/hidden"
+
+    def hidden_projects(self):
+        value = game_import.game_import_settings().value(self.HIDDEN_KEY, [])
+        rows = value if isinstance(value, list) else [value] if isinstance(value, str) and value else []
+        return {str(Path(row)) for row in rows if isinstance(row, str) and row}
+
+    def _set_hidden(self, rows):
+        settings = game_import.game_import_settings()
+        settings.setValue(self.HIDDEN_KEY, sorted(rows))
+        settings.sync()
+
+    def hide_project(self, path):
+        """Take a character off the welcome list without touching its files."""
+        self.forget_project(path)
+        self._set_hidden(self.hidden_projects() | {str(Path(path))})
+
+    def trash_project(self, path):
+        """Move a library character's whole folder to the Trash (Recycle Bin). False when it stays put."""
+        folder = character_folder(path)
+        if folder is None:
+            self.show_error(f"Couldn't move to the {TRASH_NAME}", f"Only characters in their own folder in the character library can be moved to the {TRASH_NAME}. Use Remove from list instead.")
+            return False
+        if self.project_file and Path(self.project_file).resolve().parent == folder.resolve():
+            self.close_project()
+        if not QFile.moveToTrash(str(folder)):
+            self.show_error(f"Couldn't move to the {TRASH_NAME}", f"Pixelheart couldn't move “{folder.name}” to the {TRASH_NAME}. It's still in {folder.parent}.")
+            return False
+        self.forget_project(path)
+        self._set_hidden(self.hidden_projects() - {str(Path(path))})
+        return True
+
+    def close_project(self):
+        """Put the window back on a blank, unsaved character without saving anything."""
+        self.autosave.timer.stop()
+        document = new_project()
+        if self.preload_story:
+            document["character"]["events"] = new_romance_events(document["character"])
+        self.load_document(document)
 
     def start_new_character(self):
         """Ask only for a name, then save straight into the character library."""
@@ -927,6 +1011,7 @@ class MainWindow(QMainWindow):
 
     def show_workspace(self):
         self.root_stack.setCurrentWidget(self._workspace)
+        self.designer.set_workspace_visible(True)
 
     def show_home(self):
         """Return to the welcome screen, offering to save first."""
@@ -936,6 +1021,7 @@ class MainWindow(QMainWindow):
         self.update_title()
         self.welcome.refresh()
         self.root_stack.setCurrentWidget(self.welcome)
+        self.designer.set_workspace_visible(False)
         return True
 
     def _application_state_changed(self, state):
@@ -945,8 +1031,16 @@ class MainWindow(QMainWindow):
             # Leaving Pixelheart is a natural moment to save.
             self.autosave.flush()
 
+    def show_theme_notice(self):
+        """Say once, quietly, when the look had to fall back on something."""
+        notice = current_notice()
+        if notice and notice not in self._theme_notices:
+            self._theme_notices.add(notice)
+            self.statusBar().showMessage(notice, 15000)
+
     def _game_changed(self):
         apply_theme(QApplication.instance())
+        self.show_theme_notice()
         self.welcome.refresh_game()
         self.dialogue.set_project_file(self.project_file)
         for page in self.route_pages():
@@ -957,6 +1051,7 @@ class MainWindow(QMainWindow):
     def toggle_easy_read(self, enabled):
         set_easy_read(enabled)
         apply_theme(QApplication.instance())
+        self.show_theme_notice()
 
     def find_game(self):
         open_find_game(self)
@@ -1179,6 +1274,12 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Finishing the current icon download before closing…")
             event.ignore()
             return
+        if self.designer.finish_then(self.close):
+            # The worker may be mid-way through a blocking call back to this thread.
+            self.statusBar().showMessage("Finishing the AI designer's turn before closing…")
+            event.ignore()
+            return
+        designer_setup.wait_for_checks()
         event.accept()
         self.world.reset_workspace()
 

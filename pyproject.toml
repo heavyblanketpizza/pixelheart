@@ -5,6 +5,8 @@ description = "Offline Stardew Valley NPC authoring and export tools."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "anthropic>=1,<2",
+    "mcp>=2,<3",
     "pillow>=12.3.0,<13",
     "pyside6>=6.10,<7",
 ]
