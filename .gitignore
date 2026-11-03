@@ -73,17 +73,10 @@ secrets/
 .pytest_cache/
 .coverage
 
-# Markdown stays local unless it is an explicitly approved user-facing guide.
+# Markdown stays local except the READMEs.
 *.[mM][dD]
 *.[mM][aA][rR][kK][dD][oO][wW][nN]
 !/README.md
-!/ARTWORK.md
-!/EXPORT_FORMAT.md
-!/GAME_ITEMS.md
-!/LIFE_AND_BRANCHING.md
-!/MAP_WORKSHOP.md
-!/STORY_WORKSHOP.md
-!/WORLD_BUILDING.md
 !/pixelheart_core/data/README.md
 
 # Internal agent workspaces and prompt material stay local, in any file format.
@@ -93,5 +86,8 @@ secrets/
 .cursor/
 .gemini/
 .aider*
+/.superpowers/
+/docs/superpowers/
 docs/internal/
 *[Pp][Rr][Oo][Mm][Pp][Tt]*
+/claude-notes/

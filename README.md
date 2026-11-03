@@ -114,10 +114,6 @@ Only heart events marked ready go into the game. Unfinished drafts stay safely i
 - **Edit → Undo / Redo** works across the whole character, including Home, and keeps working after Pixelheart saves.
 - Keep a character's internal name the same once you've used them in a save file.
 
-## Guides
-
-[Artwork](ARTWORK.md) · [Heart events](STORY_WORKSHOP.md) · [Daily life](LIFE_AND_BRANCHING.md) · [Home](WORLD_BUILDING.md) · [Maps](MAP_WORKSHOP.md) · [Gift items](GAME_ITEMS.md) · [Export details](EXPORT_FORMAT.md)
-
 ## License
 
 Free for personal, noncommercial modding under the [Pixelheart Source-Available License 1.1](LICENSE). Source available, not open source. The bundled Pixelify Sans font is under the SIL Open Font License (see `pixelheart/resources/fonts/OFL.txt`).
