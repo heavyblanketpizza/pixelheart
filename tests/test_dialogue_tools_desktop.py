@@ -57,6 +57,24 @@ class TriggerPickerTests(QtTestCase):
         self.picker.gift.setCurrentIndex(self.picker.gift.findData("(O)18"))
         self.assertEqual(self.changes[-1], "AcceptGift_(O)18")
 
+    def test_an_unchosen_gift_says_so_and_keeps_the_old_key(self):
+        picker = TriggerPicker(items=lambda: [])
+        self.addCleanup(picker.deleteLater)
+        changes = []
+        picker.changed.connect(lambda: changes.append(picker.value()))
+        picker.set_value("Mon")
+        picker.occasion.setCurrentIndex(picker.occasion.findData("gift"))
+        self.assertIn("Choose the gift", picker.key_label.text())
+        self.assertNotIn("Game key: Mon", picker.key_label.text())
+        self.assertEqual((picker.value(), changes), ("Mon", []))
+        picker.occasion.setCurrentIndex(picker.occasion.findData("weekday"))
+        self.assertEqual(picker.key_label.text(), "Game key: Mon")
+        picker.occasion.setCurrentIndex(picker.occasion.findData("gift"))
+        picker.gift.setEditText("(O)20")
+        picker.gift.lineEdit().editingFinished.emit()
+        self.assertEqual(changes, ["AcceptGift_(O)20"])
+        self.assertEqual(picker.key_label.text(), "Game key: AcceptGift_(O)20")
+
     def test_unknown_trigger_survives_selection(self):
         self.picker.set_value("Resort_Bar")
         self.assertEqual(self.picker.occasion.currentData(), "other")

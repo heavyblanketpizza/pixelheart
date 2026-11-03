@@ -191,6 +191,8 @@ internal static class FurnitureLibraryExporter
                     ["id"] = qualified,
                     ["name"] = CleanLabel(furniture.DisplayName, 256, id),
                     ["kind"] = CleanLabel(fields[1], 64, "other"),
+                    // TVs and mods' own classes draw themselves; Pixelheart won't repaint those.
+                    ["furniture_class"] = CleanLabel(furniture.GetType().FullName ?? "", 256, ""),
                     ["footprint"] = observed[0].Footprint,
                     ["rotation_footprints"] = footprints,
                     ["sprite_size"] = new[] { observed[0].Source.Width / 16, observed[0].Source.Height / 16 },

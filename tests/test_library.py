@@ -7,8 +7,8 @@ import unittest
 from unittest.mock import patch
 
 from pixelheart_core.library import (
-    default_library_root, edited_ago, folder_name, internal_name_for, library_projects,
-    new_project_path, project_card, remember_recent,
+    character_folder, default_library_root, edited_ago, folder_name, internal_name_for, library_projects,
+    new_project_path, project_card, remember_recent, workspace_projects_root,
 )
 from pixelheart_core.projects import new_project, save_project
 
@@ -23,6 +23,12 @@ class LibraryTests(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=True), \
              patch("pixelheart_core.library.Path.home", return_value=Path("/home/me")):
             self.assertEqual(default_library_root(), Path("/home/me/Documents/Pixelheart"))
+
+    def test_workspace_projects_are_beside_pixelheart_unless_overridden(self):
+        with patch.dict(os.environ, {"PIXELHEART_PROJECTS": str(self.root)}):
+            self.assertEqual(workspace_projects_root(), self.root)
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(workspace_projects_root(), Path(__file__).resolve().parents[1] / "projects")
 
     def test_unsafe_and_duplicate_names_get_safe_unique_folders(self):
         self.assertEqual(folder_name('Mira/"The Brave"?'), "MiraThe Brave")
@@ -56,6 +62,29 @@ class LibraryTests(unittest.TestCase):
         (self.root / "Broken/character.json").write_text("{nope")
         self.assertIsNotNone(project_card(self.root / "Broken/character.json")["error"])
         self.assertIsNotNone(project_card(self.root / "Gone/character.json")["error"])
+
+    def test_only_a_characters_own_library_folder_can_be_trashed(self):
+        library, projects = self.root / "Pixelheart", self.root / "projects"
+        own = save_project(new_project(), library / "Mira" / "character.json")
+        old = save_project(new_project(), projects / "iris" / "character.json")
+        loose = save_project(new_project(), library / "character.json")
+        elsewhere = save_project(new_project(), self.root / "elsewhere" / "Theo" / "character.json")
+        renamed = own.parent / "backup.json"
+        renamed.write_text(own.read_text())
+        try:
+            (library / "Linked").symlink_to(own.parent, target_is_directory=True)
+            linked = True
+        except OSError:  # Windows may not allow symlinks without extra privileges.
+            linked = False
+        with patch.dict(os.environ, {"PIXELHEART_LIBRARY": str(library), "PIXELHEART_PROJECTS": str(projects)}):
+            self.assertEqual(character_folder(own), own.parent)
+            self.assertEqual(character_folder(str(old)), old.parent)
+            self.assertIsNone(character_folder(loose))
+            self.assertIsNone(character_folder(elsewhere))
+            self.assertIsNone(character_folder(renamed))
+            if linked:
+                self.assertIsNone(character_folder(library / "Linked" / "character.json"))
+            self.assertIsNone(character_folder(library / "Gone" / "character.json"))
 
     def test_edited_ago_reads_naturally(self):
         now = datetime(2026, 9, 29, 12, tzinfo=timezone.utc)

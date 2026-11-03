@@ -204,6 +204,21 @@ class PaintedFurnitureTests(unittest.TestCase):
         with self.assertRaises(PaintedFurnitureError):
             painting_canvas(chair(), self.root)
 
+    def test_pieces_that_draw_themselves_are_not_painted(self):
+        self.assertIsNone(paintable(chair(furniture_class="StardewValley.Objects.Furniture"), self.root))
+        self.assertIsNone(paintable(chair(kind="dresser", furniture_class="StardewValley.Objects.StorageFurniture"), self.root))
+        self.assertIn("draws itself", paintable(chair(furniture_class="StardewValley.Objects.TV"), self.root))
+        # A mod's own furniture class, on an ID and kind that look ordinary.
+        self.assertIn("draws itself", paintable(chair(id="(F)Glow.Screen", kind="decor",
+                                                      furniture_class="GlowMod.AnimatedScreen"), self.root))
+
+    def test_validate_definition_keeps_the_furniture_class(self):
+        self.assertEqual(validate_definition(chair(furniture_class="GlowMod.AnimatedScreen"))["furniture_class"],
+                         "GlowMod.AnimatedScreen")
+        self.assertNotIn("furniture_class", validate_definition(chair()))
+        with self.assertRaises(FurnitureValidationError):
+            validate_definition(chair(furniture_class=7))
+
     def test_canvas_size_must_match(self):
         with self.assertRaises(PaintedFurnitureError):
             build_painted(chair(), png(Image.new("RGBA", (16, 16))), self.root)

@@ -223,6 +223,12 @@ def build_paper_ui(cache_root):
     return _publish(cache_root, name, images, margins) or {}
 
 
+def missing_game_pieces(pieces):
+    """The borrowed roles a connected game didn't supply, in name order."""
+    return sorted(role for role in (*GAME_PIECES, "font", "cursors")
+                  if role not in pieces or not pieces[role].path.parent.name.startswith("game-"))
+
+
 def ui_pieces(content, cache_root):
     """Every role the stylesheet needs, with the game's hearts and lettering when available."""
     pieces = dict(build_paper_ui(cache_root))

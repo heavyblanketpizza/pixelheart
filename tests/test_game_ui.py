@@ -7,7 +7,7 @@ from unittest.mock import patch
 from PIL import Image, ImageColor
 
 from pixelheart_core.game_ui import (
-    INK, PANEL_RULE, REQUIRED_ROLES, build_game_ui, build_paper_ui, ui_pieces,
+    INK, PANEL_RULE, REQUIRED_ROLES, build_game_ui, build_paper_ui, missing_game_pieces, ui_pieces,
 )
 from tests.test_game_templates import texture_from
 
@@ -84,6 +84,12 @@ class GameUiTests(unittest.TestCase):
         self.assertEqual(set(REQUIRED_ROLES) - set(pieces), set())
         borrowed = {role for role, piece in pieces.items() if piece.path.parent.name.startswith("game-")}
         self.assertEqual(borrowed, BORROWED)
+
+    def test_missing_game_pieces_names_what_could_not_be_borrowed(self):
+        self.assertEqual(missing_game_pieces(ui_pieces(self.content, self.cache)), [])
+        (self.content / "LooseSprites/font_bold.xnb").write_bytes(b"not a texture")
+        self.write("LooseSprites/Cursors", marked((100, 100), {}))
+        self.assertEqual(missing_game_pieces(ui_pieces(self.content, self.cache)), ["font", "heart_empty", "heart_full"])
 
     def test_without_a_game_everything_is_drawn(self):
         self.assertEqual(set(ui_pieces(None, self.cache)), set(REQUIRED_ROLES))

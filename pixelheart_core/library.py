@@ -5,14 +5,23 @@ from datetime import datetime, timezone
 import os
 from pathlib import Path
 import re
+import sys
 
 LIBRARY_ENV = "PIXELHEART_LIBRARY"
+PROJECTS_ENV = "PIXELHEART_PROJECTS"
 MAX_RECENT = 12
+TRASH_NAME = "Recycle Bin" if sys.platform.startswith("win") else "Trash"
 
 
 def default_library_root():
     override = os.environ.get(LIBRARY_ENV)
     return Path(override).expanduser() if override else Path.home() / "Documents" / "Pixelheart"
+
+
+def workspace_projects_root():
+    """The projects folder beside Pixelheart's own files, where characters were saved before the library."""
+    override = os.environ.get(PROJECTS_ENV)
+    return Path(override).expanduser() if override else Path(__file__).resolve().parent.parent / "projects"
 
 
 def folder_name(name):
@@ -59,6 +68,24 @@ def library_projects(root, limit=50):
             if len(found) >= limit:
                 break
     return found
+
+
+def character_folder(path):
+    """The character's own folder when it sits directly in the library or projects folder.
+
+    Only such a folder is safe to move to the Trash as a whole; a character.json
+    opened from anywhere else may share its folder with unrelated files.
+    """
+    path = Path(path)
+    folder = path.parent
+    if path.name != "character.json" or folder.is_symlink() or not path.is_file():
+        return None
+    try:
+        parent = folder.parent.resolve()
+        roots = {root.resolve() for root in (default_library_root(), workspace_projects_root())}
+    except OSError:
+        return None
+    return folder if parent in roots and folder.resolve().parent == parent else None
 
 
 def project_card(path):

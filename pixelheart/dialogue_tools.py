@@ -158,8 +158,12 @@ class TriggerPicker(QWidget):
     def text(self):
         return self._key
 
-    def _show_key(self):
-        self.key_label.setText(f"Game key: {self._key}" if self._key else "Game key: not chosen yet")
+    def _show_key(self, problem=""):
+        if problem:
+            text = f"{problem} Until then this line keeps the game key {self._key}." if self._key else problem
+        else:
+            text = f"Game key: {self._key}" if self._key else "Game key: not chosen yet"
+        self.key_label.setText(text)
 
     def _occasion_changed(self, *_):
         self.stack.setCurrentIndex(self.pages[self.occasion.currentData()])
@@ -172,11 +176,14 @@ class TriggerPicker(QWidget):
             return
         try:
             key = build_trigger(self._spec())
-        except ValueError:
-            key = self._key if self.occasion.currentData() != "other" else self.other.text()
-        if key != self._key:
-            self._key = key
-            self._show_key()
+        except ValueError as error:
+            # An unfinished choice: the line keeps its key until it is complete.
+            self._show_key(str(error))
+            return
+        changed = key != self._key
+        self._key = key
+        self._show_key()
+        if changed:
             self.changed.emit()
 
     def set_value(self, key):

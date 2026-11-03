@@ -79,6 +79,7 @@ class SkinTests(QtTestCase):
         self.assertEqual(len(calls), 2)
         self.assertNotEqual(calls[0], calls[1])
         self.assertIn("url(", self.app.styleSheet())
+        self.assertIn("temporary folder", skin.current_notice())
 
     def test_no_writable_folder_at_all_still_starts_with_a_plain_look(self):
         with patch("pixelheart.skin.ui_pieces", side_effect=PermissionError("no disk")):
@@ -87,6 +88,47 @@ class SkinTests(QtTestCase):
         self.assertIn("font-family", sheet)
         self.assertNotIn("url(", sheet)
         self.assertEqual(skin.current_pieces(), {})
+        self.assertIn("plain look", skin.current_notice())
+
+    def test_a_healthy_cache_has_nothing_to_report(self):
+        with patch("pixelheart.skin.ui_pieces", side_effect=PermissionError("no disk")):
+            skin.refresh_pieces(None)
+        skin.refresh_pieces(None)
+        self.assertEqual(skin.current_notice(), "")
+        skin.refresh_pieces(self.connected_game())
+        self.assertEqual(skin.current_notice(), "")
+
+    def test_unreadable_game_pieces_are_reported(self):
+        content = self.connected_game()
+        (content / "LooseSprites/font_bold.xnb").write_bytes(b"not a texture")
+        pieces = skin.refresh_pieces(content)
+        self.assertIn("couldn't be read from your game", skin.current_notice())
+        self.assertNotIn("font", pieces)
+
+    def test_reapplying_an_unchanged_theme_keeps_the_font(self):
+        # Qt skips an equal application font, so repeat calls only cost a relayout if the font drifts.
+        from PySide6.QtCore import QEvent, QObject
+
+        class FontChanges(QObject):
+            count = 0
+
+            def eventFilter(self, watched, event):
+                if event.type() == QEvent.Type.ApplicationFontChange:
+                    FontChanges.count += 1
+                return False
+        watcher = FontChanges()
+        apply_theme(self.app, content_root=None)
+        self.app.processEvents()  # Font changes are delivered later; let the first call's settle.
+        self.app.installEventFilter(watcher)
+        self.addCleanup(self.app.removeEventFilter, watcher)
+        apply_theme(self.app, content_root=None)
+        self.app.processEvents()
+        self.assertEqual(FontChanges.count, 0)
+        skin.set_easy_read(True)
+        apply_theme(self.app, content_root=None)
+        self.app.processEvents()
+        self.assertGreater(FontChanges.count, 0)
+        self.assertIn("Helvetica", self.app.font().family())
 
     def connected_game(self):
         fixture = test_game_ui.GameUiTests("test_without_a_game_everything_is_drawn")
@@ -117,6 +159,49 @@ class SkinTests(QtTestCase):
         button = QPushButton("Hello")
         self.addCleanup(button.deleteLater)
         button.ensurePolished()
+
+
+class ThemeNoticeTests(QtTestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QApplication.instance() or QApplication([])
+
+    def setUp(self):
+        self.folder = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        self.settings = QSettings(str(self.folder / "settings.ini"), QSettings.Format.IniFormat)
+        self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=self.settings))
+        self.enterContext(patch.dict(os.environ, {"PIXELHEART_CACHE_DIR": str(self.folder / "cache")}))
+        self.addCleanup(apply_theme, self.app, content_root=None)
+
+    def window(self):
+        from pixelheart.app import MainWindow
+        window = MainWindow()
+
+        def close():
+            window.dirty = False
+            window.autosave.timer.stop()
+            window.close()
+            window.deleteLater()
+        self.addCleanup(close)
+        return window
+
+    def test_each_fallback_is_noted_once_in_the_status_bar(self):
+        from pixelheart_core.game_ui import ui_pieces as real
+        with patch("pixelheart.skin.ui_pieces", side_effect=PermissionError("no disk")):
+            apply_theme(self.app, content_root=None)
+            window = self.window()
+            self.assertIn("plain look", window.statusBar().currentMessage())
+            window.statusBar().clearMessage()
+            window.toggle_easy_read(True)
+            self.assertEqual(window.statusBar().currentMessage(), "")
+
+        def flaky(content, cache_root):
+            if cache_root == skin.ui_cache_dir():
+                raise PermissionError("read-only home")
+            return real(content, cache_root)
+        with patch("pixelheart.skin.ui_pieces", side_effect=flaky):
+            window._game_changed()
+        self.assertIn("temporary folder", window.statusBar().currentMessage())
 
 
 if __name__ == "__main__":

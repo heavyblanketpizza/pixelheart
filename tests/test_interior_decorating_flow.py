@@ -90,7 +90,7 @@ class InteriorDecoratingFlowTests(QtTestCase):
         if connected:
             with patch("pixelheart_core.interior_furniture.discover_furniture_libraries", return_value=[self.library]), \
                     patch("pixelheart.interior_editor.QDialog.exec", return_value=0):
-                QTest.mouseClick(dialog.library_button, Qt.MouseButton.LeftButton)
+                QTest.mouseClick(dialog.library_welcome_button, Qt.MouseButton.LeftButton)
             self.app.processEvents()
             self.assertEqual(dialog.catalog_list.count(), 1)
         return dialog
@@ -135,6 +135,27 @@ class InteriorDecoratingFlowTests(QtTestCase):
         self.assertTrue(dialog.move_tool.isVisible())
         self.assertTrue(dialog.save_button.isVisible())
         self.assertEqual(dialog.result_design, None)
+
+    def test_connect_game_library_is_offered_once_on_every_tab(self):
+        dialog = self.editor(connected=False)
+
+        def offers():
+            return [widget for widget in dialog.findChildren(QPushButton)
+                    if widget.text() == "Connect game library…" and widget.isVisible()]
+
+        self.assertEqual(len(offers()), 1)
+        self.assertIs(offers()[0], dialog.library_welcome_button)
+        for index in (1, 2, 0):
+            dialog.tabs.setCurrentIndex(index)
+            self.app.processEvents()
+            self.assertEqual(len(offers()), 1, dialog.tabs.tabText(index))
+        with patch("pixelheart_core.interior_furniture.discover_furniture_libraries", return_value=[self.library]), \
+                patch("pixelheart.interior_editor.QDialog.exec", return_value=0):
+            QTest.mouseClick(dialog.library_welcome_button, Qt.MouseButton.LeftButton)
+        self.app.processEvents()
+        self.assertEqual(offers(), [])
+        self.assertTrue(dialog.library_button.isVisible())
+        self.assertEqual(dialog.library_button.text(), "Refresh game library…")
 
     def test_connect_prepared_library_populates_picture_and_finish_galleries(self):
         dialog = self.editor()

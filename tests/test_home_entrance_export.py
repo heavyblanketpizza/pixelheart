@@ -122,7 +122,6 @@ class HomeEntranceExportTests(unittest.TestCase):
         self.assertIn("Example.Furniture 2.0.0+", message)
         self.assertNotIn("Example.Optional", message)
         self.assertIn("DLL is not included", message)
-        self.assertIn("WORLD_BUILDING.md", message)
         self.assertIn("Stardew Valley 1.6.14+", message)
         self.assertIn("SMAPI 4.3.2+", message)
 

@@ -2,8 +2,12 @@
 import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+import threading
+import time
+
 from PIL import Image
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QThreadPool, Qt
+from PySide6.QtGui import QImage
 from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QApplication
 
@@ -34,6 +38,9 @@ class RouteMapTests(QtTestCase):
 
     def source(self, location):
         self.requested.append(location)
+        return lambda: self.result(location)
+
+    def result(self, location):
         if location == "Nowhere":
             return {"image": None, "foreground": None, "map_size": None, "label": "Nowhere",
                     "note": "Nowhere isn't in your game's maps."}
@@ -45,7 +52,27 @@ class RouteMapTests(QtTestCase):
     def load(self, stops, row=0):
         self.page.load(stops)
         self.page.table.selectRow(row)
-        self.app.processEvents()
+        self.wait()
+
+    def wait(self):
+        deadline = time.monotonic() + 3
+        while self.panel.loading and time.monotonic() < deadline:
+            self.app.processEvents()
+            time.sleep(0.005)
+        self.assertFalse(self.panel.loading, "The map did not finish loading")
+
+    def slow_source(self, gates):
+        """Maps that wait for their place's gate before they finish loading."""
+        def source(location):
+            self.requested.append(location)
+
+            def job():
+                gates[location].wait(3)
+                return self.result(location)
+            return job
+        for gate in gates.values():
+            self.addCleanup(gate.set)
+        return source
 
     def click_tile(self, x, y):
         QTest.mouseClick(self.canvas, Qt.MouseButton.LeftButton, pos=self.canvas.tile_point(x, y).toPoint())
@@ -57,11 +84,72 @@ class RouteMapTests(QtTestCase):
         self.assertEqual([actor["name"] for actor in self.canvas.actors], ["stop0", "stop2"])
         self.assertEqual(self.canvas.map_size, (20, 15))
         self.page.table.selectRow(1)
+        self.wait()
         self.assertEqual(self.panel.place_label.text(), "Stardrop Saloon")
         self.assertEqual([actor["name"] for actor in self.canvas.actors], ["stop1"])
         self.assertEqual(self.requested, ["Town", "Saloon"])
         self.page.table.selectRow(2)
+        self.wait()
         self.assertEqual(self.requested, ["Town", "Saloon", "Town"])
+
+    def test_a_slow_map_loads_without_holding_up_the_page(self):
+        gates = {"Town": threading.Event()}
+        self.page.set_map_source(self.slow_source(gates))
+        sprite = QImage(16, 32, QImage.Format.Format_ARGB32)
+        sprite.fill(0xFF3366AA)
+        self.page.set_sprite(sprite)
+        self.page.load([stop("600", "Town", 3, 4)])
+        self.page.table.selectRow(0)
+        self.app.processEvents()
+        self.assertTrue(self.panel.loading)
+        self.assertIn("Loading", self.panel.note.text())
+        self.assertEqual([actor["name"] for actor in self.canvas.actors], ["stop0"])
+        gates["Town"].set()
+        self.wait()
+        self.assertEqual(self.panel.place_label.text(), "Pelican Town")
+        self.assertEqual(self.panel.note.text(), "Stardew Valley game map")
+        self.assertEqual(self.canvas.map_size, (20, 15))
+        self.assertFalse(self.canvas.background.isNull())
+        self.assertIn("stop0", self.canvas.sprites)
+
+    def test_a_map_arriving_after_the_stops_are_gone_is_ignored(self):
+        gates = {"Town": threading.Event()}
+        self.page.set_map_source(self.slow_source(gates))
+        self.page.load([stop("600", "Town", 3, 4)])
+        self.page.table.selectRow(0)
+        self.page.load([])
+        self.assertFalse(self.panel.loading)
+        gates["Town"].set()
+        QThreadPool.globalInstance().waitForDone(3000)
+        self.app.processEvents()
+        self.assertEqual(self.panel.place_label.text(), "Choose a stop")
+        self.assertIsNone(self.canvas.map_size)
+
+    def test_a_map_that_cannot_be_read_says_so(self):
+        def broken(location):
+            def job():
+                raise OSError("the game drive was unplugged")
+            return job
+        self.page.set_map_source(broken)
+        self.load([stop("600", "Town", 3, 4)])
+        self.assertEqual(self.panel.place_label.text(), "Town")
+        self.assertIn("couldn't be read: the game drive was unplugged", self.panel.note.text())
+        self.assertIsNone(self.canvas.map_size)
+        self.assertEqual(len(self.canvas.actors), 1)
+
+    def test_a_map_for_a_place_already_left_is_ignored(self):
+        gates = {"Town": threading.Event(), "Saloon": threading.Event()}
+        self.page.set_map_source(self.slow_source(gates))
+        self.page.load([stop("600", "Town", 3, 4), stop("900", "Saloon", 2, 2)])
+        self.page.table.selectRow(0)
+        self.page.table.selectRow(1)
+        gates["Saloon"].set()
+        self.wait()
+        gates["Town"].set()
+        QThreadPool.globalInstance().waitForDone(3000)
+        self.app.processEvents()
+        self.assertEqual(self.panel.place_label.text(), "Stardrop Saloon")
+        self.assertEqual(self.canvas.map_size, (10, 8))
 
     def test_clicking_a_tile_moves_the_selected_stop(self):
         self.load([stop("600", "Town", 3, 4), stop("1200", "Town", 8, 9)])
@@ -107,6 +195,7 @@ class RouteMapTests(QtTestCase):
     def test_remove_selected_stop_keeps_panel_valid(self):
         self.load([stop("600", "Town", 3, 4), stop("900", "Saloon", 2, 2)], row=1)
         self.page.remove()
+        self.wait()
         self.assertEqual(self.panel.place_label.text(), "Pelican Town")
         self.assertEqual([actor["name"] for actor in self.canvas.actors], ["stop0"])
 
@@ -172,8 +261,18 @@ class RouteMapWindowTests(QtTestCase):
         pages = (self.window.schedule, self.window.life.editors["routines"].schedule)
         for page in pages:
             self.assertIsNotNone(page.map_panel.map_source)
-        result = self.window.route_map("Town")
+        result = self.window.route_map("Town")()
         self.assertIn("Connect your game", result["note"])
+
+    def test_a_map_job_reads_its_own_copy_of_the_project(self):
+        from unittest.mock import patch
+        with patch("pixelheart.app.load_route_map", return_value={}) as load:
+            job = self.window.route_map("Town")
+            self.window.document["character"]["name"] = "Changed later"
+            job()
+        document = load.call_args.args[0]
+        self.assertIsNot(document, self.window.document)
+        self.assertNotEqual(document["character"].get("name"), "Changed later")
 
     def test_a_drag_is_one_undo_step(self):
         panel = self.window.schedule.map_panel

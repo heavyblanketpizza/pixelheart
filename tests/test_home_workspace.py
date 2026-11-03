@@ -83,7 +83,7 @@ class HomeWorkspaceTests(QtTestCase):
         self.assertTrue(editor.embedded)
         self.assertFalse(editor.isWindow())
         self.assertEqual(editor.draft.data["kind"], "residence")
-        self.assertEqual(self.page.room_switch.count(), 2)
+        self.assertEqual(self.page.room_switch.count(), 3)
         self.assertTrue(self.page.settings_dialog.isHidden())
         self.assertEqual(self.page.dump()["locations"], [])
         self.assertFalse(self.window.dirty)

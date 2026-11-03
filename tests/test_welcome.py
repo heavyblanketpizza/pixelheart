@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QApplication
 
 from pixelheart.app import MainWindow
 from pixelheart.game_connection import game_connection
+from pixelheart_core.library import TRASH_NAME
 from pixelheart_core.projects import new_project, save_project
 from tests.qt_support import QtTestCase
 from tests.test_game_install import fake_game
@@ -27,7 +28,9 @@ class WelcomeTests(QtTestCase):
         self.settings = QSettings(str(self.folder / "settings.ini"), QSettings.Format.IniFormat)
         self.enterContext(patch("pixelheart.game_import.game_import_settings", return_value=self.settings))
         self.library = self.folder / "Pixelheart"
-        self.enterContext(patch.dict(os.environ, {"PIXELHEART_LIBRARY": str(self.library)}))
+        self.projects = self.folder / "projects"
+        self.enterContext(patch.dict(os.environ, {"PIXELHEART_LIBRARY": str(self.library),
+                                                  "PIXELHEART_PROJECTS": str(self.projects)}))
 
     def window(self, **options):
         window = MainWindow(**options)
@@ -51,6 +54,12 @@ class WelcomeTests(QtTestCase):
         self.assertEqual([card.name.text() for card in window.welcome.cards], ["Mira"])
         self.assertEqual(window.welcome.cards[0].meter.filled(), 1)
         self.assertTrue(window.welcome.empty.isHidden())
+
+    def test_characters_in_the_projects_folder_are_listed_before_first_open(self):
+        self.character("Mira")
+        self.character("Iris", self.projects / "iris")
+        window = self.window(show_welcome=True)
+        self.assertEqual([card.name.text() for card in window.welcome.cards], ["Mira", "Iris"])
 
     def test_empty_library_invites_a_first_character(self):
         window = self.window(show_welcome=True)
@@ -81,6 +90,107 @@ class WelcomeTests(QtTestCase):
         self.assertEqual(len(errors), 2)
         errors[0].remove_button.click()
         self.assertEqual(len([card for card in window.welcome.cards if card.error]), 1)
+
+    def menu_items(self, card):
+        return [action.text() for action in card.menu.actions() if action.text()]
+
+    def fake_trash(self):
+        trash = self.folder / "Trash"
+        trash.mkdir(exist_ok=True)
+
+        def move(path):
+            source = Path(path)
+            if not source.exists():
+                return False
+            source.rename(trash / source.name)
+            return True
+        return trash, self.enterContext(patch("PySide6.QtCore.QFile.moveToTrash", side_effect=move))
+
+    def test_library_cards_offer_remove_and_trash_but_outside_cards_only_remove(self):
+        self.character("Mira")
+        outside = self.character("Theo", self.folder / "elsewhere" / "Theo")
+        window = self.window(show_welcome=True)
+        window.remember_project(outside)
+        window.welcome.refresh()
+        cards = {card.name.text(): card for card in window.welcome.cards}
+        self.assertEqual(self.menu_items(cards["Mira"]), ["Remove from list", f"Move to {TRASH_NAME}…"])
+        self.assertEqual(self.menu_items(cards["Theo"]), ["Remove from list"])
+        self.assertEqual(cards["Mira"].more_button.accessibleName(), "More for Mira")
+
+    def test_removing_a_library_character_stays_hidden_after_restart_until_reopened(self):
+        path = self.character("Mira")
+        self.character("Iris")
+        window = self.window(show_welcome=True)
+        card = next(card for card in window.welcome.cards if card.name.text() == "Mira")
+        card.remove_action.trigger()
+        self.assertEqual([card.name.text() for card in window.welcome.cards], ["Iris"])
+        self.assertTrue(path.is_file())
+        again = self.window(show_welcome=True)
+        self.assertEqual([card.name.text() for card in again.welcome.cards], ["Iris"])
+        self.assertTrue(again.open_path(path))
+        again.show_home()
+        self.assertEqual(sorted(card.name.text() for card in again.welcome.cards), ["Iris", "Mira"])
+
+    def test_moving_a_character_to_trash_takes_its_whole_folder_after_confirming(self):
+        path = self.character("Mira")
+        (path.parent / "artwork").mkdir()
+        (path.parent / "artwork" / "portrait.png").write_bytes(b"png")
+        trash, mover = self.fake_trash()
+        window = self.window(show_welcome=True)
+        window.remember_project(path)
+        card = window.welcome.cards[0]
+        with patch.object(window.welcome, "confirm_trash", return_value=False) as confirm:
+            card.trash_action.trigger()
+        confirm.assert_called_once_with("Mira")
+        self.assertTrue(path.is_file())
+        with patch.object(window.welcome, "confirm_trash", return_value=True):
+            window.welcome.cards[0].trash_action.trigger()
+        mover.assert_called_once_with(str(path.parent))
+        self.assertFalse(path.parent.exists())
+        self.assertTrue((trash / "Mira" / "artwork" / "portrait.png").is_file())
+        self.assertEqual(window.welcome.cards, [])
+        self.assertEqual(window.recent_projects(), [])
+
+    def test_trashing_the_open_character_closes_it_without_saving_it_back(self):
+        path = self.character("Mira")
+        self.fake_trash()
+        window = self.window(show_welcome=True)
+        window.open_path(path)
+        window.document["character"]["tagline"] = "changed"
+        window.dirty = True
+        window.autosave.schedule()
+        window.show_home = lambda: True
+        window.root_stack.setCurrentWidget(window.welcome)
+        window.welcome.refresh()
+        with patch.object(window.welcome, "confirm_trash", return_value=True):
+            window.welcome.cards[0].trash_action.trigger()
+        self.assertIsNone(window.project_file)
+        self.assertFalse(window.dirty)
+        self.assertFalse(window.autosave.pending())
+        self.assertFalse(window.autosave.flush(force=True) and path.exists())
+        self.assertFalse(path.parent.exists())
+
+    def test_a_failed_trash_keeps_the_character_and_says_so(self):
+        path = self.character("Mira")
+        self.enterContext(patch("PySide6.QtCore.QFile.moveToTrash", return_value=False))
+        window = self.window(show_welcome=True)
+        with patch.object(window.welcome, "confirm_trash", return_value=True), \
+             patch.object(window, "show_error") as error:
+            window.welcome.cards[0].trash_action.trigger()
+        error.assert_called_once()
+        self.assertIn(TRASH_NAME, error.call_args.args[0])
+        self.assertTrue(path.is_file())
+        self.assertEqual([card.name.text() for card in window.welcome.cards], ["Mira"])
+
+    def test_characters_sharing_a_name_show_their_folder(self):
+        self.character("Iris")
+        self.character("Iris", self.library / "Iris 2")
+        self.character("Mira")
+        window = self.window(show_welcome=True)
+        details = {card.path.parent.name: card.detail.text() for card in window.welcome.cards}
+        self.assertTrue(details["Iris"].startswith("Iris · Edited"))
+        self.assertTrue(details["Iris 2"].startswith("Iris 2 · Edited"))
+        self.assertTrue(details["Mira"].startswith("Edited"))
 
     def test_game_status_reflects_the_connection(self):
         window = self.window(show_welcome=True)

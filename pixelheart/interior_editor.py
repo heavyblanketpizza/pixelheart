@@ -898,7 +898,8 @@ class InteriorEditor(QDialog):
         welcome = QVBoxLayout(self.library_welcome)
         welcome.addWidget(label("Bring your game into the room", "sectionTitle", True))
         welcome.addWidget(label("Browse the furniture, wallpaper and floors from your own Stardew Valley and installed mods.", "muted", True))
-        welcome.addWidget(button("Connect game library…", self.connect_library, "primary"))
+        self.library_welcome_button = button("Connect game library…", self.connect_library, "primary")
+        welcome.addWidget(self.library_welcome_button)
         welcome.addWidget(label("One-time setup. Your artwork stays on this computer.", "hint", True))
         layout.addWidget(self.library_welcome)
         self.plan_first = button("Shape the room first →", lambda: self.tabs.setCurrentIndex(2), "quiet")
@@ -1012,7 +1013,12 @@ class InteriorEditor(QDialog):
             self.remove_button.setText("Remove" if architecture else "Put away")
             self.canvas.update()
 
+    def show_library_button(self):
+        # Furnish's welcome card offers the first connection; the heading only repeats it on other tabs.
+        self.library_button.setVisible(bool(self.draft.data["catalog"]) or self.tabs.currentIndex() != 0)
+
     def change_mode(self, index):
+        self.show_library_button()
         if not hasattr(self, "canvas"):
             return
         room_mode = index == 2 and self.draft.data["kind"] == "residence"
@@ -1697,6 +1703,7 @@ class InteriorEditor(QDialog):
         self.palette.load(atlas, self.stage_root)
         self.artwork_status.setText(("Furniture connected. Choose finishes, or add custom tile art in Advanced." if self.draft.data["catalog"] else "Plan the room now. Connect your game to start decorating.") if not atlas.get("asset") else "Pick a piece. Make it their place.")
         self.library_button.setText("Refresh game library…" if self.draft.data["catalog"] else "Connect game library…")
+        self.show_library_button()
         self.change_library_button.setVisible(bool(self.draft.data["catalog"] or self.remembered_library()))
         self.library_welcome.setVisible(not self.draft.data["catalog"])
         self.plan_first.setVisible(not self.draft.data["catalog"])

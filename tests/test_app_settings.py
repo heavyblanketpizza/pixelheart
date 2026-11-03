@@ -20,8 +20,8 @@ class AppSettingsTests(unittest.TestCase):
                 self.assertEqual(Path(settings.fileName()), Path(target))
                 self.assertTrue(Path(target).is_file())
 
-    def test_suite_isolates_settings_library_and_cache(self):
-        for variable in ("PIXELHEART_SETTINGS_FILE", "PIXELHEART_LIBRARY", "PIXELHEART_CACHE_DIR"):
+    def test_suite_isolates_settings_library_projects_and_cache(self):
+        for variable in ("PIXELHEART_SETTINGS_FILE", "PIXELHEART_LIBRARY", "PIXELHEART_PROJECTS", "PIXELHEART_CACHE_DIR"):
             with self.subTest(variable=variable):
                 value = Path(os.environ[variable])
                 self.assertTrue(any(part.startswith("pixelheart-tests-") for part in value.parts))

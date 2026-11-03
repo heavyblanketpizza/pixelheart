@@ -325,7 +325,7 @@ class CatalogueWorkshopTests(QtTestCase):
             self.assertFalse(window.dirty)
             window.world.home_switch.setCurrentIndex(0)
             self.assertIsNotNone(window.world.interior_editor)
-            self.assertEqual(window.world.room_switch.count(), 2)
+            self.assertEqual(window.world.room_switch.count(), 3)
             self.assertEqual(window.world.dump(), before)
             self.assertFalse(window.dirty)
             editor = window.world.interior_editor

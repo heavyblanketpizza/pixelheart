@@ -8,7 +8,7 @@ import tempfile
 from PySide6.QtCore import QStandardPaths
 from PySide6.QtGui import QFontDatabase
 
-from pixelheart_core.game_ui import REQUIRED_ROLES, ui_pieces
+from pixelheart_core.game_ui import REQUIRED_ROLES, missing_game_pieces, ui_pieces
 from . import game_import
 
 FONT_FILE = Path(__file__).parent / "resources" / "fonts" / "PixelifySans.ttf"
@@ -24,7 +24,7 @@ COLORS = {
     "nav_icon": "#5a544a", "nav_icon_detail": "#9c9588", "nav_hover": "rgba(38, 34, 29, 16)",
     "primary_text": "#fdfbf7", "danger": "#9e3a2b", "danger_soft": "#f6e8e3", "danger_rule": "#c98d7d",
 }
-_STATE = {"pieces": {}, "family": None}
+_STATE = {"pieces": {}, "family": None, "notice": ""}
 
 
 def ui_cache_dir():
@@ -57,21 +57,31 @@ def refresh_pieces(content_root):
     """Rebuild the piece map, borrowing hearts and lettering from the game when connected.
 
     An unwritable cache (full disk, locked home folder) falls back to a temporary
-    folder, and failing that to a plain look, so the app always starts.
+    folder, and failing that to a plain look, so the app always starts. Each
+    fallback leaves a short note in ``current_notice()``.
     """
-    pieces = {}
+    pieces, notice = None, ""
     for folder in (ui_cache_dir(), Path(tempfile.gettempdir()) / "pixelheart-game-ui"):
         try:
             pieces = ui_pieces(content_root, folder)
             break
         except OSError:
-            continue
-    _STATE["pieces"] = pieces
+            notice = "Pixelheart couldn't write to its cache folder, so its menu pieces are in a temporary folder for now."
+    if pieces is None:
+        pieces, notice = {}, "Pixelheart couldn't save its menu pieces, so it's using a plain look for now."
+    elif content_root is not None and not notice and missing_game_pieces(pieces):
+        notice = "Some hearts and lettering couldn't be read from your game, so Pixelheart drew its own."
+    _STATE["pieces"], _STATE["notice"] = pieces, notice
     return pieces
 
 
 def current_pieces():
     return _STATE["pieces"]
+
+
+def current_notice():
+    """What the last ``refresh_pieces`` had to fall back on, or an empty string."""
+    return _STATE["notice"]
 
 
 def _image(pieces, role):

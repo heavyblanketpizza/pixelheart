@@ -281,7 +281,8 @@ def validate_definition(value):
     Optional ``held_item_offsets`` map rotations to observed pixel positions
     of a 16 × 16 tabletop decoration, relative to the parent tile origin.
     Optional ``collection`` contains an ID and display name; ``description``
-    describes the piece. ``interaction_profiles`` carry named, explicitly
+    describes the piece. ``furniture_class`` is the game class the companion saw
+    create the piece (for example ``StardewValley.Objects.TV``). ``interaction_profiles`` carry named, explicitly
     authored per-rotation approach/seat tiles and required companion offsets.
     They are editor hints, independent of installed game activity settings.
     """
@@ -326,6 +327,8 @@ def validate_definition(value):
                                  "name": _text(collection.get("name"), "Collection name")}
     if value.get("description") not in (None, ""):
         effects["description"] = _text(value["description"], "Furniture description", 1024)
+    if value.get("furniture_class") not in (None, ""):
+        effects["furniture_class"] = _text(value["furniture_class"], "Furniture class")
     if value.get("interaction_profiles") not in (None, ""):
         effects["interaction_profiles"] = _interaction_profiles(value["interaction_profiles"], rotations)
     if "preview_variants" in value:

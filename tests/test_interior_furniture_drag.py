@@ -60,7 +60,7 @@ class InteriorFurnitureDragTests(QtTestCase):
         if not dialog.catalog_list.count():
             with patch("pixelheart_core.interior_furniture.discover_furniture_libraries", return_value=[self.library]), \
                     patch("pixelheart.interior_editor.QDialog.exec", return_value=0):
-                QTest.mouseClick(dialog.library_button, Qt.MouseButton.LeftButton)
+                QTest.mouseClick(dialog.library_welcome_button, Qt.MouseButton.LeftButton)
             self.app.processEvents()
         self.assertEqual(dialog.catalog_list.count(), 1)
         return dialog

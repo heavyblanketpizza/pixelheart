@@ -35,6 +35,9 @@ _UNPAINTABLE_KINDS = {
     "fishtank": "Fish tanks", "randomized_plant": "Plants that change their look",
 }
 _TELEVISIONS = frozenset({"(F)1466", "(F)1468", "(F)1680", "(F)2326", "(F)RetroTV"})
+# Game classes that draw a piece straight from its sheet. Anything else (TVs, or a
+# mod's own class) draws itself, so a painted sheet wouldn't show in the game.
+_SHEET_DRAWN_CLASSES = frozenset({"StardewValley.Objects.Furniture", "StardewValley.Objects.StorageFurniture"})
 _PLACEMENTS = {"default": -1, "indoors": 0, "outdoors": 1, "both": 2}
 _SHEET_FACTS = OrderedDict()
 _SHEET_FACTS_LOCK = Lock()
@@ -105,6 +108,8 @@ def paintable(definition, project_root):
         return f"{_UNPAINTABLE_KINDS[definition['kind']]} can't be painted yet."
     if definition["id"] in _TELEVISIONS:
         return "Televisions can't be painted yet."
+    if definition.get("furniture_class", "StardewValley.Objects.Furniture") not in _SHEET_DRAWN_CLASSES:
+        return "This piece draws itself in the game, so a painting wouldn't show up."
     if not definition["frames"] or not definition["preview_asset"]:
         return "This piece has no picture from your game library to paint."
     if definition["sprite_size"] is None or definition["footprint"] is None:

@@ -165,7 +165,7 @@ class InteriorLibraryUndoTests(QtTestCase):
     def test_explicit_first_connection_initializes_without_setup_undo(self):
         dialog = self.editor()
         with patch("pixelheart_core.interior_furniture.discover_furniture_libraries", return_value=[self.library]):
-            QTest.mouseClick(dialog.library_button, Qt.MouseButton.LeftButton)
+            QTest.mouseClick(dialog.library_welcome_button, Qt.MouseButton.LeftButton)
         initialized = dialog.draft.snapshot()
         self.assert_connected(dialog)
         self.assertEqual(dialog.draft._undo, [])
@@ -179,7 +179,7 @@ class InteriorLibraryUndoTests(QtTestCase):
         enlarged_rooms = deepcopy(dialog.draft.data["rooms"])
         self.assertEqual(len(dialog.draft._undo), 1)
         with patch("pixelheart_core.interior_furniture.discover_furniture_libraries", return_value=[self.library]):
-            QTest.mouseClick(dialog.library_button, Qt.MouseButton.LeftButton)
+            QTest.mouseClick(dialog.library_welcome_button, Qt.MouseButton.LeftButton)
         self.assertEqual(len(dialog.draft._undo), 1)
         dialog.undo()
         self.assertEqual(dialog.draft.data["rooms"], original_rooms)

@@ -1,7 +1,9 @@
 """A routine's stops on the map of their place: click where the character stands."""
 from __future__ import annotations
 
-from PySide6.QtCore import QPointF, QRectF, Qt, Signal
+from functools import partial
+
+from PySide6.QtCore import QObject, QPointF, QRectF, QThreadPool, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 
@@ -14,6 +16,30 @@ FACINGS = (("up", "↑"), ("right", "→"), ("down", "↓"), ("left", "←"))
 
 def _stop_name(row):
     return f"stop{row}"
+
+
+def _no_map(location, note):
+    return {"image": None, "foreground": None, "map_size": None, "label": location or "No place", "note": note}
+
+
+class _MapRelay(QObject):
+    """Carries a finished map from the loading thread back to the panel."""
+
+    ready = Signal(int, object)
+
+
+def _load_map(relay, token, location, job):
+    try:
+        result = job()
+        result = {**result, "image": image_from_pixels(result["image"]),
+                  "foreground": image_from_pixels(result.get("foreground"))}
+    except Exception as exc:
+        # Report loading failures on the panel; never raise through Qt.
+        result = _no_map(location, f"This map couldn't be read: {exc}")
+    try:
+        relay.ready.emit(token, result)
+    except RuntimeError:
+        pass  # The panel closed while the map was loading.
 
 
 class RouteCanvas(StageCanvas):
@@ -73,8 +99,12 @@ class RouteMapPanel(QWidget):
         super().__init__(parent)
         self.map_source = None
         self.sprite = None
+        self.loading = False
         self._location = None
         self._selected_row = None
+        self._token = 0
+        self._relay = _MapRelay(self)
+        self._relay.ready.connect(self._map_ready)
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(6)
@@ -114,33 +144,55 @@ class RouteMapPanel(QWidget):
             widget.setEnabled(enabled)
 
     def set_map_source(self, source):
-        """``source(location)`` returns a ``load_route_map`` result."""
+        """``source(location)`` returns a job that makes a ``load_route_map`` result.
+
+        Jobs run away from the UI thread, since a large game map takes a moment to draw.
+        """
         self.map_source = source
         self._location = None
 
     def set_sprite(self, image):
         self.sprite = image if image is not None and not image.isNull() else None
-        self._location = None
 
     def fit(self):
         self.canvas.fit_map()
 
     def _load_place(self, location):
-        result = self.map_source(location) if self.map_source is not None and location else None
-        if result is None:
-            result = {"image": None, "foreground": None, "map_size": None, "label": location or "No place",
-                      "note": f"Connect your game to see {location}." if location else "Choose a place for this stop."}
-        self.place_label.setText(result["label"] or location)
-        self.note.setText(result["note"])
-        self.canvas.set_scene_preview(background=image_from_pixels(result["image"]), map_size=result["map_size"],
-                                      location_label=result["label"] or location, source_note=result["note"],
-                                      foreground=image_from_pixels(result.get("foreground")))
         self._location = location
-        return result["map_size"] is not None
+        self._token += 1
+        job = self.map_source(location) if self.map_source is not None and location else None
+        if job is None:
+            self.loading = False
+            self._show_place(_no_map(location, f"Connect your game to see {location}." if location
+                                     else "Choose a place for this stop."))
+            return
+        self.loading = True
+        self._show_place(_no_map(location, f"Loading the map of {location}…"))
+        QThreadPool.globalInstance().start(partial(_load_map, self._relay, self._token, location, job))
+
+    def _show_place(self, result):
+        location = result["label"] or self._location
+        self.place_label.setText(location)
+        self.note.setText(result["note"])
+        self.canvas.set_scene_preview(background=result["image"], map_size=result["map_size"], sprites=self.canvas.sprites,
+                                      location_label=location, source_note=result["note"],
+                                      foreground=result.get("foreground"))
+
+    def _map_ready(self, token, result):
+        if token != self._token:
+            return  # A place the player has already left.
+        self.loading = False
+        self._show_place(result)
+        if result["map_size"] is not None:
+            self.canvas.fit_map()
 
     def show_route(self, records, selected_row):
         """Show the selected stop's place and every stop there."""
         if selected_row is None or not 0 <= selected_row < len(records):
+            if self.loading:
+                self._token += 1
+                self._location = None
+                self.loading = False
             self._selected_row = None
             self.canvas.rows = []
             self.canvas.load([])
@@ -150,7 +202,7 @@ class RouteMapPanel(QWidget):
         location = records[selected_row].get("location", "")
         fresh = location != self._location
         if fresh:
-            has_map = self._load_place(location)
+            self._load_place(location)
         rows = [row for row, record in enumerate(records) if record.get("location", "") == location]
         actors = [{"name": _stop_name(row), "x": int(records[row].get("x", 0) or 0),
                    "y": int(records[row].get("y", 0) or 0), "facing": records[row].get("facing", "down")}
@@ -164,7 +216,8 @@ class RouteMapPanel(QWidget):
         self.canvas.selected = rows.index(selected_row)
         self.canvas.load(actors, fit=False)
         if fresh:
-            self.canvas.fit_map() if has_map else self.canvas.fit()
+            # Frame the stops until their map arrives.
+            self.canvas.fit()
         self._selected_row = selected_row
         self._set_enabled(True)
 
