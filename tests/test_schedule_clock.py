@@ -42,5 +42,20 @@ class ScheduleTimeLabelTests(unittest.TestCase):
         self.assertEqual(picker.currentText(), "615 · review")
 
 
+class SpinBoxValidationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.application = QApplication.instance() or QApplication([])
+
+    def test_partial_text_is_intermediate_not_an_error(self):
+        from PySide6.QtGui import QValidator
+        from pixelheart.schedule_time import EventTime
+        box = EventTime()
+        state, _, _ = box.validate("9:0", 3)
+        self.assertEqual(state, QValidator.State.Intermediate)
+        state, _, _ = box.validate("noon", 4)
+        self.assertEqual(state, QValidator.State.Invalid)
+
+
 if __name__ == "__main__":
     unittest.main()
